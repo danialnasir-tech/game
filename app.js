@@ -116,8 +116,10 @@
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
     }
+    var BUZZ = { move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
     function play(kind) {
       if (!S.sound) return;
+      try { if (navigator.vibrate && BUZZ[kind]) navigator.vibrate(BUZZ[kind]); } catch (e) { }
       if (kind === 'move') noise(0.08, 1800, 0.7);
       else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); }
       else if (kind === 'check') { noise(0.08, 1800, 0.6); tone(880, 0.18, 0.02, 'triangle', 0.06); }
@@ -301,9 +303,9 @@
     function pos(sq, y) { return new THREE.Vector3(sq.charCodeAt(0) - 97 - 3.5, y || 0, 3.5 - (+sq[1] - 1)); }
     function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
     function easeOutBack(k) { var c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); }
-    function tween(dur, update, ease) {
-      if (REDUCED) dur = Math.min(dur, 60);
-      return new Promise(function (res) { tweens.push({ t0: performance.now(), dur: dur, update: update, ease: ease || easeInOut, res: res }); });
+    function tween(dur, update, ease, delay) {
+      if (REDUCED) { dur = Math.min(dur, 60); delay = 0; }
+      return new Promise(function (res) { tweens.push({ t0: performance.now() + (delay || 0), dur: dur, update: update, ease: ease || easeInOut, res: res }); });
     }
     api.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
@@ -346,6 +348,26 @@
       MAT.frame = new THREE.MeshStandardMaterial({ color: col(0x161d38), roughness: 0.85, metalness: 0 });
       MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xff4f8b), emissive: col(0xff4f8b), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.2 });
       MAT.star = new THREE.MeshStandardMaterial({ color: col(0xf1c873), emissive: col(0x9a6a14), emissiveIntensity: 0.9, roughness: 0.25, metalness: 0.6 });
+      // how strongly each surface picks up the studio reflections from buildEnvironment()
+      MAT.w.envMapIntensity = 0.5; MAT.b.envMapIntensity = 0.95; MAT.light.envMapIntensity = 0.22; MAT.dark.envMapIntensity = 0.3; MAT.frame.envMapIntensity = 0.45; MAT.star.envMapIntensity = 0.8;
+    }
+    // A small "photo studio" (dark gradient dome, one warm softbox, pink and sky rim panels) baked into
+    // a reflection map, so pieces get glossy highlights that match the scene's lights.
+    function buildEnvironment() {
+      try {
+        var pm = new THREE.PMREMGenerator(renderer), env = new THREE.Scene();
+        var dome = new THREE.SphereGeometry(20, 32, 16), p = dome.attributes.position, cols = [];
+        var top = new THREE.Color(0x222c58), bot = new THREE.Color(0x04060d), c = new THREE.Color();
+        for (var i = 0; i < p.count; i++) { c.copy(bot).lerp(top, (p.getY(i) / 20 + 1) / 2); cols.push(c.r, c.g, c.b); }
+        dome.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+        env.add(new THREE.Mesh(dome, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+        [[0xfff1dc, -4, 15, 4, 12, 8], [0xff4f8b, -13, 5, -9, 7, 3], [0x4cc9f0, 13, 4, -7, 7, 3]].forEach(function (b) {
+          var m = new THREE.Mesh(new THREE.PlaneGeometry(b[4], b[5]), new THREE.MeshBasicMaterial({ color: b[0], side: THREE.DoubleSide }));
+          m.position.set(b[1], b[2], b[3]); m.lookAt(0, 0, 0); env.add(m);
+        });
+        scene.environment = pm.fromScene(env, 0.035).texture;
+        pm.dispose();
+      } catch (e) { }
     }
     var glyphCache = {};
     function glyphMat(type, color) {
@@ -408,6 +430,7 @@
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       container.appendChild(renderer.domElement);
+      buildEnvironment();
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true; controls.dampingFactor = 0.08;
       controls.enablePan = false; controls.minDistance = 7; controls.maxDistance = 30;
@@ -445,9 +468,9 @@
       [[0, 4.05, 0], [0, -4.05, 0], [4.05, 0, 1], [-4.05, 0, 1]].forEach(function (t) {
         var tr = new THREE.Mesh(trimGeo[t[2]], MAT.brass); tr.position.set(t[2] ? t[0] : 0, -0.025, t[2] ? 0 : t[1]); board.add(tr);
       });
-      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8 }));
+      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8, envMapIntensity: 0.35 }));
       base.position.y = -0.62; base.receiveShadow = true; board.add(base);
-      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1 }));
+      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1, envMapIntensity: 0.15 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -0.78; floor.receiveShadow = true; board.add(floor);
       scene.add(board);
 
@@ -538,8 +561,13 @@
       new ResizeObserver(resize).observe(container);
       resize();
       api.setOrientation('w', false);
+      if (!REDUCED) { // opening shot: swing in from high above the board's corner
+        var end = camTarget(); camera.position.set(end.x + 9, end.y * 1.5, end.z * 0.2 - 7); controls.update();
+        introUntil = performance.now() + 2600; moveCamera(true, 2000, 450);
+      }
       requestAnimationFrame(loop);
     };
+    var introUntil = 0;
 
     var hPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.3);
     function planePoint(e) {
@@ -594,7 +622,7 @@
       if (viewMode === 'top') return new THREE.Vector3(0, d, 0.001 * s);
       return new THREE.Vector3(0, d * 0.72, d * 0.69 * s);
     }
-    function moveCamera(animate) {
+    function moveCamera(animate, dur, delay) {
       var to = camTarget();
       if (!animate) { camera.position.copy(to); controls.update(); return Promise.resolve(); }
       var from = camera.position.clone();
@@ -603,11 +631,11 @@
       var r0 = Math.hypot(from.x, from.z), r1 = Math.hypot(to.x, to.z);
       if (Math.abs(a1 - a0) > Math.PI) a1 += a1 < a0 ? Math.PI * 2 : -Math.PI * 2;
       var tok = ++camTok;
-      return tween(900, function (k) {
+      return tween(dur || 900, function (k) {
         if (tok !== camTok) return;
         var a = a0 + (a1 - a0) * k, r = r0 + (r1 - r0) * k;
         camera.position.set(Math.sin(a) * r, from.y + (to.y - from.y) * k, Math.cos(a) * r);
-      });
+      }, null, delay);
     }
     function placeLabels() {
       labels.forEach(function (l) {
@@ -618,6 +646,7 @@
       });
     }
     api.setOrientation = function (c, animate) {
+      if (c === orient && performance.now() < introUntil) return Promise.resolve(); // let the opening shot finish
       orient = c; placeLabels();
       return moveCamera(animate !== false);
     };
@@ -687,10 +716,20 @@
     function slide(m, from, to, lift) {
       var p0 = pos(from), p1 = pos(to), dist = p0.distanceTo(p1);
       var h = lift * Math.min(1, 0.45 + dist * 0.12);
+      m.userData.moving = true;
       return tween(260 + dist * 45, function (k) {
         m.position.set(p0.x + (p1.x - p0.x) * k, Math.sin(Math.PI * k) * h, p0.z + (p1.z - p0.z) * k);
-      });
+      }).then(function () { m.userData.moving = false; });
     }
+    // The selected piece rises slightly off the board, and settles back when deselected.
+    var lifted = null;
+    function free(m) { return m && m.parent && !m.userData.moving && !(drag && drag.mesh === m); }
+    api.lift = function (sq) {
+      var m = sq ? meshes[sq] : null;
+      if (lifted && lifted !== m) { var a = lifted, y0 = a.position.y; if (y0 > 0.001) tween(150, function (k) { if (free(a) && lifted !== a) a.position.y = y0 * (1 - k); }); }
+      lifted = m;
+      if (m) { var y1 = m.position.y; tween(220, function (k) { if (free(m) && lifted === m) m.position.y = y1 + (0.2 - y1) * k; }, easeOutBack); }
+    };
     function capture(m) {
       if (!m) return Promise.resolve();
       var y0 = m.position.y;
@@ -808,7 +847,12 @@
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var panel, ACT = {};
-  function setPanel(html) { panel.innerHTML = html; panel.scrollTop = 0; }
+  var PANEL_ANIM = false;
+  function setPanel(html) {
+    panel.classList.remove('enter');
+    panel.innerHTML = html; panel.scrollTop = 0;
+    if (PANEL_ANIM) { PANEL_ANIM = false; void panel.offsetWidth; panel.classList.add('enter'); clearTimeout(setPanel._t); setPanel._t = setTimeout(function () { panel.classList.remove('enter'); }, 900); }
+  }
   function toast(msg, kind) {
     var t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
     clearTimeout(toast._t); toast._t = setTimeout(function () { t.className = 'toast'; }, 2200);
@@ -824,9 +868,10 @@
   var IX = { game: null, enabled: false, selected: null, canMove: function () { return false; }, onMove: null, collect: null };
   function kingSq(g) { var k = g.kings[g.side ? 1 : 0]; return k >= 0 ? Game.sqName(k) : null; }
   function showCheck(g) { B3.markers('check', g && g.inCheck() ? [kingSq(g)] : []); }
-  function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); }
+  function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); if (B3.lift) B3.lift(null); }
   function selectSq(sq) {
     IX.selected = sq;
+    if (B3.lift) B3.lift(sq);
     var ms = IX.game.moves({ square: sq });
     B3.markers('sel', [sq]);
     B3.markers('moves', ms.map(function (m) { return { sq: m.to, cap: !!m.captured }; }));
@@ -1016,6 +1061,7 @@
     IX.enabled = false; IX.onMove = null; IX.collect = null;
     current = MODES[mode];
     document.body.dataset.mode = mode;
+    PANEL_ANIM = true;
     current.enter(arg);
     $('#mode-label').textContent = current.label || '';
     setLayout();
@@ -1239,7 +1285,7 @@
     Badges.award('first_lesson');
     var stI = stageOf(LS.id), stDone = STAGES[stI].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
     if (stDone) Badges.award('stage_' + (stI + 1));
-    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
+    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
     var nl = nextLesson();
     document.body.dataset.layout = 'browse';
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
@@ -1381,7 +1427,7 @@
         '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
         '<div class="coach-card"><div class="coach-tag">' + (i === 0 ? 'The idea' : 'Move ' + Math.ceil(i / 2) + (i % 2 ? '' : '…') + ' ' + esc(o.moves[i - 1])) + '</div><p class="coach-text">' + esc(lastNote) + '</p>' +
         (i < o.moves.length ? '<p class="next-note"><span class="muted">Next:</span> <span class="mono">' + esc(o.moves[i]) + '</span> · ' + esc(nextNote) + '</p>' : '<p class="next-note">' + esc(nextNote) + '</p>') + '</div>' +
-        moveListHtml(o.moves, i, 'opJump') +
+        moveListHtml(o.moves, i, 'opJump') + '<p class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> step through the moves</p>' +
         '<div class="actions"><button class="btn ghost" data-act="opPrev" ' + (i === 0 ? 'disabled' : '') + '>← Back</button><button class="btn" data-act="opAuto">Autoplay</button>' +
         (i < o.moves.length ? '<button class="btn primary" data-act="opNext">Next move →</button>' : '<button class="btn primary" data-act="drillOp">Drill it</button>') + '</div>');
       // arrow for upcoming move
@@ -1539,7 +1585,7 @@
         if (nSolved >= 10) Badges.award('puzzles_10'); if (nSolved >= 25) Badges.award('puzzles_25');
       }
       else { PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
-      save();
+      save(); floatDelta(delta);
       return delta;
     },
     onMove: function (mv, uci) {
@@ -1629,7 +1675,7 @@
       setPanel('<button class="back" data-act="goPuzzles">← Puzzles</button><div class="eyebrow">Puzzle Rush</div><h1 class="h1">' + (isBest ? 'New best!' : 'Time!') + '</h1>' +
         '<div class="rush-final"><div class="rating">' + RU.score + '</div><span class="muted">puzzles solved · best ' + best + '</span></div>' +
         '<div class="actions"><button class="btn primary big" data-act="rushStart">Play again</button></div>');
-      if (isBest) B3.burst('e4');
+      if (isBest) { B3.burst('e4'); confetti(); }
     },
     leave: function () { clearInterval(MODES.rush.timer); if (RU) RU.over = true; }
   };
@@ -1839,6 +1885,7 @@
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
           setTimeout(function () {
+            if (!PL || PL.g !== g || PL.over) return; // the player left this game while the coach was thinking
             PL.thinking = false;
             if (!r || !r.move) { MODES.play.checkOver(); return; }
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
@@ -1977,7 +2024,7 @@
       if (result === 'win') Badges.award('beat_' + PL.level.id);
       if (PL.toldComeback && result === 'win') Badges.award('comeback');
       PL.result = result; PL.acc = acc;
-      if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); }
+      if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); confetti(); }
       var endLine = result === 'win' ? 'win' : result === 'draw' ? 'draw' : /Checkmate/.test(msg) ? 'loss' : null;
       if (endLine) Voice.say([V(endLine, endLine)]);
       else Voice.say([V('resign')]);
@@ -2103,7 +2150,7 @@
           return '<button class="moment ' + m.cls + '" data-act="rvMoment" data-k="' + k + '"><span class="mo-n">' + (k + 1) + '</span><span><b>Move ' + Math.ceil((m.i + 1) / 2) + ': ' + esc(m.san) + '</b><span class="mo-sub">' + esc(m.label) + (m.bestSan && CLASS[m.key] && !CLASS[m.key].positive ? ' · best was ' + esc(m.bestSan) : '') + '</span></span><span class="mo-go">▶</span></button>';
         }).join('') + '</div>' + (r.moments.some(function (m) { return !CLASS[m.key].positive; }) ? '<button class="btn primary big" data-act="rvPractice">Practise these positions</button>' : '') : '<p class="lede">No big mistakes this game. Impressive!</p>') +
         curHtml +
-        '<div class="rv-nav"><button class="icon-btn" data-act="rvGo" data-n="0" aria-label="Start">⏮</button><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply - 1) + '" aria-label="Back">◀</button><span class="mono small">' + r.ply + ' / ' + r.moves.length + '</span><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply + 1) + '" aria-label="Forward">▶</button><button class="icon-btn" data-act="rvGo" data-n="' + r.moves.length + '" aria-label="End">⏭</button></div>' +
+        '<div class="rv-nav"><button class="icon-btn" data-act="rvGo" data-n="0" aria-label="Start">⏮</button><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply - 1) + '" aria-label="Back">◀</button><span class="mono small">' + r.ply + ' / ' + r.moves.length + '</span><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply + 1) + '" aria-label="Forward">▶</button><button class="icon-btn" data-act="rvGo" data-n="' + r.moves.length + '" aria-label="End">⏭</button></div><p class="kbd-hint" style="text-align:center"><kbd>←</kbd> <kbd>→</kbd> moves · <kbd>Home</kbd> <kbd>End</kbd></p>' +
         '<div class="score rv-score mono">' + rows + '</div>');
     },
     explain: function (n) {
@@ -2287,13 +2334,45 @@
     $('#top-missions-bar').style.width = (missionsDone(d) / missionsTotal() * 100) + '%';
     var lv = Levels.of(S.xp);
     $('#top-level').textContent = lv.name; $('#top-level-bar').style.width = Math.round(lv.progress * 100) + '%';
-    $('#top-rating').textContent = Math.round(S.puzzle.rating);
+    countTo($('#top-rating'), Math.round(S.puzzle.rating));
     $('#top-xp').textContent = S.xp;
-    $('#top-streak').textContent = S.streak;
+    countTo($('#top-streak'), S.streak);
     $('#sound-btn').setAttribute('aria-pressed', S.sound ? 'true' : 'false');
     $('#sound-btn').classList.toggle('off', !S.sound);
     $('#voice-btn').setAttribute('aria-pressed', S.voice ? 'true' : 'false');
     $('#voice-btn').classList.toggle('off', !S.voice);
+  }
+  // Numbers in the top bar roll to their new value and glow briefly.
+  function countTo(el, v) {
+    var from = el._v == null ? v : el._v; el._v = v;
+    if (from === v || REDUCED) { el.textContent = v; return; }
+    var t0 = performance.now(), d = 750; el.classList.add('bump');
+    (function f(t) {
+      var k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(from + (v - from) * e);
+      if (k < 1) requestAnimationFrame(f); else setTimeout(function () { el.classList.remove('bump'); }, 250);
+    })(t0);
+  }
+  function floatDelta(d) {
+    var host = $('#top-rating'); if (!d || !host) return;
+    var r = host.getBoundingClientRect(), f = document.createElement('div');
+    f.className = 'delta-float ' + (d > 0 ? 'up' : 'down'); f.textContent = (d > 0 ? '+' : '') + d;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.bottom + 6) + 'px';
+    document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1500);
+  }
+  function confetti() {
+    if (REDUCED) return;
+    var c = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+    c.className = 'confetti'; c.width = W * dpr; c.height = H * dpr; document.body.appendChild(c);
+    var x = c.getContext('2d'); if (!x) { c.remove(); return; } x.scale(dpr, dpr);
+    var cols = ['#ffd23f', '#ff4f8b', '#4cc9f0', '#3ddc97', '#f5f2ff'], P = [];
+    for (var i = 0; i < 150; i++) P.push({ x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.4, vx: (Math.random() - 0.5) * 15, vy: -7 - Math.random() * 11, r: 5 + Math.random() * 6, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[i % cols.length] });
+    var t0 = performance.now();
+    (function f(t) {
+      var k = (t - t0) / 2400; x.clearRect(0, 0, W, H);
+      P.forEach(function (p) { p.vy += 0.36; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.a += p.va; x.save(); x.globalAlpha = Math.max(0, 1 - k * k); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore(); });
+      if (k < 1) requestAnimationFrame(f); else c.remove();
+    })(t0);
   }
   var BANDS = [
     { v: 100, t: 'Brand new', s: 'I am learning how the pieces move.' },
@@ -2389,7 +2468,7 @@
         '<div class="eyebrow">' + (c.kind === 'level' ? 'Level up' : 'Badge unlocked') + '</div><h2 class="cel-title">' + esc(c.title) + '</h2><p>' + esc(c.text) + '</p>' +
         '<button class="btn primary big" data-cel="ok">Awesome!</button></div>';
       document.body.appendChild(m);
-      Sound.play('win'); if (c.voice) Voice.say([c.voice]);
+      Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
       m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]')) { m.remove(); open = false; setTimeout(next, 250); } });
     }
     return { show: function (c) { queue.push(c); setTimeout(next, 500); } };
@@ -2398,7 +2477,7 @@
   // ================= Welcome tour =================
   var Tour = (function () {
     var i = 0, el = null;
-    function close() { if (el) { el.remove(); el = null; } window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
+    function close() { if (el) { el.remove(); el = null; } closeTools(); document.body.classList.remove('tour-tools'); window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
     function place() {
       if (!el) return;
       var step = TOUR[i], spot = el.querySelector('.tour-spot'), card = el.querySelector('.tour-card');
@@ -2429,12 +2508,17 @@
     }
     function render() {
       var step = TOUR[i];
+      // On phones the board tools sit behind the "..." button: open that menu for its tour step.
+      var tb = document.querySelector('.board-tools'), tbtn = $('#tools-btn');
+      var compact = (MQ && MQ.matches) || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches);
+      document.body.classList.toggle('tour-tools', step.sel === '.board-tools' && compact);
+      if (step.sel === '.board-tools' && compact) { tb.classList.add('open'); tbtn.setAttribute('aria-expanded', 'true'); } else closeTools();
       el.querySelector('.tour-spot').classList.remove('pop'); void el.offsetWidth; el.querySelector('.tour-spot').classList.add('pop');
       el.querySelector('.tour-card').innerHTML =
         '<div class="eyebrow">' + (i + 1) + ' / ' + TOUR.length + '</div><h2 class="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
         '<div class="actions">' + (i > 0 ? '<button class="btn ghost" data-tour="back">Back</button>' : '<button class="btn ghost" data-tour="skip">Skip tour</button>') +
         '<button class="btn primary" data-tour="next">' + (i === TOUR.length - 1 ? 'Start training' : 'Next') + '</button></div>';
-      place();
+      place(); requestAnimationFrame(place); setTimeout(place, 420);
       Voice.say([{ id: 'T-' + i, text: step.text }]);
     }
     function start() {
@@ -2455,7 +2539,15 @@
       window.addEventListener('resize', place);
       render();
     }
-    return { start: start };
+    function key(k) {
+      if (!el) return false;
+      if (k === 'Escape') close();
+      else if (k === 'ArrowRight' || k === 'Enter') { var n = el.querySelector('[data-tour="next"]'); if (n) n.click(); }
+      else if (k === 'ArrowLeft') { var b = el.querySelector('[data-tour="back"]'); if (b) b.click(); }
+      else return false;
+      return true;
+    }
+    return { start: start, key: key };
   })();
   ACT.tour = function () { Tour.start(); };
 
@@ -2484,6 +2576,26 @@
     document.addEventListener('pointerdown', function (e) { if (!e.target.closest('.board-tools,#tools-btn')) closeTools(); });
     $('#coach-bubble').addEventListener('click', function () { Voice.replay(); });
     applyMob();
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target.closest && e.target.closest('input,textarea,select'))) return;
+      var k = e.key;
+      if (Tour.key(k)) { e.preventDefault(); return; }
+      var cel = document.querySelector('.celebrate [data-cel]');
+      if (cel) { if (k === 'Escape' || k === 'Enter') { e.preventDefault(); cel.click(); } return; }
+      var m = $('#modal');
+      if (!m.hidden) { if (k === 'Escape' && !m.classList.contains('intro')) { m.hidden = true; m.onclick = null; } return; }
+      if (k === 'Escape') { closeTools(); deselect(); return; }
+      if (k === 'f' || k === 'F') { $('#flip-btn').click(); return; }
+      if (current === MODES.opening && OD && OD.mode === 'learn') {
+        if (k === 'ArrowRight' && OD.ply < OD.o.moves.length) { e.preventDefault(); ACT.opNext(); }
+        else if (k === 'ArrowLeft' && OD.ply > 0) { e.preventDefault(); ACT.opPrev(); }
+      } else if (current === MODES.review && RV) {
+        if (k === 'ArrowRight') { e.preventDefault(); MODES.review.goto(RV.ply + 1); }
+        else if (k === 'ArrowLeft') { e.preventDefault(); MODES.review.goto(RV.ply - 1); }
+        else if (k === 'Home') { e.preventDefault(); MODES.review.goto(0); }
+        else if (k === 'End') { e.preventDefault(); MODES.review.goto(RV.moves.length); }
+      }
+    });
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', applyMob); else if (MQ.addListener) MQ.addListener(applyMob); }
     $('#coach-bubble .cb-avatar').innerHTML = coachAvatar();
     var use2d = !!S.settings.board2d || typeof THREE === 'undefined' || !THREE.OrbitControls || !webglOK();
@@ -2507,7 +2619,9 @@
       if (S.onboarded && S.lastGreet !== dayKey() && S.toured) { S.lastGreet = dayKey(); save(); Voice.say([V('welcome_back')], true); }
     });
     if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
-    else { go('path'); if (!S.toured) setTimeout(Tour.start, 900); }
+    else { go('path'); if (!S.toured) setTimeout(Tour.start, 1500); }
+    var sp = $('#splash');
+    if (sp) requestAnimationFrame(function () { setTimeout(function () { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 700); }, 300); });
   }
   window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

@@ -144,7 +144,7 @@ var TOUR = [
   { sel: '[data-go="openings"]', title: 'Openings', text: "In Openings you learn real repertoire lines, gambits and traps, with every move explained. Then you drill them until they're automatic." },
   { sel: '[data-go="play"]', title: 'Play the coach', text: "Coach is where we play a real game. I'll react to every move, warn you about threats, and tell you exactly what went wrong." },
   { sel: '[data-go="progress"]', title: 'Progress', text: "Progress shows your rating graph, your thirty-day calendar, and how your accuracy is improving." },
-  { sel: '.missions', title: 'Today\'s missions', text: "Every day you get four missions: one lesson, five puzzles, one opening drill, and one game with me. Do them daily and you'll feel the climb." },
+  { sel: '.mchips', title: 'Today\'s missions', text: "Every day you get four missions: one lesson, five puzzles, one opening drill, and one game with me. Do them daily and you'll feel the climb." },
   { sel: null, title: 'Ready?', text: "That's the tour! Let's start with today's lesson. I'll be right here with you." }
 ];
 function TOUR_LINES() { return TOUR.map(function (t, i) { return { id: 'T-' + i, text: t.text, group: 'tour' }; }); }

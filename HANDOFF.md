@@ -42,6 +42,17 @@ Publish `dist/chess-ascent.html` as an artifact and pass the 15 packs as support
 - Phone and desktop must each look designed; phone = one screen, no page scroll.
 - Never paste or reuse API keys.
 
+## Release polish (added after the move)
+- Launch screen (`#splash` in `template.html`) while Three.js downloads; it fades out at the end of `boot()`.
+- 3D: studio reflection map (`buildEnvironment()` in `app.js`), opening camera sweep, the selected piece lifts (`B3.lift`, also in `board2d.js`).
+- Screen changes animate the side panel in (`PANEL_ANIM` in `go()`); top-bar numbers roll (`countTo`); puzzle rating changes pop under the rating (`floatDelta`); confetti on lesson complete, wins, badges, level-ups and a Rush best.
+- Phones vibrate with the sound effects (`BUZZ` in `Sound`).
+- Keyboard: Esc closes dialogs and the tour, arrow keys step the tour, opening lessons and game review, F flips the board.
+- Tour: the missions step points at `.mchips`; on phones the Board tools step opens the folded menu.
+- Puzzles x29 and x35 accept every correct mating first move.
+- Website build (`site.html`) gets an icon and share/home-screen meta tags.
+- Fixed: leaving a game while the coach was thinking threw an error.
+
 ## Open items
 1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.

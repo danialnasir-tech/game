@@ -17,6 +17,18 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+/* launch screen: shown while the 3D engine downloads, fades out once the app is ready */
+#splash { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: radial-gradient(700px 420px at 50% 38%, rgba(255,79,139,.22), transparent 70%), radial-gradient(600px 400px at 50% 85%, rgba(76,201,240,.14), transparent 70%), var(--bg); transition: opacity .55s ease, visibility .55s; }
+#splash.out { opacity: 0; visibility: hidden; }
+.sp-card { display: grid; justify-items: center; gap: 16px; text-align: center; }
+.sp-mark { width: 88px; height: 88px; border-radius: 26px; display: grid; place-items: center; background: conic-gradient(from 200deg, var(--pink), var(--brass), var(--sky), var(--pink)); box-shadow: 0 0 60px rgba(255,79,139,.45); animation: spPulse 1.8s ease-in-out infinite; }
+.sp-title { font: 800 32px/1 var(--f-display); letter-spacing: -.04em; color: var(--fg); }
+.sp-title em { font-style: normal; background: linear-gradient(90deg, var(--brass), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sp-bar { width: 168px; height: 4px; border-radius: 4px; background: var(--card-2); overflow: hidden; }
+.sp-bar i { display: block; width: 40%; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--sky), var(--pink)); animation: spLoad 1.15s ease-in-out infinite; }
+.sp-sub { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+@keyframes spPulse { 50% { transform: scale(1.06); box-shadow: 0 0 84px rgba(255,79,139,.65); } }
+@keyframes spLoad { from { transform: translateX(-110%); } to { transform: translateX(280%); } }
 html, body { height: 100%; }
 body { margin: 0; background: radial-gradient(1200px 600px at 85% -10%, rgba(255,79,139,.10), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(76,201,240,.10), transparent 60%), var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; overflow: hidden; }
 * { box-sizing: border-box; }
@@ -235,7 +247,7 @@ button:disabled { cursor: not-allowed; }
 /* tour */
 .tour { position: fixed; inset: 0; z-index: 30; }
 .tour.center { background: rgba(6,9,13,.7); }
-.tour-spot { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(6,9,13,.7); outline: 2px solid var(--brass-hi); transition: all .35s ease; pointer-events: none; }
+.tour-spot { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(6,9,13,.7); outline: 2px solid var(--brass-hi); transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; pointer-events: none; }
 .tour-card { position: fixed; background: var(--bg-2); border: 1px solid var(--brass); border-radius: 14px; padding: 16px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.55); transition: top .35s ease, left .35s ease; }
 .tour-card p { margin: 6px 0 0; }
 .tour-title { font-family: var(--f-display); font-weight: 800; font-size: 20px; margin: 4px 0 0; }
@@ -362,6 +374,8 @@ button:disabled { cursor: not-allowed; }
   <aside class="panel" id="panel"></aside>
 </div>
 <div id="modal" hidden></div>
+<div id="splash" role="status" aria-label="Loading Chess Ascent"><div class="sp-card"><span class="sp-mark" aria-hidden="true"><svg viewBox="0 0 45 45" width="50" height="50"><g fill="#1b1a22" stroke="#f7efdc" stroke-width="1.5" stroke-linejoin="round" fill-rule="evenodd"><path d="M14 36l.8-7.4c.8-4.6 3.8-7.3 6.5-9.6-2.4.3-5 1.6-6.9 3.6l-3.6-2.4c1.4-4.3 4.7-8.1 9.1-10.4l1.2-3.6 2.3 3.1c7 .7 11.4 6.5 11.4 14.2 0 4.8-1.3 9.3-3.3 12.5zm8.3-21.3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/><path d="M11.5 36.5h22a1.5 1.5 0 0 1 1.5 1.5v.5a1.5 1.5 0 0 1-1.5 1.5h-22A1.5 1.5 0 0 1 10 38.5V38a1.5 1.5 0 0 1 1.5-1.5z"/></g></svg></span><div class="sp-title">Chess <em>Ascent</em></div><div class="sp-bar"><i></i></div><div class="sp-sub">Setting up the board</div></div></div>
+<script>setTimeout(function () { var s = document.getElementById('splash'); if (s) s.remove(); }, 12000);</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');</script>
@@ -1615,7 +1629,7 @@ var PUZZLES_MINED = [{"id":"x05","title":"Knight fork","theme":"fork","r":500,"f
   {"id":"x04","title":"Mate in 3","theme":"mate","r":800,"fen":"4k1r1/3rbp2/4p1p1/P5B1/2P3PP/5PN1/2KR4/1R6 w - - 0 37","sol":["b1b8","e7d8","b8d8","d7d8","d2d8"],"explain":"Rb8+ and after Bd8, Rxd8+, Rxd8, Rxd8# the king has no escape.","mate":3},
   {"id":"x15","title":"Rook fork","theme":"fork","r":800,"fen":"8/3r3R/3k4/R7/6p1/1P3p2/2K4P/5r2 w - - 6 61","sol":["a5a6","d6e5","h7d7"],"explain":"Ra6+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
   {"id":"x26","title":"Mate in 2","theme":"mate","r":800,"fen":"8/1p6/3k4/2pp3p/2b4P/5qr1/2K4R/8 b - - 1 45","sol":["f3c3","c2b1","g3g1"],"explain":"Qc3+ and after Kb1, Rg1# the king has no escape.","mate":2},
-  {"id":"x35","title":"Mate in 3","theme":"mate","r":800,"fen":"1k2n3/2p1r3/b7/5p2/2P3pP/6P1/3p1PKR/8 b - - 1 42","sol":["a6b7","f2f3","e7e2","g2f1","d2d1q"],"explain":"Bb7+ and after f3, Re2+, Kf1, d1=Q# the king has no escape.","mate":3},
+  {"id":"x35","title":"Mate in 3","theme":"mate","r":800,"accept":["a6b7","d2d1q","d2d1r"],"fen":"1k2n3/2p1r3/b7/5p2/2P3pP/6P1/3p1PKR/8 b - - 1 42","sol":["a6b7","f2f3","e7e2","g2f1","d2d1q"],"explain":"Bb7+ and after f3, Re2+, Kf1, d1=Q# the king has no escape.","mate":3},
   {"id":"x40","title":"Rook fork","theme":"fork","r":800,"fen":"7r/p1pk2pp/4p3/8/2N3P1/2PPR2r/P7/R1K5 b - - 0 26","sol":["h3h1","c1c2","h1a1"],"explain":"Rh1+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
   {"id":"x43","title":"Mate in 3","theme":"mate","r":800,"fen":"r2qk3/1p2n3/1pnpB1pQ/4pp2/2p1P3/2P2N2/PB1P1P2/1RK5 w - - 0 36","sol":["h6h8","e7g8","h8g8","e8e7","g8f7"],"explain":"Qh8+ and after Ng8, Qxg8+, Ke7, Qf7# the king has no escape.","mate":3},
   {"id":"x47","title":"Mate in 2","theme":"mate","r":800,"fen":"7k/8/2pb3r/3p4/PPb1pq2/2P4P/1K6/R3R3 b - - 1 50","sol":["f4d2","b2a3","d2c3"],"explain":"Qd2+ and after Ka3, Qxc3# the king has no escape.","mate":2},
@@ -1635,7 +1649,7 @@ var PUZZLES_MINED = [{"id":"x05","title":"Knight fork","theme":"fork","r":500,"f
   {"id":"x21","title":"Mate in 3","theme":"mate","r":1100,"fen":"2k2B2/1pp5/6p1/p2N3p/P7/6P1/1Pb2K1P/4R3 w - - 2 33","sol":["e1e8","c8d7","d5f6","d7c6","e8e6"],"explain":"Re8+ and after Kd7, Nf6+, Kc6, Re6# the king has no escape.","mate":3},
   {"id":"x24","title":"Mate in 3","theme":"mate","r":1100,"fen":"1rb2bk1/pp3p2/3p4/3p1N1Q/8/3B1N2/P1P2PPP/5K1R w - - 1 24","sol":["f5e7","f8e7","h5h7","g8f8","h7h8"],"explain":"Ne7+ and after Bxe7, Qh7+, Kf8, Qh8# the king has no escape.","mate":3},
   {"id":"x27","title":"Mate in 3","theme":"mate","r":1100,"fen":"8/p4k1p/2n4p/1p2rP2/5KPP/PP6/8/4r3 b - - 0 38","sol":["e1e3","f5f6","e5e4","f4f5","c6d4"],"explain":"R1e3 and after f6, R5e4+, Kf5, Nd4# the king has no escape.","mate":3},
-  {"id":"x29","title":"Mate in 3","theme":"mate","r":1100,"fen":"1r3k2/p2Q2r1/p7/2p5/4pP2/P7/1PP3R1/5KN1 w - - 8 43","sol":["g2g7","b8b7","g7f7","f8g8","d7e8"],"explain":"Rxg7 and after Rb7, Rf7+, Kg8, Qe8# the king has no escape.","mate":3},
+  {"id":"x29","title":"Mate in 3","theme":"mate","r":1100,"accept":["g2g7","d7g7"],"fen":"1r3k2/p2Q2r1/p7/2p5/4pP2/P7/1PP3R1/5KN1 w - - 8 43","sol":["g2g7","b8b7","g7f7","f8g8","d7e8"],"explain":"Rxg7 and after Rb7, Rf7+, Kg8, Qe8# the king has no escape.","mate":3},
   {"id":"x48","title":"Mate in 4","theme":"mate","r":1250,"fen":"4k3/6p1/1ppbb2r/2nqp2p/p7/P2P1rP1/1PP4P/2RKQ2R b - - 1 31","sol":["f3d3","c2d3","e6g4","e1e2","d5d3","d1e1","d3e2"],"explain":"Rxd3+ and after cxd3, Bg4+, Qe2, Qxd3+, Ke1, Qxe2# the king has no escape.","mate":4},
   {"id":"x30","title":"Mate in 3","theme":"mate","r":1275,"fen":"6k1/1R6/3N1B2/3P3p/8/nP3KP1/8/8 w - - 1 43","sol":["b7g7","g8f8","g7h7","a3c2","h7h8"],"explain":"Rg7+ and after Kf8, Rh7, Nc2, Rh8# the king has no escape.","mate":3},
   {"id":"x31","title":"Mate in 4","theme":"mate","r":1400,"fen":"6k1/2pR1ppp/8/p1K3P1/B7/1P1r3P/4q3/8 b - - 5 36","sol":["d3c3","c5d5","e2e6","d5d4","e6e3","d4d5","c3c5"],"explain":"Rc3+ and after Kd5, Qe6+, Kd4, Qe3+, Kd5, Rc5# the king has no escape.","mate":4},
@@ -1796,7 +1810,7 @@ var TOUR = [
   { sel: '[data-go="openings"]', title: 'Openings', text: "In Openings you learn real repertoire lines, gambits and traps, with every move explained. Then you drill them until they're automatic." },
   { sel: '[data-go="play"]', title: 'Play the coach', text: "Coach is where we play a real game. I'll react to every move, warn you about threats, and tell you exactly what went wrong." },
   { sel: '[data-go="progress"]', title: 'Progress', text: "Progress shows your rating graph, your thirty-day calendar, and how your accuracy is improving." },
-  { sel: '.missions', title: 'Today\'s missions', text: "Every day you get four missions: one lesson, five puzzles, one opening drill, and one game with me. Do them daily and you'll feel the climb." },
+  { sel: '.mchips', title: 'Today\'s missions', text: "Every day you get four missions: one lesson, five puzzles, one opening drill, and one game with me. Do them daily and you'll feel the climb." },
   { sel: null, title: 'Ready?', text: "That's the tour! Let's start with today's lesson. I'll be right here with you." }
 ];
 function TOUR_LINES() { return TOUR.map(function (t, i) { return { id: 'T-' + i, text: t.text, group: 'tour' }; }); }
@@ -2058,6 +2072,8 @@ function BOARD2D_FACTORY() {
   api.idle = function () { };
   api.recenter = function () { };
   api.setDrag = function (f) { dragFns = f; };
+  var liftedEl = null;
+  api.lift = function (sq) { if (liftedEl) liftedEl.classList.remove('lifted'); liftedEl = sq ? meshes[sq] || null : null; if (liftedEl) liftedEl.classList.add('lifted'); };
   api.setCameraFixed = function () { };
   api.is2D = true;
   return api;
@@ -2182,8 +2198,10 @@ function BOARD2D_FACTORY() {
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
     }
+    var BUZZ = { move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
     function play(kind) {
       if (!S.sound) return;
+      try { if (navigator.vibrate && BUZZ[kind]) navigator.vibrate(BUZZ[kind]); } catch (e) { }
       if (kind === 'move') noise(0.08, 1800, 0.7);
       else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); }
       else if (kind === 'check') { noise(0.08, 1800, 0.6); tone(880, 0.18, 0.02, 'triangle', 0.06); }
@@ -2367,9 +2385,9 @@ function BOARD2D_FACTORY() {
     function pos(sq, y) { return new THREE.Vector3(sq.charCodeAt(0) - 97 - 3.5, y || 0, 3.5 - (+sq[1] - 1)); }
     function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
     function easeOutBack(k) { var c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); }
-    function tween(dur, update, ease) {
-      if (REDUCED) dur = Math.min(dur, 60);
-      return new Promise(function (res) { tweens.push({ t0: performance.now(), dur: dur, update: update, ease: ease || easeInOut, res: res }); });
+    function tween(dur, update, ease, delay) {
+      if (REDUCED) { dur = Math.min(dur, 60); delay = 0; }
+      return new Promise(function (res) { tweens.push({ t0: performance.now() + (delay || 0), dur: dur, update: update, ease: ease || easeInOut, res: res }); });
     }
     api.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
@@ -2412,6 +2430,26 @@ function BOARD2D_FACTORY() {
       MAT.frame = new THREE.MeshStandardMaterial({ color: col(0x161d38), roughness: 0.85, metalness: 0 });
       MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xff4f8b), emissive: col(0xff4f8b), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.2 });
       MAT.star = new THREE.MeshStandardMaterial({ color: col(0xf1c873), emissive: col(0x9a6a14), emissiveIntensity: 0.9, roughness: 0.25, metalness: 0.6 });
+      // how strongly each surface picks up the studio reflections from buildEnvironment()
+      MAT.w.envMapIntensity = 0.5; MAT.b.envMapIntensity = 0.95; MAT.light.envMapIntensity = 0.22; MAT.dark.envMapIntensity = 0.3; MAT.frame.envMapIntensity = 0.45; MAT.star.envMapIntensity = 0.8;
+    }
+    // A small "photo studio" (dark gradient dome, one warm softbox, pink and sky rim panels) baked into
+    // a reflection map, so pieces get glossy highlights that match the scene's lights.
+    function buildEnvironment() {
+      try {
+        var pm = new THREE.PMREMGenerator(renderer), env = new THREE.Scene();
+        var dome = new THREE.SphereGeometry(20, 32, 16), p = dome.attributes.position, cols = [];
+        var top = new THREE.Color(0x222c58), bot = new THREE.Color(0x04060d), c = new THREE.Color();
+        for (var i = 0; i < p.count; i++) { c.copy(bot).lerp(top, (p.getY(i) / 20 + 1) / 2); cols.push(c.r, c.g, c.b); }
+        dome.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+        env.add(new THREE.Mesh(dome, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+        [[0xfff1dc, -4, 15, 4, 12, 8], [0xff4f8b, -13, 5, -9, 7, 3], [0x4cc9f0, 13, 4, -7, 7, 3]].forEach(function (b) {
+          var m = new THREE.Mesh(new THREE.PlaneGeometry(b[4], b[5]), new THREE.MeshBasicMaterial({ color: b[0], side: THREE.DoubleSide }));
+          m.position.set(b[1], b[2], b[3]); m.lookAt(0, 0, 0); env.add(m);
+        });
+        scene.environment = pm.fromScene(env, 0.035).texture;
+        pm.dispose();
+      } catch (e) { }
     }
     var glyphCache = {};
     function glyphMat(type, color) {
@@ -2474,6 +2512,7 @@ function BOARD2D_FACTORY() {
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       container.appendChild(renderer.domElement);
+      buildEnvironment();
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true; controls.dampingFactor = 0.08;
       controls.enablePan = false; controls.minDistance = 7; controls.maxDistance = 30;
@@ -2511,9 +2550,9 @@ function BOARD2D_FACTORY() {
       [[0, 4.05, 0], [0, -4.05, 0], [4.05, 0, 1], [-4.05, 0, 1]].forEach(function (t) {
         var tr = new THREE.Mesh(trimGeo[t[2]], MAT.brass); tr.position.set(t[2] ? t[0] : 0, -0.025, t[2] ? 0 : t[1]); board.add(tr);
       });
-      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8 }));
+      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8, envMapIntensity: 0.35 }));
       base.position.y = -0.62; base.receiveShadow = true; board.add(base);
-      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1 }));
+      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1, envMapIntensity: 0.15 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -0.78; floor.receiveShadow = true; board.add(floor);
       scene.add(board);
 
@@ -2604,8 +2643,13 @@ function BOARD2D_FACTORY() {
       new ResizeObserver(resize).observe(container);
       resize();
       api.setOrientation('w', false);
+      if (!REDUCED) { // opening shot: swing in from high above the board's corner
+        var end = camTarget(); camera.position.set(end.x + 9, end.y * 1.5, end.z * 0.2 - 7); controls.update();
+        introUntil = performance.now() + 2600; moveCamera(true, 2000, 450);
+      }
       requestAnimationFrame(loop);
     };
+    var introUntil = 0;
 
     var hPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.3);
     function planePoint(e) {
@@ -2660,7 +2704,7 @@ function BOARD2D_FACTORY() {
       if (viewMode === 'top') return new THREE.Vector3(0, d, 0.001 * s);
       return new THREE.Vector3(0, d * 0.72, d * 0.69 * s);
     }
-    function moveCamera(animate) {
+    function moveCamera(animate, dur, delay) {
       var to = camTarget();
       if (!animate) { camera.position.copy(to); controls.update(); return Promise.resolve(); }
       var from = camera.position.clone();
@@ -2669,11 +2713,11 @@ function BOARD2D_FACTORY() {
       var r0 = Math.hypot(from.x, from.z), r1 = Math.hypot(to.x, to.z);
       if (Math.abs(a1 - a0) > Math.PI) a1 += a1 < a0 ? Math.PI * 2 : -Math.PI * 2;
       var tok = ++camTok;
-      return tween(900, function (k) {
+      return tween(dur || 900, function (k) {
         if (tok !== camTok) return;
         var a = a0 + (a1 - a0) * k, r = r0 + (r1 - r0) * k;
         camera.position.set(Math.sin(a) * r, from.y + (to.y - from.y) * k, Math.cos(a) * r);
-      });
+      }, null, delay);
     }
     function placeLabels() {
       labels.forEach(function (l) {
@@ -2684,6 +2728,7 @@ function BOARD2D_FACTORY() {
       });
     }
     api.setOrientation = function (c, animate) {
+      if (c === orient && performance.now() < introUntil) return Promise.resolve(); // let the opening shot finish
       orient = c; placeLabels();
       return moveCamera(animate !== false);
     };
@@ -2753,10 +2798,20 @@ function BOARD2D_FACTORY() {
     function slide(m, from, to, lift) {
       var p0 = pos(from), p1 = pos(to), dist = p0.distanceTo(p1);
       var h = lift * Math.min(1, 0.45 + dist * 0.12);
+      m.userData.moving = true;
       return tween(260 + dist * 45, function (k) {
         m.position.set(p0.x + (p1.x - p0.x) * k, Math.sin(Math.PI * k) * h, p0.z + (p1.z - p0.z) * k);
-      });
+      }).then(function () { m.userData.moving = false; });
     }
+    // The selected piece rises slightly off the board, and settles back when deselected.
+    var lifted = null;
+    function free(m) { return m && m.parent && !m.userData.moving && !(drag && drag.mesh === m); }
+    api.lift = function (sq) {
+      var m = sq ? meshes[sq] : null;
+      if (lifted && lifted !== m) { var a = lifted, y0 = a.position.y; if (y0 > 0.001) tween(150, function (k) { if (free(a) && lifted !== a) a.position.y = y0 * (1 - k); }); }
+      lifted = m;
+      if (m) { var y1 = m.position.y; tween(220, function (k) { if (free(m) && lifted === m) m.position.y = y1 + (0.2 - y1) * k; }, easeOutBack); }
+    };
     function capture(m) {
       if (!m) return Promise.resolve();
       var y0 = m.position.y;
@@ -2874,7 +2929,12 @@ function BOARD2D_FACTORY() {
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var panel, ACT = {};
-  function setPanel(html) { panel.innerHTML = html; panel.scrollTop = 0; }
+  var PANEL_ANIM = false;
+  function setPanel(html) {
+    panel.classList.remove('enter');
+    panel.innerHTML = html; panel.scrollTop = 0;
+    if (PANEL_ANIM) { PANEL_ANIM = false; void panel.offsetWidth; panel.classList.add('enter'); clearTimeout(setPanel._t); setPanel._t = setTimeout(function () { panel.classList.remove('enter'); }, 900); }
+  }
   function toast(msg, kind) {
     var t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
     clearTimeout(toast._t); toast._t = setTimeout(function () { t.className = 'toast'; }, 2200);
@@ -2890,9 +2950,10 @@ function BOARD2D_FACTORY() {
   var IX = { game: null, enabled: false, selected: null, canMove: function () { return false; }, onMove: null, collect: null };
   function kingSq(g) { var k = g.kings[g.side ? 1 : 0]; return k >= 0 ? Game.sqName(k) : null; }
   function showCheck(g) { B3.markers('check', g && g.inCheck() ? [kingSq(g)] : []); }
-  function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); }
+  function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); if (B3.lift) B3.lift(null); }
   function selectSq(sq) {
     IX.selected = sq;
+    if (B3.lift) B3.lift(sq);
     var ms = IX.game.moves({ square: sq });
     B3.markers('sel', [sq]);
     B3.markers('moves', ms.map(function (m) { return { sq: m.to, cap: !!m.captured }; }));
@@ -3082,6 +3143,7 @@ function BOARD2D_FACTORY() {
     IX.enabled = false; IX.onMove = null; IX.collect = null;
     current = MODES[mode];
     document.body.dataset.mode = mode;
+    PANEL_ANIM = true;
     current.enter(arg);
     $('#mode-label').textContent = current.label || '';
     setLayout();
@@ -3305,7 +3367,7 @@ function BOARD2D_FACTORY() {
     Badges.award('first_lesson');
     var stI = stageOf(LS.id), stDone = STAGES[stI].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
     if (stDone) Badges.award('stage_' + (stI + 1));
-    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
+    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
     var nl = nextLesson();
     document.body.dataset.layout = 'browse';
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
@@ -3447,7 +3509,7 @@ function BOARD2D_FACTORY() {
         '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
         '<div class="coach-card"><div class="coach-tag">' + (i === 0 ? 'The idea' : 'Move ' + Math.ceil(i / 2) + (i % 2 ? '' : '…') + ' ' + esc(o.moves[i - 1])) + '</div><p class="coach-text">' + esc(lastNote) + '</p>' +
         (i < o.moves.length ? '<p class="next-note"><span class="muted">Next:</span> <span class="mono">' + esc(o.moves[i]) + '</span> · ' + esc(nextNote) + '</p>' : '<p class="next-note">' + esc(nextNote) + '</p>') + '</div>' +
-        moveListHtml(o.moves, i, 'opJump') +
+        moveListHtml(o.moves, i, 'opJump') + '<p class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> step through the moves</p>' +
         '<div class="actions"><button class="btn ghost" data-act="opPrev" ' + (i === 0 ? 'disabled' : '') + '>← Back</button><button class="btn" data-act="opAuto">Autoplay</button>' +
         (i < o.moves.length ? '<button class="btn primary" data-act="opNext">Next move →</button>' : '<button class="btn primary" data-act="drillOp">Drill it</button>') + '</div>');
       // arrow for upcoming move
@@ -3605,7 +3667,7 @@ function BOARD2D_FACTORY() {
         if (nSolved >= 10) Badges.award('puzzles_10'); if (nSolved >= 25) Badges.award('puzzles_25');
       }
       else { PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
-      save();
+      save(); floatDelta(delta);
       return delta;
     },
     onMove: function (mv, uci) {
@@ -3695,7 +3757,7 @@ function BOARD2D_FACTORY() {
       setPanel('<button class="back" data-act="goPuzzles">← Puzzles</button><div class="eyebrow">Puzzle Rush</div><h1 class="h1">' + (isBest ? 'New best!' : 'Time!') + '</h1>' +
         '<div class="rush-final"><div class="rating">' + RU.score + '</div><span class="muted">puzzles solved · best ' + best + '</span></div>' +
         '<div class="actions"><button class="btn primary big" data-act="rushStart">Play again</button></div>');
-      if (isBest) B3.burst('e4');
+      if (isBest) { B3.burst('e4'); confetti(); }
     },
     leave: function () { clearInterval(MODES.rush.timer); if (RU) RU.over = true; }
   };
@@ -3905,6 +3967,7 @@ function BOARD2D_FACTORY() {
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
           setTimeout(function () {
+            if (!PL || PL.g !== g || PL.over) return; // the player left this game while the coach was thinking
             PL.thinking = false;
             if (!r || !r.move) { MODES.play.checkOver(); return; }
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
@@ -4043,7 +4106,7 @@ function BOARD2D_FACTORY() {
       if (result === 'win') Badges.award('beat_' + PL.level.id);
       if (PL.toldComeback && result === 'win') Badges.award('comeback');
       PL.result = result; PL.acc = acc;
-      if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); }
+      if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); confetti(); }
       var endLine = result === 'win' ? 'win' : result === 'draw' ? 'draw' : /Checkmate/.test(msg) ? 'loss' : null;
       if (endLine) Voice.say([V(endLine, endLine)]);
       else Voice.say([V('resign')]);
@@ -4169,7 +4232,7 @@ function BOARD2D_FACTORY() {
           return '<button class="moment ' + m.cls + '" data-act="rvMoment" data-k="' + k + '"><span class="mo-n">' + (k + 1) + '</span><span><b>Move ' + Math.ceil((m.i + 1) / 2) + ': ' + esc(m.san) + '</b><span class="mo-sub">' + esc(m.label) + (m.bestSan && CLASS[m.key] && !CLASS[m.key].positive ? ' · best was ' + esc(m.bestSan) : '') + '</span></span><span class="mo-go">▶</span></button>';
         }).join('') + '</div>' + (r.moments.some(function (m) { return !CLASS[m.key].positive; }) ? '<button class="btn primary big" data-act="rvPractice">Practise these positions</button>' : '') : '<p class="lede">No big mistakes this game. Impressive!</p>') +
         curHtml +
-        '<div class="rv-nav"><button class="icon-btn" data-act="rvGo" data-n="0" aria-label="Start">⏮</button><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply - 1) + '" aria-label="Back">◀</button><span class="mono small">' + r.ply + ' / ' + r.moves.length + '</span><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply + 1) + '" aria-label="Forward">▶</button><button class="icon-btn" data-act="rvGo" data-n="' + r.moves.length + '" aria-label="End">⏭</button></div>' +
+        '<div class="rv-nav"><button class="icon-btn" data-act="rvGo" data-n="0" aria-label="Start">⏮</button><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply - 1) + '" aria-label="Back">◀</button><span class="mono small">' + r.ply + ' / ' + r.moves.length + '</span><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply + 1) + '" aria-label="Forward">▶</button><button class="icon-btn" data-act="rvGo" data-n="' + r.moves.length + '" aria-label="End">⏭</button></div><p class="kbd-hint" style="text-align:center"><kbd>←</kbd> <kbd>→</kbd> moves · <kbd>Home</kbd> <kbd>End</kbd></p>' +
         '<div class="score rv-score mono">' + rows + '</div>');
     },
     explain: function (n) {
@@ -4353,13 +4416,45 @@ function BOARD2D_FACTORY() {
     $('#top-missions-bar').style.width = (missionsDone(d) / missionsTotal() * 100) + '%';
     var lv = Levels.of(S.xp);
     $('#top-level').textContent = lv.name; $('#top-level-bar').style.width = Math.round(lv.progress * 100) + '%';
-    $('#top-rating').textContent = Math.round(S.puzzle.rating);
+    countTo($('#top-rating'), Math.round(S.puzzle.rating));
     $('#top-xp').textContent = S.xp;
-    $('#top-streak').textContent = S.streak;
+    countTo($('#top-streak'), S.streak);
     $('#sound-btn').setAttribute('aria-pressed', S.sound ? 'true' : 'false');
     $('#sound-btn').classList.toggle('off', !S.sound);
     $('#voice-btn').setAttribute('aria-pressed', S.voice ? 'true' : 'false');
     $('#voice-btn').classList.toggle('off', !S.voice);
+  }
+  // Numbers in the top bar roll to their new value and glow briefly.
+  function countTo(el, v) {
+    var from = el._v == null ? v : el._v; el._v = v;
+    if (from === v || REDUCED) { el.textContent = v; return; }
+    var t0 = performance.now(), d = 750; el.classList.add('bump');
+    (function f(t) {
+      var k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(from + (v - from) * e);
+      if (k < 1) requestAnimationFrame(f); else setTimeout(function () { el.classList.remove('bump'); }, 250);
+    })(t0);
+  }
+  function floatDelta(d) {
+    var host = $('#top-rating'); if (!d || !host) return;
+    var r = host.getBoundingClientRect(), f = document.createElement('div');
+    f.className = 'delta-float ' + (d > 0 ? 'up' : 'down'); f.textContent = (d > 0 ? '+' : '') + d;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.bottom + 6) + 'px';
+    document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1500);
+  }
+  function confetti() {
+    if (REDUCED) return;
+    var c = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+    c.className = 'confetti'; c.width = W * dpr; c.height = H * dpr; document.body.appendChild(c);
+    var x = c.getContext('2d'); if (!x) { c.remove(); return; } x.scale(dpr, dpr);
+    var cols = ['#ffd23f', '#ff4f8b', '#4cc9f0', '#3ddc97', '#f5f2ff'], P = [];
+    for (var i = 0; i < 150; i++) P.push({ x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.4, vx: (Math.random() - 0.5) * 15, vy: -7 - Math.random() * 11, r: 5 + Math.random() * 6, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[i % cols.length] });
+    var t0 = performance.now();
+    (function f(t) {
+      var k = (t - t0) / 2400; x.clearRect(0, 0, W, H);
+      P.forEach(function (p) { p.vy += 0.36; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.a += p.va; x.save(); x.globalAlpha = Math.max(0, 1 - k * k); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore(); });
+      if (k < 1) requestAnimationFrame(f); else c.remove();
+    })(t0);
   }
   var BANDS = [
     { v: 100, t: 'Brand new', s: 'I am learning how the pieces move.' },
@@ -4455,7 +4550,7 @@ function BOARD2D_FACTORY() {
         '<div class="eyebrow">' + (c.kind === 'level' ? 'Level up' : 'Badge unlocked') + '</div><h2 class="cel-title">' + esc(c.title) + '</h2><p>' + esc(c.text) + '</p>' +
         '<button class="btn primary big" data-cel="ok">Awesome!</button></div>';
       document.body.appendChild(m);
-      Sound.play('win'); if (c.voice) Voice.say([c.voice]);
+      Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
       m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]')) { m.remove(); open = false; setTimeout(next, 250); } });
     }
     return { show: function (c) { queue.push(c); setTimeout(next, 500); } };
@@ -4464,7 +4559,7 @@ function BOARD2D_FACTORY() {
   // ================= Welcome tour =================
   var Tour = (function () {
     var i = 0, el = null;
-    function close() { if (el) { el.remove(); el = null; } window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
+    function close() { if (el) { el.remove(); el = null; } closeTools(); document.body.classList.remove('tour-tools'); window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
     function place() {
       if (!el) return;
       var step = TOUR[i], spot = el.querySelector('.tour-spot'), card = el.querySelector('.tour-card');
@@ -4495,12 +4590,17 @@ function BOARD2D_FACTORY() {
     }
     function render() {
       var step = TOUR[i];
+      // On phones the board tools sit behind the "..." button: open that menu for its tour step.
+      var tb = document.querySelector('.board-tools'), tbtn = $('#tools-btn');
+      var compact = (MQ && MQ.matches) || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches);
+      document.body.classList.toggle('tour-tools', step.sel === '.board-tools' && compact);
+      if (step.sel === '.board-tools' && compact) { tb.classList.add('open'); tbtn.setAttribute('aria-expanded', 'true'); } else closeTools();
       el.querySelector('.tour-spot').classList.remove('pop'); void el.offsetWidth; el.querySelector('.tour-spot').classList.add('pop');
       el.querySelector('.tour-card').innerHTML =
         '<div class="eyebrow">' + (i + 1) + ' / ' + TOUR.length + '</div><h2 class="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
         '<div class="actions">' + (i > 0 ? '<button class="btn ghost" data-tour="back">Back</button>' : '<button class="btn ghost" data-tour="skip">Skip tour</button>') +
         '<button class="btn primary" data-tour="next">' + (i === TOUR.length - 1 ? 'Start training' : 'Next') + '</button></div>';
-      place();
+      place(); requestAnimationFrame(place); setTimeout(place, 420);
       Voice.say([{ id: 'T-' + i, text: step.text }]);
     }
     function start() {
@@ -4521,7 +4621,15 @@ function BOARD2D_FACTORY() {
       window.addEventListener('resize', place);
       render();
     }
-    return { start: start };
+    function key(k) {
+      if (!el) return false;
+      if (k === 'Escape') close();
+      else if (k === 'ArrowRight' || k === 'Enter') { var n = el.querySelector('[data-tour="next"]'); if (n) n.click(); }
+      else if (k === 'ArrowLeft') { var b = el.querySelector('[data-tour="back"]'); if (b) b.click(); }
+      else return false;
+      return true;
+    }
+    return { start: start, key: key };
   })();
   ACT.tour = function () { Tour.start(); };
 
@@ -4550,6 +4658,26 @@ function BOARD2D_FACTORY() {
     document.addEventListener('pointerdown', function (e) { if (!e.target.closest('.board-tools,#tools-btn')) closeTools(); });
     $('#coach-bubble').addEventListener('click', function () { Voice.replay(); });
     applyMob();
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target.closest && e.target.closest('input,textarea,select'))) return;
+      var k = e.key;
+      if (Tour.key(k)) { e.preventDefault(); return; }
+      var cel = document.querySelector('.celebrate [data-cel]');
+      if (cel) { if (k === 'Escape' || k === 'Enter') { e.preventDefault(); cel.click(); } return; }
+      var m = $('#modal');
+      if (!m.hidden) { if (k === 'Escape' && !m.classList.contains('intro')) { m.hidden = true; m.onclick = null; } return; }
+      if (k === 'Escape') { closeTools(); deselect(); return; }
+      if (k === 'f' || k === 'F') { $('#flip-btn').click(); return; }
+      if (current === MODES.opening && OD && OD.mode === 'learn') {
+        if (k === 'ArrowRight' && OD.ply < OD.o.moves.length) { e.preventDefault(); ACT.opNext(); }
+        else if (k === 'ArrowLeft' && OD.ply > 0) { e.preventDefault(); ACT.opPrev(); }
+      } else if (current === MODES.review && RV) {
+        if (k === 'ArrowRight') { e.preventDefault(); MODES.review.goto(RV.ply + 1); }
+        else if (k === 'ArrowLeft') { e.preventDefault(); MODES.review.goto(RV.ply - 1); }
+        else if (k === 'Home') { e.preventDefault(); MODES.review.goto(0); }
+        else if (k === 'End') { e.preventDefault(); MODES.review.goto(RV.moves.length); }
+      }
+    });
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', applyMob); else if (MQ.addListener) MQ.addListener(applyMob); }
     $('#coach-bubble .cb-avatar').innerHTML = coachAvatar();
     var use2d = !!S.settings.board2d || typeof THREE === 'undefined' || !THREE.OrbitControls || !webglOK();
@@ -4573,7 +4701,9 @@ function BOARD2D_FACTORY() {
       if (S.onboarded && S.lastGreet !== dayKey() && S.toured) { S.lastGreet = dayKey(); save(); Voice.say([V('welcome_back')], true); }
     });
     if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
-    else { go('path'); if (!S.toured) setTimeout(Tour.start, 900); }
+    else { go('path'); if (!S.toured) setTimeout(Tour.start, 1500); }
+    var sp = $('#splash');
+    if (sp) requestAnimationFrame(function () { setTimeout(function () { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 700); }, 300); });
   }
   window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
@@ -4840,4 +4970,24 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 @media (max-width: 340px) { .mchips { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 420px) { .intro-title { font-size: 28px; } }
 @media (prefers-reduced-motion: reduce) { .coach-orb, .coach-orb span, body.speaking .brand-mark, .jlesson.next .jl-num { animation: none !important; } }
+/* ===== Release polish: screen transitions, counters, rating pops, confetti, lifted pieces ===== */
+.panel.enter > * { animation: panelIn .42s cubic-bezier(.2,.8,.2,1) both; }
+.panel.enter > *:nth-child(2) { animation-delay: .04s; } .panel.enter > *:nth-child(3) { animation-delay: .08s; }
+.panel.enter > *:nth-child(4) { animation-delay: .12s; } .panel.enter > *:nth-child(5) { animation-delay: .16s; }
+.panel.enter > *:nth-child(n+6) { animation-delay: .2s; }
+@keyframes panelIn { from { opacity: 0; transform: translateY(10px); } }
+.ts b { transition: color .3s, text-shadow .3s; }
+.ts b.bump { color: var(--brass-hi); text-shadow: 0 0 14px rgba(255,210,63,.6); }
+.delta-float { position: fixed; z-index: 45; transform: translate(-50%, 0); padding: 2px 9px; border-radius: 99px; font: 700 12.5px var(--f-mono); pointer-events: none; animation: deltaUp 1.4s cubic-bezier(.2,.8,.2,1) forwards; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+.delta-float.up { background: var(--good); color: #062b1c; } .delta-float.down { background: var(--bad); color: #1a0703; }
+@keyframes deltaUp { 0% { opacity: 0; transform: translate(-50%, 8px) scale(.8); } 18% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 70% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 45; }
+.b2-piece.lifted { transform: translateY(-6%) scale(1.08); z-index: 3; }
+.b2-piece.lifted svg { filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); }
+/* tour step "Board tools" on phones: show the folded menu even on browsing screens */
+body.tour-tools .stage .tools-btn { display: grid !important; }
+body.tour-tools .stage .board-tools.open { display: flex !important; }
+.kbd-hint { font: 600 10.5px var(--f-mono); color: var(--dim); }
+.kbd-hint kbd { font: inherit; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); }
+@media (max-width: 880px), (hover: none) { .kbd-hint { display: none; } }
 </style>

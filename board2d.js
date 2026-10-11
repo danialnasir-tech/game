@@ -145,6 +145,8 @@ function BOARD2D_FACTORY() {
   api.idle = function () { };
   api.recenter = function () { };
   api.setDrag = function (f) { dragFns = f; };
+  var liftedEl = null;
+  api.lift = function (sq) { if (liftedEl) liftedEl.classList.remove('lifted'); liftedEl = sq ? meshes[sq] || null : null; if (liftedEl) liftedEl.classList.add('lifted'); };
   api.setCameraFixed = function () { };
   api.is2D = true;
   return api;
