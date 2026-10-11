@@ -659,6 +659,27 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 45; }
 .b2-piece.lifted { transform: translateY(-6%) scale(1.08); z-index: 3; }
 .b2-piece.lifted svg { filter: drop-shadow(0 8px 6px rgba(0,0,0,.45)); }
+/* ===== Level-aware course: placement, stage tests, level tags ===== */
+.placed-note { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding: 11px 13px; border-radius: 14px; background: rgba(61,220,151,.08); border: 1px solid rgba(61,220,151,.35); font-size: 13.5px; color: var(--muted); }
+.placed-note b { color: var(--fg); }
+.pn-ico { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--good); color: #062b1c; font-size: 12px; font-weight: 800; }
+.clear-pill { font-style: normal; font: 800 9.5px var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; background: rgba(61,220,151,.18); color: var(--good); vertical-align: 2px; margin-left: 4px; }
+.jstage.placed { opacity: .82; }
+.jstage.placed .jdot { background: rgba(61,220,151,.2); color: var(--good); }
+.test-out { display: flex; align-items: center; gap: 12px; width: calc(100% - 24px); margin: 0 12px 10px; padding: 11px 13px; text-align: left; border-radius: 14px; border: 1px solid rgba(255,210,63,.45); background: linear-gradient(135deg, rgba(255,210,63,.14), rgba(255,79,139,.08)), var(--card-2); }
+.test-out:hover { border-color: var(--brass); }
+.test-out b { display: block; font-size: 14px; } .test-out span span { display: block; font-size: 12.5px; color: var(--muted); }
+.to-ico { flex-shrink: 0; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--brass); color: var(--brass-ink); font-size: 15px; }
+.to-go { margin-left: auto; color: var(--brass); font-weight: 800; }
+.tpips { display: flex; gap: 8px; margin: 0 0 12px; }
+.tpip { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 12px var(--f-mono); background: var(--card-2); color: var(--muted); border: 2px solid transparent; }
+.tpip.cur { border-color: var(--brass); color: var(--brass-hi); } .tpip.ok { background: var(--good); color: #062b1c; } .tpip.miss { background: var(--bad); color: #1a0703; }
+.fit { padding: 0 6px; border-radius: 4px; font-weight: 800; background: rgba(255,210,63,.18); color: var(--brass-hi); }
+.fit.basic { background: var(--card-2); color: var(--dim); }
+.op-card.basic { opacity: .72; } .op-card.basic:hover { opacity: 1; }
+.lv-tag { font-style: normal; font: 800 9px var(--f-body); letter-spacing: .07em; text-transform: uppercase; padding: 1px 6px; border-radius: 99px; background: var(--brass); color: var(--brass-ink); margin-left: 4px; vertical-align: 1px; }
+.lv-tag.up { background: var(--pink); color: #fff; } .lv-tag.easy { background: var(--card-2); color: var(--dim); }
+.seg.wrap { flex-wrap: wrap; }
 /* tour step "Board tools" on phones: show the folded menu even on browsing screens */
 body.tour-tools .stage .tools-btn { display: grid !important; }
 body.tour-tools .stage .board-tools.open { display: flex !important; }

@@ -47,7 +47,7 @@
     var after = Levels.of(S.xp);
     if (after.i > before) Celebrate.show({ kind: 'level', title: 'Level up: ' + after.name, text: 'You reached the ' + after.name + ' level. ' + (after.next ? (after.next.xp - S.xp) + ' XP to ' + after.next.name + '.' : 'The top of the ladder!'), icon: after.icon, voice: V('level_up') });
   }
-  function beginnerMode() { return S.band < 400 && !(STAGES[0].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; })); }
+  function beginnerMode() { return S.band < 400 && !stageCleared(0); }
   function missionList(d) {
     d = d || today();
     if (beginnerMode()) return [
@@ -1055,7 +1055,7 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || (mode === 'rush' && b.dataset.go === 'puzzles') || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
+    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || ((mode === 'rush' || mode === 'stagetest') && b.dataset.go === (mode === 'rush' ? 'puzzles' : 'path')) || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
     $('#evalbar').hidden = true;
     B3.idle(false);
     IX.enabled = false; IX.onMove = null; IX.collect = null;
@@ -1067,7 +1067,7 @@
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1 };
+  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -1083,20 +1083,30 @@
   function closeTools() { var t = $('.board-tools'); if (t) t.classList.remove('open'); var tb = $('#tools-btn'); if (tb) tb.setAttribute('aria-expanded', 'false'); }
 
   // ================= Path (home) =================
+  // Placement: the stage that matches the level picked at the start. Stages below it count as cleared,
+  // and so does any stage the player tested out of.
+  function placementStage(band) { var k = 0; STAGES.forEach(function (st, i) { if ((band == null ? S.band : band) >= st.min) k = i; }); return k; }
+  function lessonDone(id) { return !!(S.lessons[id] && S.lessons[id].done); }
+  function placedOut(i) { return i < placementStage() || !!(S.cleared && S.cleared[STAGES[i].id]); }
+  function stageComplete(i) { return STAGES[i].lessons.every(lessonDone); }
+  function stageCleared(i) { return placedOut(i) || stageComplete(i); }
   function stageUnlocked(i) {
     var st = STAGES[i];
     if (S.band >= st.min) return true;
     if (i === 0) return true;
-    var prev = STAGES[i - 1];
-    return prev.lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
+    return stageCleared(i - 1);
   }
   function nextLesson() {
     for (var i = 0; i < STAGES.length; i++) {
-      if (!stageUnlocked(i)) continue;
-      for (var j = 0; j < STAGES[i].lessons.length; j++) { var id = STAGES[i].lessons[j]; if (!(S.lessons[id] && S.lessons[id].done)) return id; }
+      if (!stageUnlocked(i) || stageCleared(i)) continue;
+      for (var j = 0; j < STAGES[i].lessons.length; j++) { var id = STAGES[i].lessons[j]; if (!lessonDone(id)) return id; }
     }
-    return STAGES[STAGES.length - 1].lessons[0];
+    return null; // every stage is cleared
   }
+  // Coach strength and opening difficulty that suit a rating
+  function levelForRating(r) { return r < 800 ? 'novice' : r < 1200 ? 'club' : r < 1600 ? 'strong' : r < 2000 ? 'expert' : 'master'; }
+  function openingTier(r) { return r < 800 ? 0 : r < 1400 ? 1 : 2; }
+  var TIER = { Beginner: 0, Intermediate: 1, Advanced: 2 };
   function stageOf(lessonId) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].lessons.indexOf(lessonId) >= 0) return i; return 0; }
 
   var MODES = {};
@@ -1123,7 +1133,9 @@
         setupBoard(Game.START, { drop: true, orient: 'w' });
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
-      var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), L = LESSONS[nl], cur = stageOf(nl);
+      var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
+      if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
+      var L = LESSONS[nl], cur = allClear ? STAGES.length - 1 : stageOf(nl), placed = placementStage();
       var openStage = PATHUI.open == null ? cur : PATHUI.open;
       var R = S.puzzle.rating, marks = [100, 400, 800, 1200, 1600, 2000];
       var seg = 0; while (seg < 4 && R >= marks[seg + 1]) seg++;
@@ -1133,11 +1145,14 @@
       };
       var html =
         '<section class="hero-card"><span class="hero-mark" aria-hidden="true">' + pieceSVG('n', 'w', 130) + '</span>' +
-        '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + '</div>' +
-        '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
-        '<p class="lede">' + esc(L.goal) + '</p>' +
-        '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + L.minutes + ' min</button>' +
+        '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + ' · ' + STAGES[cur].band + '</div>' +
+        (allClear ? '<h1 class="h1">Every stage cleared</h1><p class="lede">The whole course is behind you. Keep sharpening with puzzles at your rating, master openings, and beat the strongest coach.</p>' +
+          '<button class="btn primary big" data-act="goPlay">▶&nbsp; Play the ' + esc(levelById(levelForRating(S.puzzle.rating)).name) + ' coach</button>'
+        : '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
+          '<p class="lede">' + esc(L.goal) + '</p>' +
+          '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + L.minutes + ' min</button>') +
         '</section>' +
+        (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
         '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>' +
@@ -1148,32 +1163,116 @@
         '<div class="sect-head"><h2>Your journey</h2><button class="link" data-act="tour">Replay tour</button></div>' +
         '<ol class="journey">' + STAGES.map(function (st, i) {
           var open = stageUnlocked(i), expanded = i === openStage && open;
-          var doneN = st.lessons.filter(function (id) { return S.lessons[id] && S.lessons[id].done; }).length;
-          var state = doneN === st.lessons.length ? 'done' : i === cur ? 'current' : open ? 'open' : 'locked';
+          var doneN = st.lessons.filter(lessonDone).length, skipped = placedOut(i) && doneN < st.lessons.length;
+          var state = doneN === st.lessons.length ? 'done' : skipped ? 'done placed' : i === cur && !allClear ? 'current' : open ? 'open' : 'locked';
+          var how = skipped ? (i < placed ? 'Cleared · you placed above it' : 'Cleared · passed the stage test') : doneN + '/' + st.lessons.length + ' lessons';
           return '<li class="jstage ' + state + (expanded ? ' expanded' : '') + '">' +
             '<button class="jhead" data-act="toggleStage" data-i="' + i + '" ' + (open ? '' : 'disabled') + ' aria-expanded="' + expanded + '">' +
             '<span class="jdot" aria-hidden="true">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : i + 1) + '</span>' +
-            '<span class="jtext"><span class="jname">' + esc(st.name) + '</span><span class="jband">' + st.band + ' · ' + doneN + '/' + st.lessons.length + ' lessons</span></span>' +
+            '<span class="jtext"><span class="jname">' + esc(st.name) + (skipped ? ' <em class="clear-pill">Cleared</em>' : '') + '</span><span class="jband">' + st.band + ' · ' + how + '</span></span>' +
             '<span class="jchev" aria-hidden="true">' + (open ? (expanded ? '−' : '+') : '') + '</span></button>' +
-            (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p><div class="jlessons">' + st.lessons.map(function (id, k) {
-              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl;
+            (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p>' +
+              (!stageCleared(i) && open && testPool(i).length >= 3 ? '<button class="test-out" data-act="stageTest" data-i="' + i + '"><span class="to-ico" aria-hidden="true">⚡</span><span><b>Know this already?</b><span>Solve 3 of 4 puzzles at ' + st.band + ' to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
+              '<div class="jlessons">' + st.lessons.map(function (id, k) {
+              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear;
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : L2.minutes + ' min') + '</span></button>';
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>';
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
     },
     leave: function () { B3.idle(false); }
   };
-  ACT.startNext = function () { go('lesson', nextLesson()); };
+  ACT.startNext = function () { var nl = nextLesson(); if (nl) go('lesson', nl); else go('play'); };
   ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
-  ACT.toggleStage = function (d) { var i = +d.i, cur = PATHUI.open == null ? stageOf(nextLesson()) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
+  ACT.toggleStage = function (d) { var i = +d.i, nl0 = nextLesson(), cur = PATHUI.open == null ? (nl0 ? stageOf(nl0) : STAGES.length - 1) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
   ACT.lesson = function (d) { go('lesson', d.id); };
   ACT.goPuzzles = function () { go('puzzles'); };
   ACT.goOpenings = function () { go('openings'); };
   ACT.goPlay = function () { go('play'); };
   ACT.goPath = function () { go('path'); };
+
+  // ================= Stage test: skip a stage you already know =================
+  function testPool(i) {
+    var lo = STAGES[i].min, hi = STAGES[i + 1] ? STAGES[i + 1].min : 2300;
+    return PUZZLES.filter(function (p) { return p.r >= lo && p.r < hi + 100; });
+  }
+  var ST = null;
+  MODES.stagetest = {
+    label: 'Stage test',
+    enter: function (i) {
+      var pool = testPool(+i).slice();
+      for (var k = pool.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)), t = pool[k]; pool[k] = pool[j]; pool[j] = t; }
+      ST = { i: +i, list: pool.slice(0, 4).sort(function (a, b) { return a.r - b.r; }), k: 0, res: [], need: 3 };
+      MODES.stagetest.load();
+    },
+    load: function () {
+      var p = ST.list[ST.k], fen = puzzleFen(p), g = setupBoard(fen, { drop: true, orient: new Game(fen).turn() });
+      ST.ply = 0; ST.busy = false;
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !ST.busy; }; IX.onMove = MODES.stagetest.onMove;
+      Voice.say([V(p.mate === 1 ? 'puzzle_mate1' : p.mate === 2 ? 'puzzle_mate2' : 'puzzle_start')], true);
+      MODES.stagetest.render();
+    },
+    render: function (msg, kind) {
+      var st = STAGES[ST.i], p = ST.list[ST.k], turn = new Game(puzzleFen(p)).turn();
+      var pips = ST.list.map(function (q, n) { var r = ST.res[n]; return '<span class="tpip ' + (r === true ? 'ok' : r === false ? 'miss' : n === ST.k ? 'cur' : '') + '">' + (r === true ? '✓' : r === false ? '✕' : n + 1) + '</span>'; }).join('');
+      setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Stage test · ' + esc(st.name) + ' · ' + st.band + '</div>' +
+        '<h1 class="h1">Prove you know ' + esc(st.name) + '</h1>' +
+        '<p class="lede">Solve ' + ST.need + ' of ' + ST.list.length + ' puzzles and the whole stage is marked cleared. One try each.</p>' +
+        '<div class="tpips" aria-label="Puzzle ' + (ST.k + 1) + ' of ' + ST.list.length + '">' + pips + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">Puzzle ' + (ST.k + 1) + ' of ' + ST.list.length + ' · ' + p.r + '</div><p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p></div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions"><button class="btn ghost" data-act="goPath">Stop the test</button></div>');
+    },
+    onMove: function (mv, uci) {
+      var p = ST.list[ST.k], g = IX.game, t = new Game(g.fen()); t.move(mv);
+      var ok = uci === p.sol[ST.ply] || (ST.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
+      if (!ok) {
+        ST.busy = true; Sound.play('bad'); B3.flash('bad', [mv.to]); Voice.say([V('puzzlemiss', 'puzzlemiss')], true);
+        var u = p.sol[ST.ply]; B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]);
+        return MODES.stagetest.result(false, 'Missed. The green arrow shows the winning move.');
+      }
+      return applyMove(g, mv).then(function () {
+        ST.ply++;
+        if (t.inCheckmate() || ST.ply >= p.sol.length || uci !== p.sol[ST.ply - 1]) { B3.burst(mv.to); Sound.play('good'); return MODES.stagetest.result(true, '<strong>Solved.</strong> ' + esc(p.explain)); }
+        MODES.stagetest.render('Correct, keep going.', 'good');
+        return B3.wait(400).then(function () { return applyMove(g, uciObj(p.sol[ST.ply])); }).then(function () {
+          ST.ply++;
+          if (ST.ply >= p.sol.length) { Sound.play('good'); return MODES.stagetest.result(true, '<strong>Solved.</strong> ' + esc(p.explain)); }
+          IX.enabled = true;
+        });
+      });
+    },
+    result: function (ok, msg) {
+      IX.enabled = false; ST.res[ST.k] = ok;
+      var okN = ST.res.filter(Boolean).length, missN = ST.res.length - okN, left = ST.list.length - ST.res.length;
+      MODES.stagetest.render(msg, ok ? 'good' : 'bad');
+      if (okN >= ST.need || missN > ST.list.length - ST.need || !left) return B3.wait(1600).then(function () { if (current === MODES.stagetest) MODES.stagetest.finish(okN >= ST.need); });
+      return B3.wait(1600).then(function () { if (current === MODES.stagetest) { ST.k++; MODES.stagetest.load(); } });
+    },
+    finish: function (pass) {
+      var st = STAGES[ST.i], okN = ST.res.filter(Boolean).length;
+      document.body.dataset.layout = 'browse';
+      if (pass) {
+        S.cleared = S.cleared || {}; S.cleared[st.id] = true; save(); addXP(60);
+        Sound.play('win'); confetti(); Badges.award('stage_' + (ST.i + 1));
+        if (!Celebrate.pending()) Voice.say([V('stage_done')]);
+        var nl = nextLesson();
+        setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Stage test passed · +60 XP</div><h1 class="h1">' + esc(st.name) + ' cleared</h1>' +
+          '<p class="lede">' + okN + ' solved' + (ST.res.length > okN ? ', ' + (ST.res.length - okN) + ' missed' : ' in a row') + '. You skip straight to ' + (nl ? esc(STAGES[stageOf(nl)].name) : 'the end of the course') + '.</p>' +
+          '<div class="actions">' + (nl ? '<button class="btn primary big" data-act="lesson" data-id="' + nl + '">▶&nbsp; Start ' + esc(LESSONS[nl].title) + '</button>' : '<button class="btn primary big" data-act="goPlay">▶&nbsp; Play the coach</button>') + '</div>' +
+          '<div class="actions plain"><button class="btn ghost" data-act="goPath">Back to path</button></div>');
+      } else {
+        Voice.say([V('drilldone', 'drilldone')]);
+        setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Stage test</div><h1 class="h1">Not quite yet</h1>' +
+          '<p class="lede">' + okN + ' of ' + ST.list.length + ' solved. You need ' + ST.need + '. The lessons in ' + esc(st.name) + ' cover exactly these patterns.</p>' +
+          '<div class="actions"><button class="btn primary" data-act="startNext">Start the lessons</button><button class="btn" data-act="stageTest" data-i="' + ST.i + '">Try a new test</button></div>');
+      }
+    },
+    leave: function () { ST = ST && Object.assign(ST, { gone: true }); }
+  };
+  ACT.stageTest = function (d) { go('stagetest', +d.i); };
 
   // ================= Lesson =================
   var LS = null;
@@ -1283,7 +1382,7 @@
     S.lessons[LS.id] = { done: true, stars: Math.max(stars, prev && prev.stars || 0) };
     today().lesson = true; today().lessons = (today().lessons || 0) + 1; addXP(50); save();
     Badges.award('first_lesson');
-    var stI = stageOf(LS.id), stDone = STAGES[stI].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
+    var stI = stageOf(LS.id), stDone = stageComplete(stI);
     if (stDone) Badges.award('stage_' + (stI + 1));
     Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
     var nl = nextLesson();
@@ -1307,7 +1406,7 @@
     if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
-    if (nl) cards.push({ k: 'lesson', ico: 'r', t: 'Next lesson', s: LESSONS[nl].title, act: 'data-act="lesson" data-id="' + nl + '"' });
+    if (nl && nl !== id) cards.push({ k: 'lesson', ico: 'r', t: 'Next lesson', s: LESSONS[nl].title, act: 'data-act="lesson" data-id="' + nl + '"' });
     // Variety: after two lessons in a row, nudge toward doing instead of reading
     var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
     if (playNew) pref = 'play'; else if (opNew) pref = 'opening';
@@ -1366,7 +1465,10 @@
         if (OP.filter === 'trap') return o.family === 'Traps';
         return o.side === OP.filter;
       });
-      setPanel('<div class="eyebrow">' + OPENINGS.length + ' lines</div><h1 class="h1">Openings and gambits</h1>' +
+      // Lines at the player's level first, then harder ones, then the basics
+      var tier = openingTier(S.puzzle.rating), rank = function (o) { var t = TIER[o.level]; return t === tier ? 0 : t > tier ? 1 : 2; };
+      list = list.slice().sort(function (a, b) { return rank(a) - rank(b); });
+      setPanel('<div class="eyebrow">' + OPENINGS.length + ' lines · sorted for ~' + Math.round(S.puzzle.rating) + '</div><h1 class="h1">Openings and gambits</h1>' +
         '<p class="lede">Learn the idea behind every move, then drill it until you can play it from memory. Three perfect drills masters a line.</p>' +
         (q ? '' : '<div class="sect-head"><h2>Recommended for you</h2><span class="muted small">for ~' + Math.round(S.puzzle.rating) + '</span></div><div class="recs">' + recommendedOpenings().map(function (o) {
           return '<button class="rec-card" data-act="openOp" data-id="' + o.id + '"><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span><b>' + esc(o.name) + '</b><span class="muted small">' + esc(o.idea.split('. ')[0].replace(/\.$/, '')) + '.</span></button>';
@@ -1376,8 +1478,8 @@
         (list.length ? '' : '<p class="muted">No openings match that search.</p>') +
         '<div class="op-list">' + list.map(function (o) {
           var m = mastery(o.id);
-          return '<button class="op-card" data-act="openOp" data-id="' + o.id + '">' +
-            '<span class="op-top"><span class="eco">' + o.eco + '</span><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span>' + (o.gambit ? '<span class="pill">Gambit</span>' : '') + '<span class="lvl">' + o.level + '</span></span>' +
+          return '<button class="op-card' + (rank(o) === 2 ? ' basic' : '') + '" data-act="openOp" data-id="' + o.id + '">' +
+            '<span class="op-top"><span class="eco">' + o.eco + '</span><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span>' + (o.gambit ? '<span class="pill">Gambit</span>' : '') + (rank(o) === 0 ? '<span class="fit">Your level</span>' : rank(o) === 2 ? '<span class="fit basic">Basics</span>' : '') + '<span class="lvl">' + o.level + '</span></span>' +
             '<span class="op-name">' + esc(o.name) + '</span>' +
             '<span class="op-moves mono">' + esc(o.moves.slice(0, 6).map(function (s, i) { return (i % 2 === 0 ? (i / 2 + 1) + '.' : '') + s; }).join(' ')) + '…</span>' +
             '<span class="meter" aria-label="Mastery ' + m + ' of 3"><i style="width:' + (m / 3 * 100) + '%"></i></span></button>';
@@ -1805,7 +1907,7 @@
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
-        '<div class="levels">' + COACH_LEVELS.map(function (l) { return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
+        '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">Your level</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your colour</h2></div>' +
         '<div class="seg">' + [['w', 'White'], ['b', 'Black'], ['r', 'Random']].map(function (x) { return '<button class="' + (c.color === x[0] ? 'on' : '') + '" data-act="setColor" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Coach style</h2></div>' +
@@ -2223,7 +2325,8 @@
     enter: function () {
       setupBoard(Game.START, { orient: 'w' });
       setTimeout(function () { if (current === MODES.progress) B3.idle(true); }, 600);
-      var lessonsDone = Object.keys(S.lessons).filter(function (k) { return S.lessons[k].done; }).length;
+      var lessonsDone = Object.keys(S.lessons).filter(function (k) { return S.lessons[k].done; }).length, placedN = 0;
+      STAGES.forEach(function (st, i) { if (placedOut(i)) st.lessons.forEach(function (id) { if (!lessonDone(id)) placedN++; }); });
       var opsMastered = OPENINGS.filter(function (o) { return mastery(o.id) >= 3; }).length;
       var solved = Object.keys(S.puzzle.solved).filter(function (k) { return S.puzzle.solved[k] > 1; }).length;
       var games = S.games, wins = games.filter(function (g) { return g.result === 'win'; }).length;
@@ -2242,7 +2345,7 @@
       setPanel('<div class="eyebrow">Day ' + Math.min(dayNumber(), 30) + ' of 30 · Streak ' + S.streak + '</div><h1 class="h1">Your progress</h1>' +
         '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
         '<div class="stat-grid">' +
-        stat('Lessons', lessonsDone + '/' + Object.keys(LESSONS).length) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +
+        stat('Lessons', (lessonsDone + placedN) + '/' + Object.keys(LESSONS).length + (placedN ? ' <span class="muted small">' + placedN + ' skipped</span>' : '')) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +
         stat('Puzzles solved', solved + '/' + PUZZLES.length) + stat('Coach games', games.length + (games.length ? ' · ' + wins + ' won' : '')) +
         stat('Avg accuracy', avgAcc != null ? avgAcc + '%' : '–') + stat('Best win', bestWinLevel ? bestWinLevel.name + ' ~' + bestWinLevel.elo : '–') +
         '</div>' +
@@ -2270,6 +2373,7 @@
     m.classList.remove('intro');
     m.innerHTML = '<div class="modal-card settings" role="dialog" aria-modal="true" aria-labelledby="set-title"><div class="set-head"><span class="cb-avatar big">' + coachAvatar() + '</span><div><div class="eyebrow">Settings</div><h1 class="h1" id="set-title">Your coach</h1></div></div>' +
       '<label class="field"><span>Coach name</span><input id="set-name" type="text" maxlength="24" value="' + esc(s.coachName) + '"></label>' +
+      '<div class="field"><span>Your level <span class="dim">· sets where the course starts</span></span><div class="seg wrap">' + BANDS.map(function (b) { return '<button class="' + (S.band === b.v ? 'on' : '') + '" data-band="' + b.v + '" title="' + esc(b.t) + '">' + b.v + '</button>'; }).join('') + '</div></div>' +
       '<label class="field"><span>Voice volume <b id="vol-v">' + Math.round(s.volume * 100) + '%</b></span><input id="set-vol" type="range" min="0" max="1" step="0.05" value="' + s.volume + '"></label>' +
       '<div class="field"><span>Voice speed</span><div class="seg">' + [[0.9, 'Calm'], [1, 'Normal'], [1.15, 'Quick']].map(function (r) { return '<button class="' + (s.rate === r[0] ? 'on' : '') + '" data-rate="' + r[0] + '">' + r[1] + '</button>'; }).join('') + '</div></div>' +
       '<div class="field"><span>Coach style in games</span><div class="seg">' + COACH_STYLES.map(function (cs) { return '<button class="' + (coachStyle() === cs.id ? 'on' : '') + '" data-style="' + cs.id + '">' + cs.name + '</button>'; }).join('') + '</div></div>' +
@@ -2288,8 +2392,14 @@
     $('#set-cam').onchange = function (e) { s.cameraFixed = e.target.checked; save(); B3.setCameraFixed(s.cameraFixed); };
     $('#set-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); if (current === MODES.play && PL && PL.g) $('#evalbar').hidden = !e.target.checked; };
     m.onclick = function (e) {
-      var b = e.target.closest('[data-rate],[data-style],[data-set]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
-      if (b.dataset.rate) { s.rate = +b.dataset.rate; save(); openSettings(); Voice.say([V('good', 'good')]); }
+      var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
+      if (b.dataset.band) {
+        var v = +b.dataset.band; S.band = v; S.coach.level = levelForRating(Math.max(S.puzzle.rating, v)); PATHUI.open = null;
+        if (S.puzzle.hist.length <= 1) { S.puzzle.rating = Math.max(400, v); S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; }
+        save(); renderTop(); openSettings(); if (current === MODES.path) MODES.path.enter(true); else if (current === MODES.progress) MODES.progress.enter();
+        toast('Level set to ' + v + '. Your course starts at ' + STAGES[placementStage()].name + '.');
+      }
+      else if (b.dataset.rate) { s.rate = +b.dataset.rate; save(); openSettings(); Voice.say([V('good', 'good')]); }
       else if (b.dataset.style) { S.coach.style = b.dataset.style; save(); openSettings(); }
       else if (b.dataset.set === 'test') Voice.say([V('welcome_back')]);
       else { m.hidden = true; m.onclick = null; }
@@ -2405,6 +2515,7 @@
       }
       var v = +b.dataset.band;
       S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = Math.max(400, v);
+      S.coach.level = levelForRating(v); PATHUI.open = null;
       S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
       save(); m.hidden = true; m.onclick = null; m.classList.remove('intro');
       renderTop(); go('path');
@@ -2471,7 +2582,7 @@
       Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
       m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]')) { m.remove(); open = false; setTimeout(next, 250); } });
     }
-    return { show: function (c) { queue.push(c); setTimeout(next, 500); } };
+    return { show: function (c) { queue.push(c); setTimeout(next, 500); }, pending: function () { return open || queue.length > 0; } };
   })();
 
   // ================= Welcome tour =================
@@ -2623,6 +2734,6 @@
     var sp = $('#splash');
     if (sp) requestAnimationFrame(function () { setTimeout(function () { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 700); }, 300); });
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

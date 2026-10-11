@@ -53,6 +53,12 @@ Publish `dist/chess-ascent.html` as an artifact and pass the 15 packs as support
 - Website build (`site.html`) gets an icon and share/home-screen meta tags.
 - Fixed: leaving a game while the coach was thinking threw an error.
 
+## Level-aware course
+- `placementStage()` maps the starting level (`S.band`) to a stage; stages below it are "Cleared" (still open for review). `nextLesson()` skips cleared stages and returns null when everything is cleared.
+- Stage test (`MODES.stagetest`): 4 puzzles from the stage's rating band, 3 needed; passing sets `S.cleared[stageId]` and awards the stage badge.
+- Openings are sorted for the player's rating and tagged "Your level" / "Basics"; the coach starts at `levelForRating()` and setup shows Warm-up / Your level / Next challenge.
+- Settings has a "Your level" picker to change the starting point later.
+
 ## Open items
 1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.
