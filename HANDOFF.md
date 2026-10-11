@@ -9,6 +9,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `engine.js` | Coach engine: PVS alpha-beta, transposition table, null move, LMR, killers/history, quiescence, mobility + pawn-structure eval. API: `rootSearch`, `pickMove(fen, level, prevFens)`, `analyzeMove(fen, uci, depth, timeMs)`, `threat`, `evalPos`. Runs in a Web Worker. |
 | `data.js` | STAGES, LESSONS (26), OPENINGS (23), PUZZLES (30 hand-made), COACH_LEVELS. |
 | `puzzles2.js` | 69 extra puzzles mined from engine self-play, each re-verified (unique winning move). |
+| `defences.js` | DEFENCES (how to meet every opening from the other side), 2 extra trap openings (Stafford, Blackburne Shilling), STAGE_OPENINGS (opening stops on the Path), DEFENCE_LINES() voice lines `D-<id>-<n>`. |
 | `voicelines.js` | All coach lines + variation pools (no line repeats until all are used). |
 | `icons.js` | Vector chess piece icons (no unicode glyphs — they broke on some servers). |
 | `board2d.js` | Flat 2D board with the same API as the 3D board. |
@@ -17,7 +18,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `build.js` | Concatenates sources into `dist/chess-ascent.html` (artifact), `dist/site.html` (website, has viewport meta) and `dist/test.html` (THREE stub for headless tests). Needs `dist/voice-index.json` + `dist/voice-packs.json`. |
 | `dist/voice-pack-1..15.mp3` | All 1410 voice clips, packed (32 kbps mono). Loaded on demand. |
 | `pack-voice.js`, `ingest.sh` | Turn a voice zip from the user into packs: `sh ingest.sh chess-voice-v4.zip` (needs ffmpeg). The zip must contain ALL clips (the user's generator folder keeps old + new). |
-| `build-kit.js`, `voice-kit/` | Builds the ElevenLabs generator the user runs on Windows. |
+| `build-kit.js` | Rebuilds `voice-kit-v4/generate-v4-voices.js` from `voice-kit-v4/generate-v4-voices.template.js` with every line (male voice, eleven_v4 only) and prints how many clips are new. `voice-kit/` is the old female template and is no longer used. |
 | `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 1410 lines, all generated and packed. |
 | `website/` | Download version: `serve.js` + `Start-Chess-Ascent.bat` (index.html = dist/site.html, plus the 15 packs). |
 | `tests/` | `perft.js`, `validate.js` (checks every lesson/opening/puzzle), `bench.js` (engine match + tactics), `mine.js` (puzzle miner), Playwright scripts (`smoke.py`, `mob.py` phone screenshots, etc.). |
@@ -58,6 +59,12 @@ Publish `dist/chess-ascent.html` as an artifact and pass the 15 packs as support
 - Stage test (`MODES.stagetest`): 4 puzzles from the stage's rating band, 3 needed; passing sets `S.cleared[stageId]` and awards the stage badge.
 - Openings are sorted for the player's rating and tagged "Your level" / "Basics"; the coach starts at `levelForRating()` and setup shows Warm-up / Your level / Next challenge.
 - Settings has a "Your level" picker to change the starting point later.
+
+## Openings in the course and defence lines
+- Every opening has a "Play it / Defend against it" switch (`sideSwitch`), its defence is opened with id `def-<openingId>` (`lineById`).
+- The Path shows opening stops between lessons (`stageStops`, `stopHtml`); the daily Opening mission and "What next?" go to the next undrilled stop (`nextStop`).
+- In coach games the coach often plays a real line or trap (`pickBookLine`, `bookMove`), announces it in the feed, and offers a study button after the game.
+- 467 new voice lines (defences + 2 trap openings) are in the v4 generator; until the user runs it, those notes show as text without voice.
 
 ## Open items
 1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.

@@ -1682,6 +1682,118 @@ if (typeof PUZZLES !== 'undefined') PUZZLES.push.apply(PUZZLES, PUZZLES_MINED);
 if (typeof module !== 'undefined') module.exports = PUZZLES_MINED;
 
 ;
+// ===== How to meet every opening from the other side, plus two traps beginners fall for =====
+// DEFENCES[openingId]: the line the defending side should know. `side` is the side the player takes.
+// Every move has a note; notes are spoken as clips D-<id>-<n>, the idea as D-<id>-idea.
+var DEFENCES = {
+  'italian': { side: 'b', name: 'Meeting the Italian', idea: 'Answer the Italian bishop calmly: develop, keep your own bishop on a safe square, and never let White build d4 with tempo.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3', 'Nf6', 'd3', 'd6', 'O-O', 'O-O', 'Re1', 'a6', 'Bb3', 'Ba7'],
+    notes: ['White claims the centre with the king pawn.', 'Meet it head on with your own e-pawn.', 'The knight attacks your e5 pawn.', 'Guard e5 and develop at the same time.', 'The Italian bishop stares at f7.', 'Mirror the idea: your bishop aims at f2.', 'White prepares d4 to hit your bishop.', 'Counterattack e4 so White has no time for d4.', 'White settles for the slow Giuoco Pianissimo.', 'Free your light bishop and support e5 for good.', 'White tucks the king away on g1.', 'You castle too, so neither king is a target.', 'The rook adds pressure to e5 and prepares d4.', 'Make a little pocket on a7 for your bishop.', 'White keeps the bishop safe from a knight jump to a5.', 'Bishop to a7: d4 or b4 can no longer chase it. Black is fully equal.'] },
+  'ruy': { side: 'b', name: 'The Berlin Wall', idea: 'The Berlin Defence takes White\'s e4 pawn, gives it back, and reaches a rock-solid position that world champions trust.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'Nf6', 'O-O', 'Nxe4', 'Re1', 'Nd6', 'Nxe5', 'Be7', 'Bf1', 'Nxe5', 'Rxe5', 'O-O', 'd4', 'Bf6', 'Re1'],
+    notes: ['White opens with the king pawn, aiming for the Spanish.', 'Black stakes out e5 in return.', 'The knight eyes your e5 pawn.', 'Knight to c6 protects it.', 'The Spanish bishop pins down your defender.', 'The Berlin: hit e4 straight back.', 'White castles and dares you to take.', 'Take the pawn. The knight will retreat in time.', 'The rook pins your knight against the king.', 'Knight to d6 steps out and attacks the bishop.', 'White wins the pawn back on e5.', 'Bishop to e7 blocks the e-file before castling.', 'White retreats the bishop to f1, out of danger.', 'Trade knights to ease the pressure.', 'The rook recaptures on e5 in the centre.', 'Castle. Your king is safe and your pieces are free.', 'White grabs space with d4.', 'Bishop f6 hits the rook and eyes d4.', 'Material is level and Black has no weaknesses. This is the Berlin Wall.'] },
+  'scotch': { side: 'b', name: 'Meeting the Scotch', idea: 'After the early d4, hit back at e4 with the knight. Doubled pawns on the c-file are fine because Black gets open lines and quick development.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'd4', 'exd4', 'Nxd4', 'Nf6', 'Nxc6', 'bxc6', 'e5', 'Qe7', 'Qe2', 'Nd5', 'c4', 'Ba6'],
+    notes: ['The Scotch begins with the usual e4.', 'Black answers with the mirror pawn.', 'White develops with a threat on e5.', 'Black protects the pawn with the queen knight.', 'The Scotch: White opens the centre right away.', 'Take on d4; holding e5 is not possible.', 'The white knight recaptures in the middle.', 'Knight f6 attacks e4 at once.', 'White trades on c6 to bend your pawns.', 'Take toward the centre. The b-file opens for your rook.', 'White pushes e5 to kick your knight.', 'Queen e7 pins the e5 pawn to the queen.', 'White unpins by defending with the queen.', 'Knight d5 is a perfect central post.', 'White chases the knight with c4.', 'Bishop a6 pins the c4 pawn. Black has lively play.'] },
+  'kings-gambit': { side: 'b', name: 'Beating the King\'s Gambit', idea: 'Take the gambit pawn, then strike back with ...d5. Returning the pawn opens lines and gives you easy development.',
+    moves: ['e4', 'e5', 'f4', 'exf4', 'Nf3', 'd5', 'exd5', 'Nf6', 'Bc4', 'Nxd5', 'O-O', 'Be7', 'd4', 'O-O', 'Bxd5', 'Qxd5', 'Bxf4', 'Bg4'],
+    notes: ['The gambit starts with an ordinary e4.', 'Black matches it on e5.', 'The King\'s Gambit offers the f-pawn.', 'Accept it. The f-pawn is a real gift.', 'White stops the queen check on h4.', 'The Modern Defence: hit back in the centre.', 'White captures on d5 with the e-pawn.', 'Knight f6 prepares to recapture.', 'The bishop protects d5 and aims at f7.', 'Take back. Your knight is strong on d5.', 'White castles toward the open f-file.', 'Develop before you go after anything else.', 'White builds a pawn centre on d4.', 'Your king is safe; White\'s attack has no targets.', 'White trades off your best knight.', 'Recapture with the queen; she stands tall in the centre.', 'White regains the gambit pawn on f4.', 'Bishop g4 pins the knight. Black is completely comfortable.'] },
+  'evans': { side: 'b', name: 'Defusing the Evans', idea: 'Take the b-pawn, then retreat the bishop to e7 and answer d4 with ...Na5. Calm defence takes the sting out of the gambit.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'b4', 'Bxb4', 'c3', 'Be7', 'd4', 'Na5', 'Be2', 'exd4', 'Qxd4', 'Nf6'],
+    notes: ['The Evans line opens with e4.', 'Black replies symmetrically on e5.', 'Knight f3 attacks the e5 pawn.', 'Your c6 knight defends it.', 'White\'s bishop comes to c4.', 'Your bishop answers on c5.', 'The Evans Gambit offers the b-pawn.', 'Take it. Turning gambits down hands White an easy game.', 'White gains time on your bishop with c3.', 'The safe retreat. e7 is out of reach of White\'s pawns.', 'White strikes in the centre with d4.', 'Knight a5 hits the strong c4 bishop.', 'White keeps the bishop by stepping back to e2.', 'Now capture the d4 pawn.', 'White\'s queen recaptures on d4.', 'Develop with tempo against e4. Black keeps the extra pawn.'] },
+  'danish': { side: 'b', name: 'Declining the Danish', idea: 'You do not have to grab every pawn. One move of ...d5 returns the material and kills White\'s attack before it starts.',
+    moves: ['e4', 'e5', 'd4', 'exd4', 'c3', 'd5', 'exd5', 'Qxd5', 'cxd4', 'Nc6', 'Nf3', 'Bg4', 'Be2', 'Bb4+', 'Nc3', 'Bxf3', 'Bxf3', 'Qc4'],
+    notes: ['The Danish starts with e4.', 'You reply with e5 as usual.', 'White plays an early d4.', 'Grab the d4 pawn.', 'The Danish offers a second pawn on c3.', 'Decline with d5: hit the centre instead of taking.', 'White swaps pawns on d5.', 'The queen recaptures safely.', 'White wins back the pawn on d4.', 'Knight c6 pressures the isolated d4 pawn.', 'White protects d4 with the king knight.', 'Pin the defender of d4.', 'White breaks the pin with Be2.', 'A bishop check that develops.', 'White blocks with the c3 knight.', 'Trade off the knight that guards d4.', 'White\'s light bishop recaptures on f3.', 'Queen c4 keeps White\'s king stuck in the centre. Black is very comfortable.'] },
+  'vienna': { side: 'b', name: 'Facing the Vienna Gambit', idea: 'Answer f4 with an immediate ...d5. After the knight trades on c3, the push ...d4 gains space and leaves White\'s pawns weak.',
+    moves: ['e4', 'e5', 'Nc3', 'Nf6', 'f4', 'd5', 'fxe5', 'Nxe4', 'd3', 'Nxc3', 'bxc3', 'd4', 'Nf3', 'Nc6', 'Be2', 'Bc5'],
+    notes: ['The Vienna starts with e4.', 'Answer with the classical e5.', 'The Vienna knight comes to c3.', 'Your king knight comes out and attacks e4.', 'The Vienna Gambit push, f4.', 'The best reply: counter in the centre at once.', 'White pushes your knight\'s neighbour away.', 'Jump into e4, the square White just weakened.', 'White kicks the knight with d3.', 'Trade it off on c3.', 'White recaptures, with broken queenside pawns.', 'Push to d4 to cramp White and fix those pawns.', 'White brings the king knight to f3.', 'Develop, and pressure e5.', 'White prepares to castle with Be2.', 'Bishop c5 eyes the weakened g1 diagonal. Black is active.'] },
+  'qgd': { side: 'b', name: 'The Tartakower Defence', idea: 'In the Queen\'s Gambit Declined, play ...h6 and ...b6. Trading a pair of minor pieces frees your position and the bishop finds the long diagonal.',
+    moves: ['d4', 'd5', 'c4', 'e6', 'Nc3', 'Nf6', 'Bg5', 'Be7', 'e3', 'O-O', 'Nf3', 'h6', 'Bh4', 'b6', 'cxd5', 'Nxd5', 'Bxe7', 'Qxe7', 'Nxd5', 'exd5'],
+    notes: ['The Queen\'s Gambit begins with d4.', 'Black holds the centre on d5.', 'White offers the c-pawn.', 'Decline it and keep a pawn on d5.', 'White adds pressure on d5 with the knight.', 'Defend with your king knight.', 'The pin on f6.', 'Break the pin by developing the bishop.', 'White solidifies with e3.', 'Castle first.', 'White develops the kingside knight.', 'Ask the bishop a question with h6.', 'White keeps the pin from h4.', 'The Tartakower: prepare the bishop on b7.', 'White releases the tension on d5.', 'Recapture with the knight to offer trades.', 'White trades bishops on e7.', 'The queen recaptures and stays active.', 'White trades knights on d5.', 'Black has a strong d5 pawn and an open diagonal for the bishop.'] },
+  'qga': { side: 'b', name: 'Playing the QGA as Black', idea: 'If you take on c4, do not try to hold the pawn. Hit the centre with ...e5 and develop quickly while White spends time winning the pawn back.',
+    moves: ['d4', 'd5', 'c4', 'dxc4', 'e4', 'e5', 'Nf3', 'exd4', 'Bxc4', 'Bb4+', 'Nbd2', 'Nc6', 'O-O', 'Nf6', 'e5', 'Nd5'],
+    notes: ['White starts the Queen\'s Gambit with d4.', 'Black answers with d5.', 'White offers c4.', 'Take, but not to keep the pawn.', 'White grabs the big centre with e4.', 'Strike back at once before White settles.', 'White develops instead of capturing.', 'Take on d4.', 'White wins the c4 pawn back.', 'A check that disrupts White\'s development.', 'White blocks with the queen knight.', 'Defend the d4 pawn.', 'White\'s king goes to safety.', 'Develop with tempo.', 'White kicks the knight with e5.', 'A strong central knight. Black is a pawn up for now.'] },
+  'london': { side: 'b', name: 'Breaking the London', idea: 'The London bishop leaves b2 thin. ...c5 and ...Qb6 hit it right away, and ...c4 gains queenside space.',
+    moves: ['d4', 'd5', 'Bf4', 'c5', 'e3', 'Nc6', 'c3', 'Qb6', 'Qb3', 'c4', 'Qc2', 'Bf5', 'Qc1', 'e6', 'Nf3', 'Nf6'],
+    notes: ['The London starts with d4.', 'Hold the centre with d5.', 'The London bishop comes to f4.', 'Hit d4 immediately with the c-pawn.', 'White supports d4 with e3.', 'More pressure on d4.', 'White builds the c3 pyramid.', 'Queen b6 attacks b2, which the bishop has left alone.', 'White offers a queen trade on b3.', 'Push past with tempo and grab space.', 'The queen steps back to c2.', 'Trade off White\'s best piece: the light bishop.', 'White defends b2 again with Qc1.', 'Solid. Open the dark bishop.', 'White\'s king knight comes out.', 'Black is fully developed with extra queenside space.'] },
+  'english': { side: 'b', name: 'The Symmetrical English', idea: 'Copy White\'s flank setup with ...c5, ...g6 and ...Bg7. Mirroring is a safe way to meet a slow opening.',
+    moves: ['c4', 'c5', 'Nc3', 'Nc6', 'g3', 'g6', 'Bg2', 'Bg7', 'Nf3', 'e6', 'O-O', 'Nge7', 'd3', 'O-O'],
+    notes: ['White starts on the flank with c4.', 'Symmetry: control d4 the same way.', 'White eyes d5 with the knight.', 'Black eyes d4 with a knight of its own.', 'White prepares a fianchetto with g3.', 'Black does the same.', 'White\'s bishop lands on the long diagonal.', 'So does yours.', 'White\'s knight develops toward the centre.', 'Cover d5 so White\'s bishop hits a wall.', 'White castles kingside.', 'The knight goes to e7, keeping the bishop\'s diagonal open.', 'Quiet support for e4 later.', 'Black is safe and balanced.'] },
+  'legal-trap': { side: 'b', name: 'Avoiding the Légal Trap', idea: 'The trap only works if you pin a knight and then grab the queen. Develop your king knight first, and the queen sacrifice no longer wins.',
+    moves: ['e4', 'e5', 'Nf3', 'd6', 'Bc4', 'Bg4', 'Nc3', 'Nf6', 'h3', 'Bxf3', 'Qxf3', 'Nc6', 'd3', 'Nd4'],
+    notes: ['The Légal Trap starts from a normal e4.', 'Black replies with e5 too.', 'The knight attacks e5.', 'Philidor style: support e5.', 'The bishop aims at f7.', 'The pin. This is where the trap starts.', 'White brings the queen knight out.', 'The key move. Knight f6 guards d5, so Nd5 mate is gone.', 'White asks the bishop to decide.', 'Trade, so you are never caught by Nxe5 tricks.', 'White\'s queen recaptures on f3.', 'Develop and keep an eye on d4.', 'White supports e4.', 'Knight d4 hits the queen and c2. Black has an active, healthy game.'] },
+  'fried-liver': { side: 'b', name: 'Stopping the Fried Liver', idea: 'When the knight hits f7, play ...d5, then answer exd5 with ...Na5 instead of taking back. White never gets the sacrifice.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'Ng5', 'd5', 'exd5', 'Na5', 'Bb5+', 'c6', 'dxc6', 'bxc6', 'Be2', 'h6', 'Nf3', 'e4', 'Ne5', 'Bd6'],
+    notes: ['The Two Knights starts with e4.', 'Black answers with e5.', 'White\'s knight goes after e5.', 'Protect it with the queen knight.', 'The Italian bishop arrives on c4.', 'The Two Knights Defence.', 'White attacks f7 twice with Ng5.', 'Block the bishop\'s line with d5.', 'White captures on d5.', 'Na5. Do not retake with the knight; that allows the Fried Liver.', 'A check to keep the pawn.', 'Block and offer a pawn back.', 'White grabs on c6.', 'Recapture. You are a pawn down but way ahead in development.', 'The bishop retreats to e2.', 'Kick the knight with h6.', 'The knight goes back to f3.', 'Push e4 and chase it again.', 'White finds a central post on e5.', 'Develop with pressure. Black has strong play for the pawn.'] },
+  'sicilian-najdorf': { side: 'w', name: 'The Alapin against the Sicilian', idea: 'If you do not want to learn the Najdorf jungle, play 2.c3. You prepare d4 and get a classical centre without heavy theory.',
+    moves: ['e4', 'c5', 'c3', 'Nf6', 'e5', 'Nd5', 'd4', 'cxd4', 'Nf3', 'Nc6', 'cxd4', 'd6', 'Bc4', 'Nb6', 'Bb5', 'dxe5', 'Nxe5', 'Bd7'],
+    notes: ['Start with e4 as White.', 'Black answers with the Sicilian, c5.', 'The Alapin: prepare d4 with a pawn behind it.', 'Black\'s knight jumps at e4.', 'Gain space with tempo.', 'The knight jumps to the centre.', 'Build your pawn centre with d4.', 'Black swaps on d4.', 'Develop first; the pawn will not run away.', 'Black brings the queen knight out.', 'Recapture: a strong pawn duo on d4 and e5.', 'Black challenges e5 with d6.', 'Hit the knight on d5.', 'It retreats to b6.', 'Pin the c6 knight.', 'Black captures on e5.', 'Recapture with the knight in the centre.', 'Black breaks the pin. White has free, easy development.'] },
+  'sicilian-dragon': { side: 'w', name: 'The Yugoslav Attack', idea: 'Castle queenside, trade the Dragon bishop with Bh6, and throw your h-pawn at Black\'s king.',
+    moves: ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'g6', 'Be3', 'Bg7', 'f3', 'O-O', 'Qd2', 'Nc6', 'Bc4', 'Bd7', 'O-O-O', 'Rc8', 'Bb3', 'Ne5', 'h4'],
+    notes: ['Against the Dragon, White opens with e4.', 'Black\'s c5 signals a Sicilian.', 'White\'s king knight comes to f3.', 'Black supports the knight move to f6.', 'Open the centre with d4.', 'Black captures on d4.', 'Recapture with the knight.', 'Black\'s knight hits e4.', 'The c3 knight defends e4.', 'Black goes for the Dragon fianchetto.', 'Bishop e3 eyes h6.', 'Black finishes the fianchetto.', 'f3 stops Ng4 and supports a g4 push.', 'Black castles into your attack.', 'The queen prepares Bh6 and queenside castling.', 'Black\'s queen knight comes to c6.', 'Bishop c4 hits f7 and stops d5.', 'Black brings the bishop to d7.', 'Castle long. The race is on.', 'Black eyes the c-file.', 'Tuck the bishop away from knight tricks.', 'Black centralises.', 'Push the h-pawn. Open the h-file and mate on h7 is the goal.'] },
+  'french': { side: 'w', name: 'The Advance French', idea: 'Push e5 to grab space. Defend your d4 pawn with c3 and Nf3, and keep Black\'s light bishop locked inside its own chain.',
+    moves: ['e4', 'e6', 'd4', 'd5', 'e5', 'c5', 'c3', 'Nc6', 'Nf3', 'Qb6', 'a3', 'c4', 'Nbd2', 'Na5', 'Rb1', 'Bd7'],
+    notes: ['Against the French, start with e4.', 'Black plays e6, the French.', 'Take the full centre with d4.', 'Black challenges e4 with d5.', 'The Advance: gain space and cramp Black.', 'Black attacks the base of your chain.', 'Support d4 with a pawn.', 'Black adds a knight to the pressure.', 'Knight f3 supports d4 once more.', 'The queen joins the attack on d4 and b2.', 'Prepare b4 to gain queenside space.', 'Black locks the queenside.', 'The knight heads for f1 and g3.', 'Black eyes b3.', 'Protect the b-pawn so your bishop is free.', 'Black brings the light bishop out. White keeps the space edge.'] },
+  'caro': { side: 'w', name: 'The Advance Caro-Kann', idea: 'Push e5, then play Be2, Be3 and quick castling. You get space and a safe king, and Black has to find counterplay.',
+    moves: ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'Nf3', 'e6', 'Be2', 'c5', 'Be3', 'Nd7', 'O-O', 'Ne7'],
+    notes: ['Against the Caro-Kann, start with e4.', 'Black plays c6, the Caro-Kann.', 'Claim the centre with d4 next to e4.', 'Black stakes a claim with d5, backed by c6.', 'The Advance: claim space.', 'Black develops the good bishop.', 'White\'s knight comes to f3.', 'Black builds the chain.', 'The calm Short system.', 'Black strikes at d4.', 'Support d4 with the bishop.', 'Black\'s queen knight comes to d7.', 'Castle. Your king is safe.', 'Black prepares a knight hop to c6. White has more space.'] },
+  'scandi': { side: 'w', name: 'Punishing the Scandinavian', idea: 'Chase the queen with your pieces. Every tempo Black spends on the queen is a tempo you spend developing.',
+    moves: ['e4', 'd5', 'exd5', 'Qxd5', 'Nc3', 'Qa5', 'd4', 'Nf6', 'Nf3', 'c6', 'Bc4', 'Bf5', 'Bd2', 'e6', 'Nd5', 'Qd8', 'Nxf6+', 'Qxf6'],
+    notes: ['Against the Scandinavian, start with e4.', 'Black hits back at once with d5.', 'Capture on d5.', 'The queen recaptures.', 'The knight hits the queen and develops.', 'She retreats to a5.', 'Plant your d-pawn on d4.', 'Black\'s king knight comes out.', 'Bring the king knight out too.', 'Black makes room for the queen.', 'Bishop to c4, aiming at f7.', 'Black develops the bishop.', 'Unpin, with ideas of Nd5.', 'Black plays e6 to support everything.', 'Knight d5 attacks the queen.', 'She goes home.', 'Trade and wreck Black\'s plans.', 'White is far ahead in development.'] },
+  'kid': { side: 'w', name: 'The Sämisch against the KID', idea: 'Play f3 and Be3 to build an unbreakable centre. Black\'s usual kingside attack runs into a wall of pawns.',
+    moves: ['d4', 'Nf6', 'c4', 'g6', 'Nc3', 'Bg7', 'e4', 'd6', 'f3', 'O-O', 'Be3', 'e5', 'd5', 'c6', 'Qd2', 'cxd5', 'cxd5'],
+    notes: ['Against the King\'s Indian, start with d4.', 'Black\'s knight comes to f6.', 'Grab space with c4.', 'The King\'s Indian.', 'White\'s queen knight comes to c3.', 'Black fianchettos.', 'The big centre.', 'Black holds back.', 'The Sämisch: f3 guards e4 for good.', 'Black\'s king goes to g8.', 'Develop and eye h6.', 'Black strikes.', 'Shut the centre with d5.', 'Black opens the c-file.', 'Connect and prepare castling long.', 'Black swaps on d5.', 'White has more space and a safe plan.'] },
+  'nimzo': { side: 'w', name: 'The Classical Nimzo', idea: 'Qc2 lets you recapture on c3 with the queen, so you keep the bishop pair and an intact pawn structure.',
+    moves: ['d4', 'Nf6', 'c4', 'e6', 'Nc3', 'Bb4', 'Qc2', 'O-O', 'a3', 'Bxc3+', 'Qxc3', 'b6', 'Bg5', 'Bb7', 'e3', 'd6'],
+    notes: ['Against the Nimzo-Indian, start with d4.', 'Black\'s first move is Nf6.', 'Take space with c4.', 'Black prepares the pin.', 'The knight comes to c3.', 'The Nimzo pin.', 'The Classical: guard c3 with the queen.', 'Black tucks the king away.', 'Ask the bishop.', 'Black gives up the bishop on c3.', 'Recapture with the queen. Your pawns stay healthy.', 'Black prepares a fianchetto on b7.', 'Pin the knight.', 'Black\'s bishop lands on b7.', 'A sturdy e3 for White.', 'White keeps the bishop pair.'] },
+  'slav': { side: 'w', name: 'The Exchange Slav', idea: 'Trade on d5 for a symmetrical, quiet position. Beginners can play it safely and avoid heavy Slav theory.',
+    moves: ['d4', 'd5', 'c4', 'c6', 'cxd5', 'cxd5', 'Nc3', 'Nf6', 'Bf4', 'Nc6', 'e3', 'Bf5', 'Nf3', 'e6', 'Bb5', 'Nd7'],
+    notes: ['Against the Slav, start with d4.', 'Black meets d4 with d5.', 'The gambit pawn goes to c4.', 'The Slav: c6 supports d5.', 'Exchange to simplify.', 'The c-pawn recaptures.', 'Your queen knight comes to c3.', 'Black\'s king knight comes to f6.', 'Your bishop goes outside the chain to f4.', 'Black develops the b8 knight.', 'A steady e3 supports d4.', 'Black mirrors with Bf5.', 'The king knight joins on f3.', 'Black plays e6 to shore up d5.', 'Bishop b5 pins the knight.', 'Black prepares to break the pin. Easy play for White.'] },
+  'englund': { side: 'w', name: 'Refuting the Englund', idea: 'Keep the pawn, and answer ...Qb4 check with Nbd2 or a queen move, never Bd2. Then the trap simply fails.',
+    moves: ['d4', 'e5', 'dxe5', 'Nc6', 'Nf3', 'Qe7', 'Qd5', 'f6', 'exf6', 'Nxf6', 'Qb3', 'd5', 'Nc3'],
+    notes: ['Against the Englund, start with d4.', 'Black plays the Englund Gambit with e5.', 'Capture the e5 pawn.', 'Black attacks e5.', 'Guard it with the king knight.', 'Black piles on e5.', 'Queen d5 guards e5 and avoids every trap.', 'Black tries to break.', 'Take on f6.', 'Black\'s knight recaptures.', 'Step back to safety.', 'Black grabs space.', 'White is a clean pawn up.'] },
+  'anti-scholar': { side: 'b', tabs: ['Stop the mate', 'Punish the queen'], name: 'Punishing the Early Queen', idea: 'If White keeps chasing f7, keep developing with tempo. Every queen move gives you another free move.',
+    moves: ['e4', 'e5', 'Qh5', 'Nc6', 'Bc4', 'g6', 'Qf3', 'Nf6', 'g4', 'Nd4', 'Qd1', 'd5'],
+    notes: ['White opens with e4.', 'Black puts a pawn on e5 as well.', 'The early queen.', 'Protect e5 by developing.', 'Scholar\'s Mate is threatened.', 'Block the queen.', 'She tries again.', 'Block with a knight.', 'White gets greedy for kingside space.', 'Knight d4 hits c2 and the queen.', 'The queen runs home.', 'Strike the centre. Black is far ahead.'] },
+  'stafford': { side: 'w', name: 'Beating the Stafford', idea: 'After the gambit, play d3 and Be2. The bishop on e2 covers the g4 and h5 squares, so none of Black\'s tricks work.',
+    moves: ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nc6', 'Nxc6', 'dxc6', 'd3', 'Bc5', 'Be2', 'h5', 'c3'],
+    notes: ['Against the Stafford, start with e4.', 'Black replies with e5.', 'White\'s king knight attacks e5.', 'The Petroff move.', 'Grab the e5 pawn.', 'The Stafford Gambit.', 'Take the knight.', 'Black recaptures, opening lines.', 'Guard e4 calmly.', 'Black aims at f2.', 'The key move: Be2 stops Ng4 and Bg4 tricks.', 'Black prepares Ng4.', 'Prepare d4 and keep the extra pawn. White is better.'] },
+  'blackburne-shilling': { side: 'w', name: 'Beating the Shilling Gambit', idea: 'When the knight jumps to d4, do not take on e5. Trade on d4 and castle; Black\'s queen tricks disappear.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nd4', 'Nxd4', 'exd4', 'O-O', 'Bc5', 'c3', 'Ne7', 'cxd4', 'Bxd4', 'Nc3'],
+    notes: ['Against the Shilling Gambit, start with e4.', 'Black meets it with e5.', 'Your knight hits e5.', 'Black guards e5 with the knight.', 'Your bishop aims at f7.', 'The Shilling Gambit move.', 'Take the knight instead of grabbing e5.', 'Black recaptures with the e-pawn.', 'Castle and stay safe.', 'Black\'s bishop comes to c5.', 'Challenge the d4 pawn.', 'Black\'s king knight comes to e7.', 'Win the d4 pawn.', 'Black\'s bishop recaptures.', 'White develops with a big lead.'] }
+};
+// Two traps players meet in real games. The coach can spring them on you.
+var EXTRA_OPENINGS = [
+  { id: 'stafford', name: 'Stafford Gambit', eco: 'C42', side: 'b', family: 'Traps', level: 'Beginner', gambit: true, idea: 'A trappy gambit for Black that sets up lightning attacks on f2. Learn it so you know what is coming.',
+    moves: ['e4', 'e5', 'Nf3', 'Nf6', 'Nxe5', 'Nc6', 'Nxc6', 'dxc6', 'd3', 'Bc5', 'Bg5', 'Nxe4', 'Bxd8', 'Bxf2+', 'Ke2', 'Bg4#'],
+    notes: ['A normal start with e4.', 'Black copies with e5.', 'The king knight leaves g1 for f3.', 'Black hits e4 with the Petroff knight.', 'White captures on e5.', 'Black gives up a pawn with Nc6.', 'White trades on c6.', 'Black recaptures toward open lines.', 'White guards e4 with d3.', 'The bishop aims at f2.', 'White pins the knight, but it is a mistake.', 'Black ignores the pin.', 'White falls for it and takes the queen on d8.', 'Check, driving the king up.', 'The king has to step to e2.', 'Checkmate! The bishops do all the work.'] },
+  { id: 'blackburne-shilling', name: 'Blackburne Shilling Gambit', eco: 'C50', side: 'b', family: 'Traps', level: 'Beginner', gambit: true, idea: 'A cheeky knight jump that invites White to grab e5, then punishes it with a queen attack and a smothered mate.',
+    moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nd4', 'Nxe5', 'Qg5', 'Nxf7', 'Qxg2', 'Rf1', 'Qxe4+', 'Be2', 'Nf3#'],
+    notes: ['The opening move, e4.', 'Black matches the king pawn.', 'White\'s knight targets e5.', 'Black guards it with Nc6.', 'The Italian bishop comes out.', 'The knight jumps forward and leaves e5.', 'White takes the bait.', 'The queen eyes g2 and the knight.', 'White forks the queen and rook.', 'The queen grabs g2 and hits the rook.', 'The rook runs to f1.', 'Check, taking e4 with tempo.', 'White blocks with the bishop.', 'Smothered mate on f3!'] }
+];
+if (typeof OPENINGS !== 'undefined') OPENINGS.push.apply(OPENINGS, EXTRA_OPENINGS);
+// Openings woven into the training path: after every two lessons a stage offers one of these.
+var STAGE_OPENINGS = {
+  s1: [['anti-scholar', 0], ['italian', 0], ['anti-scholar', 1]],
+  s2: [['fried-liver', 1], ['legal-trap', 1], ['scandi', 0]],
+  s3: [['blackburne-shilling', 1], ['stafford', 1], ['englund', 1]],
+  s4: [['french', 0], ['caro', 0], ['qgd', 1]],
+  s5: [['sicilian-najdorf', 0], ['kings-gambit', 1], ['kid', 0]]
+};
+if (typeof module !== 'undefined') module.exports = { DEFENCES: DEFENCES, EXTRA_OPENINGS: EXTRA_OPENINGS, STAGE_OPENINGS: STAGE_OPENINGS };
+// Voice lines for the defence lines (the two extra openings are covered by VOICE_LINES via OPENINGS)
+function DEFENCE_LINES() {
+  var out = [];
+  Object.keys(DEFENCES).forEach(function (id) {
+    var d = DEFENCES[id];
+    out.push({ id: 'D-' + id + '-idea', text: d.name + '. ' + d.idea, group: 'defences' });
+    d.notes.forEach(function (n, i) { out.push({ id: 'D-' + id + '-' + i, text: n, group: 'defences' }); });
+  });
+  return out;
+}
+if (typeof module !== 'undefined') module.exports.DEFENCE_LINES = DEFENCE_LINES;
+
+;
 // Fixed coach phrases, and the full list of voice lines the app can play.
 var COACH_LINES = {
   welcome: 'Welcome to Chess Ascent. I am your coach. Pick where you are starting, and we will climb together.',
@@ -2157,7 +2269,7 @@ function BOARD2D_FACTORY() {
     return [
       { k: 'lesson', label: 'Lesson', sub: '', done: !!d.lesson, act: 'startNext' },
       { k: 'puzzles', label: 'Puzzles', sub: Math.min(d.puzzles, 5) + ' of 5', done: d.puzzles >= 5, act: 'goPuzzles' },
-      { k: 'opening', label: 'Opening', sub: 'One drill', done: !!d.opening, act: 'goOpenings' },
+      { k: 'opening', label: 'Opening', sub: (function () { var o = nextStop(); return o ? (o.def ? 'Defend: ' : '') + (o.base ? o.base.name : o.name) : 'One drill'; })(), done: !!d.opening, act: 'nextOpening' },
       { k: 'game', label: 'Coach game', sub: 'Full game', done: !!d.game, act: 'goPlay' }
     ];
   }
@@ -3274,10 +3386,13 @@ function BOARD2D_FACTORY() {
             (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p>' +
               (!stageCleared(i) && open && testPool(i).length >= 3 ? '<button class="test-out" data-act="stageTest" data-i="' + i + '"><span class="to-ico" aria-hidden="true">⚡</span><span><b>Know this already?</b><span>Solve 3 of 4 puzzles at ' + st.band + ' to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
               '<div class="jlessons">' + st.lessons.map(function (id, k) {
-              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear;
+              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear, stops = stageStops(i);
+              // after every second lesson (and at the end of the stage) an opening stop
+              var stop = k % 2 === 1 && stops[(k - 1) / 2] ? stopHtml(stops[(k - 1) / 2]) : '';
+              if (k === st.lessons.length - 1) stops.slice(Math.floor(st.lessons.length / 2)).forEach(function (sid) { stop += stopHtml(sid); }); // stops left over in short stages
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>';
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>' + stop;
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
@@ -3505,7 +3620,9 @@ function BOARD2D_FACTORY() {
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
-    if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
+    var ns = nextStop();
+    if (ns && (nDone >= 2 || !isLocked('openings'))) cards.push({ k: 'opening', ico: 'b', t: ns.def ? 'Defend against the ' + ns.base.name : 'Learn the ' + ns.name, s: ns.def ? ns.idea.split('. ')[0].replace(/\.$/, '') + '.' : 'Every move explained, then drill it from memory.', act: 'data-act="openOp" data-id="' + ns.id + '"', isNew: opNew });
+    else if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
     if (nl && nl !== id) cards.push({ k: 'lesson', ico: 'r', t: 'Next lesson', s: LESSONS[nl].title, act: 'data-act="lesson" data-id="' + nl + '"' });
     // Variety: after two lessons in a row, nudge toward doing instead of reading
     var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
@@ -3549,6 +3666,42 @@ function BOARD2D_FACTORY() {
   // ================= Openings =================
   var OP = { filter: 'all' };
   function mastery(id) { var r = S.openings[id] || {}; return Math.min(3, r.perfect || 0); }
+  // An opening by id, or its defence line by 'def-<id>' (same shape, plus base/def/vp)
+  function lineById(id) {
+    if (/^def-/.test(id)) {
+      var base = lineById(id.slice(4)), d = base && DEFENCES[base.id];
+      if (!d) return null;
+      return d._o || (d._o = { id: id, base: base, def: true, name: d.name, eco: base.eco, side: d.side, family: base.family, level: base.level, gambit: false, idea: d.idea, moves: d.moves, notes: d.notes, vp: 'D-' + base.id });
+    }
+    return OPENINGS.filter(function (o) { return o.id === id; })[0] || null;
+  }
+  function allLines() { return OPENINGS.concat(OPENINGS.filter(function (o) { return DEFENCES[o.id]; }).map(function (o) { return lineById('def-' + o.id); })); }
+  function drilled(id) { var r = S.openings[id]; return !!(r && r.drills); }
+  // The "Play it / Defend against it" switch on every opening that has a defence line
+  function sideSwitch(o) {
+    var base = o.base || o, d = DEFENCES[base.id]; if (!d) return '';
+    var side = function (c) { return c === 'w' ? 'White' : 'Black'; }, trap = base.family === 'Traps' || base.gambit;
+    return '<div class="side-switch" role="group" aria-label="Which side to learn">' +
+      '<button class="' + (o.def ? '' : 'on') + '" data-act="openOp" data-id="' + base.id + '"><b>' + (d.tabs ? d.tabs[0] : 'Play it') + '</b><span>as ' + side(base.side) + (mastery(base.id) ? ' · ' + mastery(base.id) + '/3' : '') + '</span></button>' +
+      '<button class="' + (o.def ? 'on' : '') + '" data-act="openOp" data-id="def-' + base.id + '"><b>' + (d.tabs ? d.tabs[1] : trap ? 'Defend against it' : 'Face it') + '</b><span>as ' + side(d.side) + (mastery('def-' + base.id) ? ' · ' + mastery('def-' + base.id) + '/3' : '') + '</span></button></div>';
+  }
+  // Opening stops woven into the training path (STAGE_OPENINGS in defences.js)
+  function stageStops(i) { return (STAGE_OPENINGS[STAGES[i].id] || []).map(function (e) { return e[1] ? 'def-' + e[0] : e[0]; }).filter(lineById); }
+  function nextStop() {
+    var nl = nextLesson(), cur = nl ? stageOf(nl) : STAGES.length - 1, order = [cur];
+    for (var i = cur - 1; i >= 0; i--) order.push(i);
+    for (var j = cur + 1; j < STAGES.length; j++) if (stageUnlocked(j)) order.push(j);
+    for (var k = 0; k < order.length; k++) { var ids = stageStops(order[k]).filter(function (id) { return !drilled(id); }); if (ids.length) return lineById(ids[0]); }
+    return null;
+  }
+  function stopHtml(id) {
+    var o = lineById(id), done = drilled(id), m = mastery(id);
+    return '<button class="jlesson jop' + (done ? ' done' : '') + '" data-act="openOp" data-id="' + id + '">' +
+      '<span class="jl-num op" aria-hidden="true">' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</span>' +
+      '<span class="jl-title"><em class="op-kind' + (o.def ? ' def' : '') + '">' + (o.def ? 'Defence' : 'Opening') + '</em> ' + esc(o.def ? o.name : o.name) + '</span>' +
+      '<span class="jl-meta">' + (done ? 'Mastery ' + m + '/3' : o.moves.length + ' moves') + '</span></button>';
+  }
+  ACT.nextOpening = function () { var o = nextStop(); if (o) go('opening', { id: o.id, mode: 'learn' }); else go('openings'); };
   MODES.openings = {
     label: 'Opening explorer',
     enter: function () {
@@ -3582,6 +3735,7 @@ function BOARD2D_FACTORY() {
             '<span class="op-top"><span class="eco">' + o.eco + '</span><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span>' + (o.gambit ? '<span class="pill">Gambit</span>' : '') + (rank(o) === 0 ? '<span class="fit">Your level</span>' : rank(o) === 2 ? '<span class="fit basic">Basics</span>' : '') + '<span class="lvl">' + o.level + '</span></span>' +
             '<span class="op-name">' + esc(o.name) + '</span>' +
             '<span class="op-moves mono">' + esc(o.moves.slice(0, 6).map(function (s, i) { return (i % 2 === 0 ? (i / 2 + 1) + '.' : '') + s; }).join(' ')) + '…</span>' +
+            (DEFENCES[o.id] ? '<span class="op-def">+ ' + (o.family === 'Traps' || o.gambit ? 'how to defend against it' : 'how to face it as ' + (DEFENCES[o.id].side === 'w' ? 'White' : 'Black')) + (mastery('def-' + o.id) ? ' · ' + mastery('def-' + o.id) + '/3' : '') + '</span>' : '') +
             '<span class="meter" aria-label="Mastery ' + m + ' of 3"><i style="width:' + (m / 3 * 100) + '%"></i></span></button>';
         }).join('') + '</div>');
       var inp = $('#op-search');
@@ -3611,7 +3765,7 @@ function BOARD2D_FACTORY() {
   MODES.opening = {
     label: 'Opening trainer',
     enter: function (arg) {
-      var o = OPENINGS.filter(function (x) { return x.id === arg.id; })[0];
+      var o = lineById(arg.id);
       OD = { o: o, mode: arg.mode, ply: 0, errors: 0, misses: {} };
       var g = setupBoard(Game.START, { drop: true, orient: o.side });
       OD.g = g;
@@ -3622,11 +3776,12 @@ function BOARD2D_FACTORY() {
       var o = OD.o, i = OD.ply;
       var nextNote = i < o.moves.length ? o.notes[i] : 'End of the main line. Now drill it from memory.';
       var lastNote = i > 0 ? o.notes[i - 1] : o.idea;
-      Voice.say([i > 0 ? { id: 'O-' + o.id + '-' + (i - 1), text: o.notes[i - 1] } : { id: 'O-' + o.id + '-idea', text: o.name + '. ' + o.idea }]);
+      var vp = o.vp || 'O-' + o.id;
+      Voice.say([i > 0 ? { id: vp + '-' + (i - 1), text: o.notes[i - 1] } : { id: vp + '-idea', text: o.name + '. ' + o.idea }]);
       setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
         '<div class="eyebrow">' + o.eco + ' · ' + o.family + ' · You play ' + (o.side === 'w' ? 'White' : 'Black') + '</div>' +
         '<h1 class="h1">' + esc(o.name) + '</h1><p class="lede">' + esc(o.idea) + '</p>' +
-        '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
+        sideSwitch(o) + '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
         '<div class="coach-card"><div class="coach-tag">' + (i === 0 ? 'The idea' : 'Move ' + Math.ceil(i / 2) + (i % 2 ? '' : '…') + ' ' + esc(o.moves[i - 1])) + '</div><p class="coach-text">' + esc(lastNote) + '</p>' +
         (i < o.moves.length ? '<p class="next-note"><span class="muted">Next:</span> <span class="mono">' + esc(o.moves[i]) + '</span> · ' + esc(nextNote) + '</p>' : '<p class="next-note">' + esc(nextNote) + '</p>') + '</div>' +
         moveListHtml(o.moves, i, 'opJump') + '<p class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> step through the moves</p>' +
@@ -3662,7 +3817,7 @@ function BOARD2D_FACTORY() {
       var o = OD.o;
       setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
         '<div class="eyebrow">' + o.eco + ' · Drill</div><h1 class="h1">' + esc(o.name) + '</h1>' +
-        '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
+        sideSwitch(o) + '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
         '<div class="drill-stats"><span><b>' + Math.floor(OD.ply / 2) + '</b> / ' + Math.ceil(o.moves.length / 2) + ' moves</span><span><b>' + OD.errors + '</b> mistakes</span><span>Mastery <b>' + mastery(o.id) + '</b>/3</span></div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + msg + '</div>' +
         moveListHtml(o.moves, OD.ply, null) +
@@ -3959,9 +4114,10 @@ function BOARD2D_FACTORY() {
   function bookMoves(fen) {
     if (!BOOK) {
       BOOK = {};
-      OPENINGS.forEach(function (o) {
+      allLines().forEach(function (o) {
         var g = new Game();
-        o.moves.forEach(function (s) { var k = posKey(g.fen()), m = g.move(s); if (m) { var e = (BOOK[k] = BOOK[k] || {}), u = m.from + m.to; e[u] = e[u] && e[u] !== o.name ? 'many' : o.name; } });
+        var nm = o.base ? o.base.name : o.name; // a defence line is still that opening
+        o.moves.forEach(function (s) { var k = posKey(g.fen()), m = g.move(s); if (m) { var e = (BOOK[k] = BOOK[k] || {}), u = m.from + m.to; e[u] = e[u] && e[u] !== nm ? 'many' : nm; } });
       });
       // Sound, well-known first moves and replies
       var extra = { '': ['e4', 'd4', 'c4', 'Nf3', 'g3', 'b3', 'Nc3', 'f4', 'e3'], 'e4': ['e5', 'c5', 'e6', 'c6', 'd5', 'd6', 'g6', 'Nf6', 'Nc6'], 'd4': ['d5', 'Nf6', 'e6', 'c5', 'g6', 'f5', 'd6'], 'c4': ['e5', 'c5', 'Nf6', 'e6', 'g6'], 'Nf3': ['d5', 'Nf6', 'c5', 'g6'] };
@@ -3992,6 +4148,27 @@ function BOARD2D_FACTORY() {
     if (drop <= 0.11) return { c: CLASS.inacc };
     if (drop <= 0.22) return { c: CLASS.mistake };
     return { c: CLASS.blunder };
+  }
+  // Pick a real opening line for the coach to play: traps and gambits more often for newer players.
+  function pickBookLine(coachColor, lvl) {
+    var p = { novice: 0.75, club: 0.65, strong: 0.5, expert: 0.35, master: 0.2 }[lvl] || 0.5;
+    if (!chance(p)) return null;
+    var tier = openingTier(S.puzzle.rating), pool = [];
+    allLines().forEach(function (L) {
+      if (L.side !== coachColor || TIER[L.level] > tier + 1) return;
+      var w = (!L.def && (L.family === 'Traps' || L.gambit)) ? (S.puzzle.rating < 1200 ? 3 : 1) : 2;
+      if (drilled(L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id)) w = Math.max(1, w - 1); // fresher lines first
+      for (var i = 0; i < w; i++) pool.push(L);
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  }
+  function bookMove(g) {
+    var L = PL && PL.book; if (!L) return null;
+    var h = g.history(), clean = function (x) { return x.replace(/[+#!?]/g, ''); };
+    if (h.length >= L.moves.length) return null;
+    for (var i = 0; i < h.length; i++) if (clean(h[i]) !== clean(L.moves[i])) { PL.book = PL.bookSaid ? PL.book : null; return null; }
+    var m = new Game(g.fen()).move(L.moves[h.length]);
+    return m ? { from: m.from, to: m.to, promotion: m.promotion, piece: m.piece } : null;
   }
   function classify(loss) { return loss <= 15 ? CLASS.best : loss <= 50 ? CLASS.good : loss <= 120 ? CLASS.inacc : loss <= 280 ? CLASS.mistake : CLASS.blunder; }
   MODES.play = {
@@ -4024,6 +4201,7 @@ function BOARD2D_FACTORY() {
       var fen = PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
       PL = { g: g, color: color, level: levelById(c.level), log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: coachStyle(), from: PL.arg && PL.arg.from };
+      PL.book = fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
       Voice.say([V('gamestart')]);
@@ -4057,10 +4235,21 @@ function BOARD2D_FACTORY() {
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
         }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(S.settings.coachName) + '</span><p>' + (PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
         '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted">No moves yet</span>') + '</div>' +
-        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button><button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
+        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
       var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
     },
     say: function (tag, html, cls) { PL.feed.push({ tag: tag, html: html, cls: cls || '' }); },
+    // Tell the player which line the coach is playing, once it is recognisable (the coach's 2nd book move)
+    bookNote: function (g) {
+      var L = PL.book, n = g.history().length;
+      if (!L || PL.bookSaid || n < 3) return;
+      PL.bookSaid = true;
+      var trap = !L.def && (L.family === 'Traps' || L.gambit);
+      MODES.play.say('Opening', L.def ? 'You are playing the <strong>' + esc(L.base.name) + '</strong>. Watch how I meet it: this is ' + esc(L.name) + ', and it is in Openings with every move explained.'
+        : trap ? 'Heads up: I am trying the <strong>' + esc(L.name) + '</strong>. Spot the trick before it lands.'
+        : 'I am playing the <strong>' + esc(L.name) + '</strong>. You will find it in Openings with every move explained.', 'bookline');
+      toast(L.def ? 'Coach is meeting your ' + L.base.name : trap ? L.name + ': a trap is coming' : 'Coach plays the ' + L.name);
+    },
     turn: function () {
       var g = PL.g;
       if (MODES.play.checkOver()) return;
@@ -4082,8 +4271,8 @@ function BOARD2D_FACTORY() {
         }
       } else {
         IX.enabled = false; PL.thinking = true; MODES.play.render();
-        var t0 = Date.now(), fen = g.fen();
-        Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())).then(function (r) {
+        var t0 = Date.now(), fen = g.fen(), bm = bookMove(g);
+        (bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()))).then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
           setTimeout(function () {
@@ -4092,9 +4281,10 @@ function BOARD2D_FACTORY() {
             if (!r || !r.move) { MODES.play.checkOver(); return; }
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
               PL.log.push({});
+              if (r.book) MODES.play.bookNote(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
               else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
-              setEval(PL.color === 'w' ? -r.score : r.score, true);
+              if (r.score != null) setEval(PL.color === 'w' ? -r.score : r.score, true);
               MODES.play.render();
               MODES.play.turn();
               setTimeout(function () { if (PL && PL.g === g && g.turn() === PL.color) MODES.play.coachTip(); }, 2600);
@@ -5134,6 +5324,18 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 .lv-tag { font-style: normal; font: 800 9px var(--f-body); letter-spacing: .07em; text-transform: uppercase; padding: 1px 6px; border-radius: 99px; background: var(--brass); color: var(--brass-ink); margin-left: 4px; vertical-align: 1px; }
 .lv-tag.up { background: var(--pink); color: #fff; } .lv-tag.easy { background: var(--card-2); color: var(--dim); }
 .seg.wrap { flex-wrap: wrap; }
+/* ===== Openings in the course, defence lines ===== */
+.side-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 2px 0 12px; }
+.side-switch button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); min-width: 0; }
+.side-switch button b { font-size: 13.5px; } .side-switch button span { font-size: 11.5px; color: var(--muted); }
+.side-switch button.on { border-color: var(--pink); background: linear-gradient(160deg, rgba(255,79,139,.18), rgba(76,201,240,.08)), var(--card); box-shadow: inset 0 0 0 1px var(--pink); }
+.side-switch button:hover:not(.on) { border-color: var(--sky); }
+.op-def { font-size: 12px; font-weight: 700; color: var(--sky); }
+.jlesson.jop .jl-num.op { border-color: rgba(76,201,240,.55); background: rgba(76,201,240,.12); }
+.jlesson.jop.done .jl-num.op { background: var(--good); border-color: var(--good); color: #062b1c; }
+.op-kind { font-style: normal; font: 800 9.5px var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border-radius: 99px; background: rgba(76,201,240,.18); color: var(--sky); margin-right: 4px; vertical-align: 1px; }
+.op-kind.def { background: rgba(255,79,139,.18); color: var(--pink); }
+.feed-item.bookline { border-left-color: var(--sky); background: linear-gradient(90deg, rgba(76,201,240,.1), transparent 60%), var(--card); } .feed-item.bookline .fi-tag { color: var(--sky); }
 /* tour step "Board tools" on phones: show the folded menu even on browsing screens */
 body.tour-tools .stage .tools-btn { display: grid !important; }
 body.tour-tools .stage .board-tools.open { display: flex !important; }

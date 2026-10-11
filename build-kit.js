@@ -1,8 +1,12 @@
-const fs=require('fs');const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'));const V=require('./voicelines.js');
-const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D));
-fs.mkdirSync('dist/kit',{recursive:true});
-const t=fs.readFileSync('voice-kit/generate-voices.template.js','utf8').replace('/*__LINES__*/[]',()=>JSON.stringify(lines,null,0).replace(/\},\{/g,'},\n  {'));
-fs.writeFileSync('dist/kit/generate-voices.js',t);
-fs.writeFileSync('dist/kit/Run-Windows.bat','@echo off\r\ncd /d "%~dp0"\r\nwhere node >nul 2>nul || (echo Node.js is not installed. Get it from https://nodejs.org then double-click this file again. & pause & exit /b)\r\nnode generate-voices.js\r\n');
-const g=k=>lines.filter(l=>l.group===k).reduce((s,l)=>s+l.text.length,0);
-console.log('lines',lines.length,'coach',g('coach'),'lessons',g('lessons'),'puzzles',g('puzzles'),'openings',g('openings'));
+// Regenerates the voice generator the user runs on their PC: voice-kit-v4/generate-v4-voices.js
+// (voice B52raBK48m23qWYbwchQ, model eleven_v4). Clips already made are skipped by the generator itself.
+const fs=require('fs');const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'));
+const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);
+const V=require('./voicelines.js');
+const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES());
+const ids=new Set();lines.forEach(l=>{if(ids.has(l.id))throw new Error('duplicate id '+l.id);ids.add(l.id);});
+const t=fs.readFileSync('voice-kit-v4/generate-v4-voices.template.js','utf8').replace('/*__LINES__*/[]',()=>JSON.stringify(lines,null,0).replace(/\},\{/g,'},\n  {'));
+fs.writeFileSync('voice-kit-v4/generate-v4-voices.js',t);
+const have=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
+const missing=lines.filter(l=>!have[l.id]);
+console.log('lines',lines.length,'already packed',lines.length-missing.length,'new',missing.length,'new characters',missing.reduce((s,l)=>s+l.text.length,0));

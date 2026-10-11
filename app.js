@@ -57,7 +57,7 @@
     return [
       { k: 'lesson', label: 'Lesson', sub: '', done: !!d.lesson, act: 'startNext' },
       { k: 'puzzles', label: 'Puzzles', sub: Math.min(d.puzzles, 5) + ' of 5', done: d.puzzles >= 5, act: 'goPuzzles' },
-      { k: 'opening', label: 'Opening', sub: 'One drill', done: !!d.opening, act: 'goOpenings' },
+      { k: 'opening', label: 'Opening', sub: (function () { var o = nextStop(); return o ? (o.def ? 'Defend: ' : '') + (o.base ? o.base.name : o.name) : 'One drill'; })(), done: !!d.opening, act: 'nextOpening' },
       { k: 'game', label: 'Coach game', sub: 'Full game', done: !!d.game, act: 'goPlay' }
     ];
   }
@@ -1174,10 +1174,13 @@
             (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p>' +
               (!stageCleared(i) && open && testPool(i).length >= 3 ? '<button class="test-out" data-act="stageTest" data-i="' + i + '"><span class="to-ico" aria-hidden="true">⚡</span><span><b>Know this already?</b><span>Solve 3 of 4 puzzles at ' + st.band + ' to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
               '<div class="jlessons">' + st.lessons.map(function (id, k) {
-              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear;
+              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear, stops = stageStops(i);
+              // after every second lesson (and at the end of the stage) an opening stop
+              var stop = k % 2 === 1 && stops[(k - 1) / 2] ? stopHtml(stops[(k - 1) / 2]) : '';
+              if (k === st.lessons.length - 1) stops.slice(Math.floor(st.lessons.length / 2)).forEach(function (sid) { stop += stopHtml(sid); }); // stops left over in short stages
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>';
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>' + stop;
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
@@ -1405,7 +1408,9 @@
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
-    if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
+    var ns = nextStop();
+    if (ns && (nDone >= 2 || !isLocked('openings'))) cards.push({ k: 'opening', ico: 'b', t: ns.def ? 'Defend against the ' + ns.base.name : 'Learn the ' + ns.name, s: ns.def ? ns.idea.split('. ')[0].replace(/\.$/, '') + '.' : 'Every move explained, then drill it from memory.', act: 'data-act="openOp" data-id="' + ns.id + '"', isNew: opNew });
+    else if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
     if (nl && nl !== id) cards.push({ k: 'lesson', ico: 'r', t: 'Next lesson', s: LESSONS[nl].title, act: 'data-act="lesson" data-id="' + nl + '"' });
     // Variety: after two lessons in a row, nudge toward doing instead of reading
     var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
@@ -1449,6 +1454,42 @@
   // ================= Openings =================
   var OP = { filter: 'all' };
   function mastery(id) { var r = S.openings[id] || {}; return Math.min(3, r.perfect || 0); }
+  // An opening by id, or its defence line by 'def-<id>' (same shape, plus base/def/vp)
+  function lineById(id) {
+    if (/^def-/.test(id)) {
+      var base = lineById(id.slice(4)), d = base && DEFENCES[base.id];
+      if (!d) return null;
+      return d._o || (d._o = { id: id, base: base, def: true, name: d.name, eco: base.eco, side: d.side, family: base.family, level: base.level, gambit: false, idea: d.idea, moves: d.moves, notes: d.notes, vp: 'D-' + base.id });
+    }
+    return OPENINGS.filter(function (o) { return o.id === id; })[0] || null;
+  }
+  function allLines() { return OPENINGS.concat(OPENINGS.filter(function (o) { return DEFENCES[o.id]; }).map(function (o) { return lineById('def-' + o.id); })); }
+  function drilled(id) { var r = S.openings[id]; return !!(r && r.drills); }
+  // The "Play it / Defend against it" switch on every opening that has a defence line
+  function sideSwitch(o) {
+    var base = o.base || o, d = DEFENCES[base.id]; if (!d) return '';
+    var side = function (c) { return c === 'w' ? 'White' : 'Black'; }, trap = base.family === 'Traps' || base.gambit;
+    return '<div class="side-switch" role="group" aria-label="Which side to learn">' +
+      '<button class="' + (o.def ? '' : 'on') + '" data-act="openOp" data-id="' + base.id + '"><b>' + (d.tabs ? d.tabs[0] : 'Play it') + '</b><span>as ' + side(base.side) + (mastery(base.id) ? ' · ' + mastery(base.id) + '/3' : '') + '</span></button>' +
+      '<button class="' + (o.def ? 'on' : '') + '" data-act="openOp" data-id="def-' + base.id + '"><b>' + (d.tabs ? d.tabs[1] : trap ? 'Defend against it' : 'Face it') + '</b><span>as ' + side(d.side) + (mastery('def-' + base.id) ? ' · ' + mastery('def-' + base.id) + '/3' : '') + '</span></button></div>';
+  }
+  // Opening stops woven into the training path (STAGE_OPENINGS in defences.js)
+  function stageStops(i) { return (STAGE_OPENINGS[STAGES[i].id] || []).map(function (e) { return e[1] ? 'def-' + e[0] : e[0]; }).filter(lineById); }
+  function nextStop() {
+    var nl = nextLesson(), cur = nl ? stageOf(nl) : STAGES.length - 1, order = [cur];
+    for (var i = cur - 1; i >= 0; i--) order.push(i);
+    for (var j = cur + 1; j < STAGES.length; j++) if (stageUnlocked(j)) order.push(j);
+    for (var k = 0; k < order.length; k++) { var ids = stageStops(order[k]).filter(function (id) { return !drilled(id); }); if (ids.length) return lineById(ids[0]); }
+    return null;
+  }
+  function stopHtml(id) {
+    var o = lineById(id), done = drilled(id), m = mastery(id);
+    return '<button class="jlesson jop' + (done ? ' done' : '') + '" data-act="openOp" data-id="' + id + '">' +
+      '<span class="jl-num op" aria-hidden="true">' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</span>' +
+      '<span class="jl-title"><em class="op-kind' + (o.def ? ' def' : '') + '">' + (o.def ? 'Defence' : 'Opening') + '</em> ' + esc(o.def ? o.name : o.name) + '</span>' +
+      '<span class="jl-meta">' + (done ? 'Mastery ' + m + '/3' : o.moves.length + ' moves') + '</span></button>';
+  }
+  ACT.nextOpening = function () { var o = nextStop(); if (o) go('opening', { id: o.id, mode: 'learn' }); else go('openings'); };
   MODES.openings = {
     label: 'Opening explorer',
     enter: function () {
@@ -1482,6 +1523,7 @@
             '<span class="op-top"><span class="eco">' + o.eco + '</span><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span>' + (o.gambit ? '<span class="pill">Gambit</span>' : '') + (rank(o) === 0 ? '<span class="fit">Your level</span>' : rank(o) === 2 ? '<span class="fit basic">Basics</span>' : '') + '<span class="lvl">' + o.level + '</span></span>' +
             '<span class="op-name">' + esc(o.name) + '</span>' +
             '<span class="op-moves mono">' + esc(o.moves.slice(0, 6).map(function (s, i) { return (i % 2 === 0 ? (i / 2 + 1) + '.' : '') + s; }).join(' ')) + '…</span>' +
+            (DEFENCES[o.id] ? '<span class="op-def">+ ' + (o.family === 'Traps' || o.gambit ? 'how to defend against it' : 'how to face it as ' + (DEFENCES[o.id].side === 'w' ? 'White' : 'Black')) + (mastery('def-' + o.id) ? ' · ' + mastery('def-' + o.id) + '/3' : '') + '</span>' : '') +
             '<span class="meter" aria-label="Mastery ' + m + ' of 3"><i style="width:' + (m / 3 * 100) + '%"></i></span></button>';
         }).join('') + '</div>');
       var inp = $('#op-search');
@@ -1511,7 +1553,7 @@
   MODES.opening = {
     label: 'Opening trainer',
     enter: function (arg) {
-      var o = OPENINGS.filter(function (x) { return x.id === arg.id; })[0];
+      var o = lineById(arg.id);
       OD = { o: o, mode: arg.mode, ply: 0, errors: 0, misses: {} };
       var g = setupBoard(Game.START, { drop: true, orient: o.side });
       OD.g = g;
@@ -1522,11 +1564,12 @@
       var o = OD.o, i = OD.ply;
       var nextNote = i < o.moves.length ? o.notes[i] : 'End of the main line. Now drill it from memory.';
       var lastNote = i > 0 ? o.notes[i - 1] : o.idea;
-      Voice.say([i > 0 ? { id: 'O-' + o.id + '-' + (i - 1), text: o.notes[i - 1] } : { id: 'O-' + o.id + '-idea', text: o.name + '. ' + o.idea }]);
+      var vp = o.vp || 'O-' + o.id;
+      Voice.say([i > 0 ? { id: vp + '-' + (i - 1), text: o.notes[i - 1] } : { id: vp + '-idea', text: o.name + '. ' + o.idea }]);
       setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
         '<div class="eyebrow">' + o.eco + ' · ' + o.family + ' · You play ' + (o.side === 'w' ? 'White' : 'Black') + '</div>' +
         '<h1 class="h1">' + esc(o.name) + '</h1><p class="lede">' + esc(o.idea) + '</p>' +
-        '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
+        sideSwitch(o) + '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
         '<div class="coach-card"><div class="coach-tag">' + (i === 0 ? 'The idea' : 'Move ' + Math.ceil(i / 2) + (i % 2 ? '' : '…') + ' ' + esc(o.moves[i - 1])) + '</div><p class="coach-text">' + esc(lastNote) + '</p>' +
         (i < o.moves.length ? '<p class="next-note"><span class="muted">Next:</span> <span class="mono">' + esc(o.moves[i]) + '</span> · ' + esc(nextNote) + '</p>' : '<p class="next-note">' + esc(nextNote) + '</p>') + '</div>' +
         moveListHtml(o.moves, i, 'opJump') + '<p class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> step through the moves</p>' +
@@ -1562,7 +1605,7 @@
       var o = OD.o;
       setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
         '<div class="eyebrow">' + o.eco + ' · Drill</div><h1 class="h1">' + esc(o.name) + '</h1>' +
-        '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
+        sideSwitch(o) + '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
         '<div class="drill-stats"><span><b>' + Math.floor(OD.ply / 2) + '</b> / ' + Math.ceil(o.moves.length / 2) + ' moves</span><span><b>' + OD.errors + '</b> mistakes</span><span>Mastery <b>' + mastery(o.id) + '</b>/3</span></div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + msg + '</div>' +
         moveListHtml(o.moves, OD.ply, null) +
@@ -1859,9 +1902,10 @@
   function bookMoves(fen) {
     if (!BOOK) {
       BOOK = {};
-      OPENINGS.forEach(function (o) {
+      allLines().forEach(function (o) {
         var g = new Game();
-        o.moves.forEach(function (s) { var k = posKey(g.fen()), m = g.move(s); if (m) { var e = (BOOK[k] = BOOK[k] || {}), u = m.from + m.to; e[u] = e[u] && e[u] !== o.name ? 'many' : o.name; } });
+        var nm = o.base ? o.base.name : o.name; // a defence line is still that opening
+        o.moves.forEach(function (s) { var k = posKey(g.fen()), m = g.move(s); if (m) { var e = (BOOK[k] = BOOK[k] || {}), u = m.from + m.to; e[u] = e[u] && e[u] !== nm ? 'many' : nm; } });
       });
       // Sound, well-known first moves and replies
       var extra = { '': ['e4', 'd4', 'c4', 'Nf3', 'g3', 'b3', 'Nc3', 'f4', 'e3'], 'e4': ['e5', 'c5', 'e6', 'c6', 'd5', 'd6', 'g6', 'Nf6', 'Nc6'], 'd4': ['d5', 'Nf6', 'e6', 'c5', 'g6', 'f5', 'd6'], 'c4': ['e5', 'c5', 'Nf6', 'e6', 'g6'], 'Nf3': ['d5', 'Nf6', 'c5', 'g6'] };
@@ -1892,6 +1936,27 @@
     if (drop <= 0.11) return { c: CLASS.inacc };
     if (drop <= 0.22) return { c: CLASS.mistake };
     return { c: CLASS.blunder };
+  }
+  // Pick a real opening line for the coach to play: traps and gambits more often for newer players.
+  function pickBookLine(coachColor, lvl) {
+    var p = { novice: 0.75, club: 0.65, strong: 0.5, expert: 0.35, master: 0.2 }[lvl] || 0.5;
+    if (!chance(p)) return null;
+    var tier = openingTier(S.puzzle.rating), pool = [];
+    allLines().forEach(function (L) {
+      if (L.side !== coachColor || TIER[L.level] > tier + 1) return;
+      var w = (!L.def && (L.family === 'Traps' || L.gambit)) ? (S.puzzle.rating < 1200 ? 3 : 1) : 2;
+      if (drilled(L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id)) w = Math.max(1, w - 1); // fresher lines first
+      for (var i = 0; i < w; i++) pool.push(L);
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  }
+  function bookMove(g) {
+    var L = PL && PL.book; if (!L) return null;
+    var h = g.history(), clean = function (x) { return x.replace(/[+#!?]/g, ''); };
+    if (h.length >= L.moves.length) return null;
+    for (var i = 0; i < h.length; i++) if (clean(h[i]) !== clean(L.moves[i])) { PL.book = PL.bookSaid ? PL.book : null; return null; }
+    var m = new Game(g.fen()).move(L.moves[h.length]);
+    return m ? { from: m.from, to: m.to, promotion: m.promotion, piece: m.piece } : null;
   }
   function classify(loss) { return loss <= 15 ? CLASS.best : loss <= 50 ? CLASS.good : loss <= 120 ? CLASS.inacc : loss <= 280 ? CLASS.mistake : CLASS.blunder; }
   MODES.play = {
@@ -1924,6 +1989,7 @@
       var fen = PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
       PL = { g: g, color: color, level: levelById(c.level), log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: coachStyle(), from: PL.arg && PL.arg.from };
+      PL.book = fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
       Voice.say([V('gamestart')]);
@@ -1957,10 +2023,21 @@
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
         }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(S.settings.coachName) + '</span><p>' + (PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
         '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted">No moves yet</span>') + '</div>' +
-        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button><button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
+        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
       var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
     },
     say: function (tag, html, cls) { PL.feed.push({ tag: tag, html: html, cls: cls || '' }); },
+    // Tell the player which line the coach is playing, once it is recognisable (the coach's 2nd book move)
+    bookNote: function (g) {
+      var L = PL.book, n = g.history().length;
+      if (!L || PL.bookSaid || n < 3) return;
+      PL.bookSaid = true;
+      var trap = !L.def && (L.family === 'Traps' || L.gambit);
+      MODES.play.say('Opening', L.def ? 'You are playing the <strong>' + esc(L.base.name) + '</strong>. Watch how I meet it: this is ' + esc(L.name) + ', and it is in Openings with every move explained.'
+        : trap ? 'Heads up: I am trying the <strong>' + esc(L.name) + '</strong>. Spot the trick before it lands.'
+        : 'I am playing the <strong>' + esc(L.name) + '</strong>. You will find it in Openings with every move explained.', 'bookline');
+      toast(L.def ? 'Coach is meeting your ' + L.base.name : trap ? L.name + ': a trap is coming' : 'Coach plays the ' + L.name);
+    },
     turn: function () {
       var g = PL.g;
       if (MODES.play.checkOver()) return;
@@ -1982,8 +2059,8 @@
         }
       } else {
         IX.enabled = false; PL.thinking = true; MODES.play.render();
-        var t0 = Date.now(), fen = g.fen();
-        Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())).then(function (r) {
+        var t0 = Date.now(), fen = g.fen(), bm = bookMove(g);
+        (bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()))).then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
           setTimeout(function () {
@@ -1992,9 +2069,10 @@
             if (!r || !r.move) { MODES.play.checkOver(); return; }
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
               PL.log.push({});
+              if (r.book) MODES.play.bookNote(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
               else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
-              setEval(PL.color === 'w' ? -r.score : r.score, true);
+              if (r.score != null) setEval(PL.color === 'w' ? -r.score : r.score, true);
               MODES.play.render();
               MODES.play.turn();
               setTimeout(function () { if (PL && PL.g === g && g.turn() === PL.color) MODES.play.coachTip(); }, 2600);

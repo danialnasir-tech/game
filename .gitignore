@@ -2,3 +2,4 @@ node_modules/
 incoming/
 dist/voice/
 dist/kit/
+out/

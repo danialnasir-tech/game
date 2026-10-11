@@ -21,6 +21,10 @@ for(const st of D.STAGES) for(const id of st.lessons){ const L=D.LESSONS[id]; if
 }
 // Openings
 for(const o of D.OPENINGS){ if(o.moves.length!==o.notes.length) err(o.id,'notes',o.notes.length,'moves',o.moves.length); const g=playLine(Game.START,o.moves,o.id); if(g && o.moves[o.moves.length-1].includes('#') && !g.inCheckmate()) err(o.id,'final not mate'); }
+// Extra openings and defence lines
+const X = require('../defences.js');
+for(const o of X.EXTRA_OPENINGS){ if(o.moves.length!==o.notes.length) err(o.id,'notes'); playLine(Game.START,o.moves,o.id); }
+for(const id of Object.keys(X.DEFENCES)){ const d=X.DEFENCES[id]; if(!D.OPENINGS.concat(X.EXTRA_OPENINGS).some(o=>o.id===id)) err('defence for unknown opening',id); if(d.moves.length!==d.notes.length) err('def-'+id,'notes',d.notes.length,'moves',d.moves.length); playLine(Game.START,d.moves,'def-'+id); }
 // Puzzles
 for(const p of D.PUZZLES){ let fen=p.fen; if(p.pre){ const g=playLine(Game.START,p.pre,p.id); if(!g) continue; fen=g.fen(); }
   const h=new Game(fen); for(const u of p.sol) if(!uciMove(h,u)) {err(p.id,'illegal',u);break;}
