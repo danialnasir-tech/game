@@ -1,0 +1,2514 @@
+(function () {
+  'use strict';
+  var Game = CHESS_LIB();
+  var LOCAL_ENGINE = ENGINE_FACTORY(Game);
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ================= Storage =================
+  var STORE_KEY = 'chess-ascent-v1';
+  function freshState() {
+    return { onboarded: false, band: 100, startDate: null, xp: 0, streak: 0, lastActive: null, lessons: {}, openings: {}, puzzle: { rating: 400, solved: {}, hist: [] }, games: [], daily: {}, sound: true, voice: true, coach: { explain: true, threats: true, level: 'club', color: 'w', style: null, evalbar: null }, settings: { coachName: 'Coach Leo', volume: 1, rate: 1, subtitles: true, cameraFixed: false }, badges: {}, peek: {} };
+  }
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var s = Object.assign(freshState(), JSON.parse(raw));
+        s.puzzle = Object.assign(freshState().puzzle, s.puzzle || {});
+        s.coach = Object.assign(freshState().coach, s.coach || {});
+        s.settings = Object.assign(freshState().settings, s.settings || {});
+        s.badges = s.badges || {}; s.peek = s.peek || {};
+        return s;
+      }
+    } catch (e) { }
+    return freshState();
+  }
+  var S = loadState();
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { } }
+
+  function dayKey(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function today() { var k = dayKey(); if (!S.daily[k]) S.daily[k] = { lesson: false, puzzles: 0, opening: false, game: false }; return S.daily[k]; }
+  function dayNumber() {
+    if (!S.startDate) return 1;
+    var a = new Date(S.startDate + 'T00:00:00'), b = new Date(dayKey() + 'T00:00:00');
+    return Math.max(1, Math.round((b - a) / 86400000) + 1);
+  }
+  function touchActivity() {
+    var k = dayKey();
+    if (S.lastActive === k) return;
+    var y = new Date(); y.setDate(y.getDate() - 1);
+    S.streak = S.lastActive === dayKey(y) ? S.streak + 1 : 1;
+    S.lastActive = k;
+    setTimeout(function () { [3, 7, 14, 30].forEach(function (n) { if (S.streak >= n) Badges.award('streak_' + n); }); }, 1500);
+  }
+  function addXP(n) {
+    var before = Levels.of(S.xp).i;
+    S.xp += n; touchActivity(); save(); renderTop();
+    var after = Levels.of(S.xp);
+    if (after.i > before) Celebrate.show({ kind: 'level', title: 'Level up: ' + after.name, text: 'You reached the ' + after.name + ' level. ' + (after.next ? (after.next.xp - S.xp) + ' XP to ' + after.next.name + '.' : 'The top of the ladder!'), icon: after.icon, voice: V('level_up') });
+  }
+  function beginnerMode() { return S.band < 400 && !(STAGES[0].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; })); }
+  function missionList(d) {
+    d = d || today();
+    if (beginnerMode()) return [
+      { k: 'lesson', label: 'Lessons', sub: Math.min(d.lessons || 0, 2) + ' of 2', done: (d.lessons || 0) >= 2, act: 'startNext' },
+      { k: 'puzzles', label: 'Easy puzzles', sub: Math.min(d.puzzles, 3) + ' of 3', done: d.puzzles >= 3, act: 'goPuzzles' }
+    ].concat(lessonsDone() >= 1 ? [{ k: 'game', label: 'Coach game', sub: 'Any length', done: !!d.game, act: 'goPlay' }] : []);
+    return [
+      { k: 'lesson', label: 'Lesson', sub: '', done: !!d.lesson, act: 'startNext' },
+      { k: 'puzzles', label: 'Puzzles', sub: Math.min(d.puzzles, 5) + ' of 5', done: d.puzzles >= 5, act: 'goPuzzles' },
+      { k: 'opening', label: 'Opening', sub: 'One drill', done: !!d.opening, act: 'goOpenings' },
+      { k: 'game', label: 'Coach game', sub: 'Full game', done: !!d.game, act: 'goPlay' }
+    ];
+  }
+  function missionsDone(d) { return missionList(d).filter(function (m) { return m.done; }).length; }
+  function missionsTotal() { return missionList().length; }
+
+  // ================= Engine (worker with main-thread fallback) =================
+  var Eng = (function () {
+    var worker = null, seq = 0, pending = {};
+    function runLocal(job) {
+      setTimeout(function () {
+        var r = null;
+        try { r = LOCAL_ENGINE[job.cmd].apply(null, job.args); } catch (e) { r = null; }
+        job.res(r);
+      }, 16);
+    }
+    try {
+      var src = 'var Game=(' + CHESS_LIB.toString() + ')();var E=(' + ENGINE_FACTORY.toString() + ')(Game);' +
+        'onmessage=function(e){var d=e.data,r=null;try{r=E[d.cmd].apply(null,d.args)}catch(x){r=null}postMessage({id:d.id,r:r})}';
+      var url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      worker = new Worker(url);
+      worker.onmessage = function (e) { var j = pending[e.data.id]; if (j) { delete pending[e.data.id]; j.res(e.data.r); } };
+      worker.onerror = function () {
+        worker = null;
+        Object.keys(pending).forEach(function (k) { var j = pending[k]; delete pending[k]; runLocal(j); });
+      };
+    } catch (e) { worker = null; }
+    function call(cmd) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return new Promise(function (res) {
+        var job = { cmd: cmd, args: args, res: res };
+        if (worker) { var id = ++seq; pending[id] = job; worker.postMessage({ id: id, cmd: cmd, args: args }); }
+        else runLocal(job);
+      });
+    }
+    return { call: call };
+  })();
+
+  // ================= Sound =================
+  var Sound = (function () {
+    var ctx = null;
+    function ensure() { if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; } } if (ctx && ctx.state === 'suspended') ctx.resume(); return ctx; }
+    function noise(dur, freq, gain) {
+      var c = ensure(); if (!c) return;
+      var n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+      var s = c.createBufferSource(); s.buffer = buf;
+      var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2;
+      var g = c.createGain(); g.gain.value = gain;
+      s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+    }
+    function tone(freq, dur, when, type, gain) {
+      var c = ensure(); if (!c) return;
+      var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + (when || 0);
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function play(kind) {
+      if (!S.sound) return;
+      if (kind === 'move') noise(0.08, 1800, 0.7);
+      else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); }
+      else if (kind === 'check') { noise(0.08, 1800, 0.6); tone(880, 0.18, 0.02, 'triangle', 0.06); }
+      else if (kind === 'good') { tone(660, 0.18, 0, 'triangle'); tone(990, 0.3, 0.12, 'triangle'); }
+      else if (kind === 'win') { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.35, i * 0.1, 'triangle', 0.1); }); }
+      else if (kind === 'bad') { tone(180, 0.22, 0, 'sawtooth', 0.05); }
+      else if (kind === 'star') { tone(1200, 0.12, 0, 'sine', 0.08); tone(1600, 0.16, 0.06, 'sine', 0.06); }
+    }
+    return { play: play, unlock: ensure };
+  })();
+
+  // ================= Coach subtitle bubble =================
+  var Bubble = (function () {
+    var t = null, shownAt = 0;
+    function el() { return document.getElementById('coach-bubble'); }
+    return {
+      show: function (text, ms) {
+        var b = el(); if (!b || !text) return;
+        if (S.settings && S.settings.subtitles === false && S.voice) return;
+        b.querySelector('.cb-name').textContent = (S.settings && S.settings.coachName) || 'Coach';
+        b.querySelector('.cb-text').textContent = text;
+        b.hidden = false; b.classList.remove('out'); shownAt = Date.now();
+        clearTimeout(t); if (ms) t = setTimeout(function () { Bubble.hide(); }, ms);
+      },
+      hideSoon: function () { clearTimeout(t); t = setTimeout(function () { Bubble.hide(); }, 1600); },
+      hide: function () { var b = el(); if (!b) return; b.classList.add('out'); setTimeout(function () { if (b.classList.contains('out')) b.hidden = true; }, 300); },
+      busy: function () { var b = el(); return b && !b.hidden && Date.now() - shownAt < 1200; }
+    };
+  })();
+
+  // ================= Voice coach =================
+  var VOICE_FILES = /*__VOICEFILES__*/{};
+  var VOICE_PACKS = /*__VOICEPACKS__*/2;
+  var Voice = (function () {
+    var audio = null, synthVoice = null, last = null, tok = 0;
+    function pickSynth() {
+      if (!window.speechSynthesis) return null;
+      var vs = speechSynthesis.getVoices().filter(function (v) { return /^en/i.test(v.lang); });
+      var pref = [/natural/i, /google us english/i, /aria|jenny|samantha|zira|libby|sonia/i, /google/i];
+      for (var i = 0; i < pref.length; i++) { var f = vs.filter(function (v) { return pref[i].test(v.name); })[0]; if (f) return f; }
+      return vs[0] || null;
+    }
+    try { if (window.speechSynthesis) { synthVoice = pickSynth(); speechSynthesis.onvoiceschanged = function () { synthVoice = pickSynth(); }; } } catch (e) { }
+    function stop() { tok++; busy = false; document.body.classList.remove('speaking'); if (audio) { audio.pause(); audio = null; } try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } }
+    function synth(text) {
+      if (!window.speechSynthesis || !text) return Promise.resolve();
+      return new Promise(function (res) {
+        try {
+          var u = new SpeechSynthesisUtterance(text);
+          if (synthVoice) u.voice = synthVoice;
+          u.rate = 1.02 * (S.settings.rate || 1); u.volume = S.settings.volume == null ? 1 : S.settings.volume; u.onend = res; u.onerror = res;
+          speechSynthesis.speak(u);
+          setTimeout(res, 400 + text.length * 120);
+        } catch (e) { res(); }
+      });
+    }
+    // Voice packs load on demand: only the pack holding the line being spoken is downloaded.
+    var packCache = {};
+    function loadPack(i) {
+      if (!packCache[i]) packCache[i] = fetch('voice-pack-' + (i + 1) + '.mp3').then(function (r) { if (!r.ok) throw new Error('pack'); return r.arrayBuffer(); }).catch(function () { delete packCache[i]; return null; });
+      return packCache[i];
+    }
+    function within(p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(function () { r('late'); }, ms); })]); }
+    function clip(id, text) {
+      var ent = VOICE_FILES[id];
+      return within(loadPack(ent[0]), 2500).then(function (buf) {
+        if (buf === 'late' || !buf) return; // still downloading: the subtitle bubble carries this line
+        return new Promise(function (res) {
+          try {
+            var url = URL.createObjectURL(new Blob([buf.slice(ent[1], ent[1] + ent[2])], { type: 'audio/mpeg' }));
+            audio = new Audio(url);
+            audio.volume = S.settings.volume == null ? 1 : S.settings.volume;
+            audio.playbackRate = S.settings.rate || 1;
+            var done = function () { URL.revokeObjectURL(url); res(); };
+            audio.onended = done; audio.onerror = done;
+            var p = audio.play(); if (p && p.catch) p.catch(done);
+          } catch (e) { res(); }
+        });
+      });
+    }
+    function prefetch(ids) {
+      if (!S.voice || (navigator.connection && navigator.connection.saveData)) return;
+      var seen = {};
+      ids.forEach(function (id) { var e = VOICE_FILES[id]; if (e && !seen[e[0]]) { seen[e[0]] = 1; loadPack(e[0]); } });
+    }
+    var busy = false;
+    function say(parts, soft) {
+      parts = (parts || []).filter(Boolean);
+      if (!parts.length) return;
+      if (soft && (busy || Bubble.busy())) return;
+      var hasClips = Object.keys(VOICE_FILES).length > 0;
+      var spoken = parts.filter(function (p) { return typeof p === 'string' || !p.id || VOICE_FILES[p.id] || !hasClips; });
+      var words = spoken.map(function (p) { return typeof p === 'string' ? p : p.text; }).join(' ').replace(/\s+([.,!?])/g, '$1');
+      Bubble.show(words, S.voice ? null : 3200 + words.length * 45);
+      if (!S.voice) return;
+      stop(); last = parts; busy = true; document.body.classList.add('speaking'); var my = tok, seq = Promise.resolve();
+      parts.forEach(function (p) {
+        seq = seq.then(function () {
+          if (my !== tok || !p) return;
+          if (typeof p === 'string') return synth(p);
+          if (p.id && VOICE_FILES[p.id]) return clip(p.id, p.text);
+          if (p.id && Object.keys(VOICE_FILES).length) return; // no robotic voice once real clips exist
+          return synth(p.text);
+        });
+      });
+      seq.then(function () { if (my === tok) { busy = false; document.body.classList.remove('speaking'); Bubble.hideSoon(); } });
+    }
+    return { say: say, stop: stop, prefetch: prefetch, replay: function () { if (last) say(last); }, hasClips: function () { return Object.keys(VOICE_FILES).length > 0; } };
+  })();
+  Object.keys(MORE_POOLS).forEach(function (k) { VARIANTS[k] = MORE_POOLS[k]; });
+  function C(k) { return { id: 'C-' + k, text: COACH_LINES[k] }; }
+  // Pick a line from a variation pool: every line plays once before any repeats (remembered across visits).
+  function V(cat, legacy) {
+    var pool = VARIANTS[cat];
+    if (!pool) return legacy ? C(legacy) : null;
+    var avail = [];
+    pool.forEach(function (t, i) { if (VOICE_FILES['V-' + cat + '-' + i]) avail.push(i); });
+    if (!avail.length) {
+      if (legacy && (VOICE_FILES['C-' + legacy] || !Voice.hasClips())) return C(legacy);
+      if (!Voice.hasClips()) avail = pool.map(function (t, i) { return i; });
+      else return null;
+    }
+    S.bags = S.bags || {}; S.lastV = S.lastV || {};
+    var bag = (S.bags[cat] || []).filter(function (i) { return avail.indexOf(i) >= 0; });
+    if (!bag.length) {
+      bag = avail.slice();
+      for (var k = bag.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)); var t = bag[k]; bag[k] = bag[j]; bag[j] = t; }
+      if (bag.length > 1 && bag[0] === S.lastV[cat]) bag.push(bag.shift());
+    }
+    var pick = bag.shift();
+    S.bags[cat] = bag; S.lastV[cat] = pick; save();
+    var id = 'V-' + cat + '-' + pick;
+    return VOICE_FILES[id] || !Voice.hasClips() ? { id: id, text: pool[pick] } : (legacy ? C(legacy) : null);
+  }
+  function chance(p) { return Math.random() < p; }
+  function M(k) { return { id: 'M-' + k, text: MOVE_WORDS[k] }; }
+  // Speak a move as clips: "Knight to" + "F3." (+ "with check.")
+  function moveParts(san, from, to, piece, captured) {
+    if (!san) return [];
+    if (/^O-O-O/.test(san)) return [M('castle_q')];
+    if (/^O-O/.test(san)) return [M('castle_k')];
+    var parts = [M((captured ? 'x_' : 'to_') + piece), M('sq_' + to)];
+    if (/=Q/.test(san)) parts.push(M('promo'));
+    if (/#$/.test(san)) parts.push(M('mate')); else if (/\+$/.test(san)) parts.push(M('check'));
+    return parts;
+  }
+  function pickPool(cat) {
+    var pool = MOVE_POOLS[cat]; if (!pool) return null;
+    var tmp = VARIANTS[cat]; VARIANTS[cat] = pool; var r = V(cat); if (!tmp) delete VARIANTS[cat]; else VARIANTS[cat] = tmp;
+    return r;
+  }
+  // Why is the best move good? Returns [voice pool, sentence]
+  function whyBest(a, bestSan, ply, fenBefore) {
+    var b = a.best;
+    if (a.bestScore > 90000) return ['why_mate', 'It leads to a forced checkmate.'];
+    if (b.captured && { n: 1, b: 1, r: 1, q: 1 }[b.captured]) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
+    if (b.captured && a.loss > 60) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
+    if (a.reply && a.reply.captured && a.loss > 120) return ['why_safe', 'It keeps your ' + PIECE_NAME[a.reply.captured] + ' on ' + a.reply.to + ' safe.'];
+    if (/^O-O/.test(bestSan || '')) return ['why_castle', 'Castling gets your king to safety.'];
+    if (/\+$/.test(bestSan || '')) return ['why_check', 'It is a forcing check.'];
+    if (ply <= 16 && (b.piece === 'n' || b.piece === 'b') && /[18]$/.test(b.from)) return ['why_develop', 'It develops a new piece.'];
+    if (ply <= 16 && b.piece === 'p' && /^[cdef][3-5]$/.test(b.to)) return ['why_center', 'It fights for the centre.'];
+    if (b.captured) return ['why_wins', 'It wins material.'];
+    return ['why_general', 'It keeps your position stronger.'];
+  }
+  function plain(html) { var d = document.createElement('div'); d.innerHTML = html; return (d.textContent || '').replace(/Take back$/, '').trim(); }
+
+  // ================= 3D board =================
+  var B3 = typeof THREE === 'undefined' ? {} : (function () {
+    var api = {};
+    var container, scene, camera, renderer, controls, plane;
+    var ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+    var pieceGroup = new THREE.Group(), overlay = new THREE.Group(), arrowGroup = new THREE.Group(), fxGroup = new THREE.Group(), starGroup = new THREE.Group();
+    var meshes = {}, stars = {}, cats = {}, labels = [], tweens = [];
+    var orient = 'w', viewMode = '3d', camTok = 0, lastTop = null, drag = null, dragFns = null, cameraFixed = false;
+    var onClick = function () { }, hoverFn = function () { return false; };
+    var GEO = {}, MAT = {};
+    var COLORS = { g: 0x73c48f, r: 0xe2695c, b: 0x6fa8dc, y: 0xe0b45c };
+
+    function col(hex) { return new THREE.Color(hex).convertSRGBToLinear(); }
+    function pos(sq, y) { return new THREE.Vector3(sq.charCodeAt(0) - 97 - 3.5, y || 0, 3.5 - (+sq[1] - 1)); }
+    function easeInOut(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+    function easeOutBack(k) { var c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); }
+    function tween(dur, update, ease) {
+      if (REDUCED) dur = Math.min(dur, 60);
+      return new Promise(function (res) { tweens.push({ t0: performance.now(), dur: dur, update: update, ease: ease || easeInOut, res: res }); });
+    }
+    api.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+    // ---------- piece geometry ----------
+    function V(a) { return a.map(function (p) { return new THREE.Vector2(p[0], p[1]); }); }
+    function arc(cx, cy, r, a0, a1, n) { var out = []; for (var i = 0; i <= n; i++) { var a = a0 + (a1 - a0) * i / n; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return out; }
+    var BASE = [[0, 0], [0.36, 0], [0.375, 0.025], [0.365, 0.07], [0.31, 0.1], [0.3, 0.14], [0.26, 0.17]];
+    function lathe(pts) { var g = new THREE.LatheGeometry(V(pts), 40); g.computeVertexNormals(); return g; }
+    function buildGeometries() {
+      GEO.p = lathe(BASE.concat([[0.2, 0.2], [0.14, 0.3], [0.11, 0.42], [0.19, 0.45], [0.19, 0.48], [0.1, 0.5]]).concat(arc(0, 0.62, 0.15, -1.1, Math.PI / 2, 12)));
+      GEO.r = lathe(BASE.concat([[0.25, 0.2], [0.2, 0.3], [0.19, 0.55], [0.27, 0.6], [0.28, 0.8], [0.2, 0.8], [0.2, 0.74], [0, 0.74]]));
+      GEO.b = lathe(BASE.concat([[0.22, 0.2], [0.15, 0.32], [0.12, 0.55], [0.21, 0.58], [0.21, 0.61], [0.12, 0.64], [0.16, 0.7], [0.175, 0.78], [0.14, 0.88], [0.07, 0.95], [0.035, 0.975]]).concat(arc(0, 1.01, 0.05, -0.8, Math.PI / 2, 8)));
+      var QB = [[0, 0], [0.4, 0], [0.415, 0.03], [0.4, 0.08], [0.34, 0.12], [0.32, 0.16], [0.28, 0.2], [0.2, 0.32], [0.14, 0.6], [0.13, 0.78], [0.23, 0.82], [0.23, 0.855], [0.14, 0.88]];
+      GEO.q = lathe(QB.concat([[0.17, 0.95], [0.26, 1.08], [0.2, 1.1], [0.08, 1.12]]).concat(arc(0, 1.17, 0.07, -0.9, Math.PI / 2, 8)));
+      GEO.k = lathe(QB.map(function (p) { return [p[0], p[1] * 1.04]; }).concat([[0.18, 0.98], [0.23, 1.1], [0.2, 1.13], [0.1, 1.15], [0, 1.16]]));
+      GEO.nBase = lathe(BASE.concat([[0.24, 0.2], [0.2, 0.28], [0.19, 0.36], [0, 0.37]]));
+      var s = new THREE.Shape();
+      var hp = [[-0.2, 0.3], [0.16, 0.3], [0.12, 0.48], [0.07, 0.58], [0.27, 0.62], [0.32, 0.7], [0.25, 0.79], [0.09, 0.9], [0.04, 1.0], [-0.02, 1.07], [-0.09, 0.96], [-0.17, 0.9], [-0.25, 0.72], [-0.27, 0.5]];
+      s.moveTo(hp[0][0], hp[0][1]);
+      for (var i = 1; i < hp.length; i++) s.lineTo(hp[i][0], hp[i][1]);
+      s.lineTo(hp[0][0], hp[0][1]);
+      GEO.nHead = new THREE.ExtrudeGeometry(s, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.03, bevelSegments: 3, curveSegments: 4 });
+      GEO.nHead.translate(0, 0, -0.1);
+      GEO.crenel = new THREE.BoxGeometry(0.09, 0.08, 0.09);
+      GEO.crossV = new THREE.BoxGeometry(0.06, 0.24, 0.06);
+      GEO.crossH = new THREE.BoxGeometry(0.18, 0.06, 0.06);
+      GEO.bead = new THREE.SphereGeometry(0.04, 12, 8);
+      GEO.square = new THREE.PlaneGeometry(1, 1);
+      GEO.dot = new THREE.CircleGeometry(0.15, 28);
+      GEO.ring = new THREE.RingGeometry(0.37, 0.47, 36);
+      GEO.star = new THREE.OctahedronGeometry(0.22, 0);
+      GEO.spark = new THREE.BoxGeometry(0.07, 0.07, 0.07);
+      GEO.decal = new THREE.CircleGeometry(0.3, 32);
+    }
+    function buildMaterials() {
+      MAT.w = new THREE.MeshPhysicalMaterial({ color: col(0xf0e4c8), roughness: 0.55, metalness: 0.0, clearcoat: 0.15, clearcoatRoughness: 0.6 });
+      MAT.b = new THREE.MeshPhysicalMaterial({ color: col(0x23222b), roughness: 0.45, metalness: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.5 });
+      MAT.light = new THREE.MeshStandardMaterial({ color: col(0xf2e8d8), roughness: 0.95, metalness: 0 });
+      MAT.dark = new THREE.MeshStandardMaterial({ color: col(0x2c7c8f), roughness: 0.95, metalness: 0 });
+      MAT.frame = new THREE.MeshStandardMaterial({ color: col(0x161d38), roughness: 0.85, metalness: 0 });
+      MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xff4f8b), emissive: col(0xff4f8b), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.2 });
+      MAT.star = new THREE.MeshStandardMaterial({ color: col(0xf1c873), emissive: col(0x9a6a14), emissiveIntensity: 0.9, roughness: 0.25, metalness: 0.6 });
+    }
+    var glyphCache = {};
+    function glyphMat(type, color) {
+      var k = type + color; if (glyphCache[k]) return glyphCache[k];
+      var c = document.createElement('canvas'); c.width = c.height = 128;
+      var x = c.getContext('2d');
+      x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2);
+      x.fillStyle = color === 'w' ? '#f7efdc' : '#1b1a22'; x.fill();
+      x.lineWidth = 6; x.strokeStyle = color === 'w' ? '#ffd23f' : '#ff4f8b'; x.stroke();
+      x.save(); x.translate(64 - 45 * 1.05, 62 - 45 * 1.05); x.scale(2.1, 2.1);
+      x.fillStyle = color === 'w' ? '#1b1a22' : '#f7efdc'; x.strokeStyle = color === 'w' ? '#f7efdc' : '#1b1a22'; x.lineWidth = 1.2; x.lineJoin = 'round';
+      [PIECE_PATHS[type], PIECE_BASE].forEach(function (d) { var p = new Path2D(d); x.fill(p, 'evenodd'); x.stroke(p); });
+      x.restore();
+      var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+      glyphCache[k] = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
+      return glyphCache[k];
+    }
+    function part(geo, mat, y) { var m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; if (y) m.position.y = y; return m; }
+    function makePiece(type, color) {
+      var g = new THREE.Group(), mat = MAT[color], i;
+      if (type === 'n') {
+        g.add(part(GEO.nBase, mat));
+        var head = part(GEO.nHead, mat);
+        head.rotation.y = color === 'w' ? Math.PI / 2 : -Math.PI / 2;
+        g.add(head);
+      } else {
+        g.add(part(GEO[type], mat));
+        if (type === 'r') for (i = 0; i < 4; i++) { var c = part(GEO.crenel, mat, 0.84); var a = i * Math.PI / 2 + Math.PI / 4; c.position.x = Math.cos(a) * 0.235; c.position.z = Math.sin(a) * 0.235; g.add(c); }
+        if (type === 'q') for (i = 0; i < 8; i++) { var bd = part(GEO.bead, mat, 1.11); var b = i * Math.PI / 4; bd.position.x = Math.cos(b) * 0.24; bd.position.z = Math.sin(b) * 0.24; g.add(bd); }
+        if (type === 'k') { g.add(part(GEO.crossV, mat, 1.27)); g.add(part(GEO.crossH, mat, 1.3)); }
+      }
+      var TOP = { p: 0.78, n: 1.1, b: 1.07, r: 0.79, q: 1.25, k: 1.33 };
+      var decal = new THREE.Mesh(GEO.decal, glyphMat(type, color));
+      decal.rotation.x = -Math.PI / 2; decal.position.y = TOP[type] + 0.02; decal.renderOrder = 2;
+      decal.userData.decal = true; decal.visible = false;
+      g.add(decal); g.userData.decalMesh = decal;
+      g.userData.type = type; g.userData.color = color;
+      return g;
+    }
+
+    // ---------- scene ----------
+    function labelTexture(ch) {
+      var c = document.createElement('canvas'); c.width = c.height = 64;
+      var x = c.getContext('2d'); x.fillStyle = '#ffd23f'; x.font = '600 40px "JetBrains Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, 32, 34);
+      var t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+    }
+    api.init = function (el, clickCb, hoverCb) {
+      container = el; onClick = clickCb; hoverFn = hoverCb;
+      buildGeometries(); buildMaterials();
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b1020);
+      scene.fog = new THREE.Fog(0x0b1020, 22, 46);
+      camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+      camera.position.set(0, 9.2, 9);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      container.appendChild(renderer.domElement);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.08;
+      controls.enablePan = false; controls.minDistance = 7; controls.maxDistance = 30;
+      controls.maxPolarAngle = 1.32; controls.minPolarAngle = 0.02;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableRotate = !cameraFixed;
+      var springT = null;
+      controls.addEventListener('start', function () { clearTimeout(springT); camTok++; });
+      controls.addEventListener('end', function () { clearTimeout(springT); springT = setTimeout(function () { moveCamera(true); }, 450); });
+
+      scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1a2340, 0.85));
+      var key = new THREE.DirectionalLight(0xfff0dc, 0.75);
+      key.position.set(-4, 14, 3); key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      var sc = key.shadow.camera; sc.left = -7; sc.right = 7; sc.top = 7; sc.bottom = -7; sc.near = 1; sc.far = 30;
+      key.shadow.bias = -0.0006; key.shadow.radius = 4;
+      scene.add(key);
+      var fill = new THREE.DirectionalLight(0x4cc9f0, 0.55); fill.position.set(-7, 5, -5); scene.add(fill);
+      var rim = new THREE.PointLight(0xff4f8b, 1.1, 30); rim.position.set(0, 5, -9); scene.add(rim);
+
+      // board squares
+      var board = new THREE.Group();
+      for (var f = 0; f < 8; f++) for (var r = 0; r < 8; r++) {
+        var light = (f + r) % 2 === 1;
+        var m = light ? MAT.light.clone() : MAT.dark.clone();
+        var jitter = (Math.sin(f * 12.9898 + r * 78.233) * 43758.5453) % 1;
+        m.color.offsetHSL(0, 0, jitter * 0.025);
+        var sq = new THREE.Mesh(new THREE.BoxGeometry(1, 0.08, 1), m);
+        sq.position.set(f - 3.5, -0.04, 3.5 - r); sq.receiveShadow = true;
+        board.add(sq);
+      }
+      var frame = new THREE.Mesh(new THREE.BoxGeometry(9.3, 0.42, 9.3), MAT.frame);
+      frame.position.y = -0.25; frame.receiveShadow = true; frame.castShadow = true; board.add(frame);
+      var trimGeo = [new THREE.BoxGeometry(8.16, 0.03, 0.06), new THREE.BoxGeometry(0.06, 0.03, 8.16)];
+      [[0, 4.05, 0], [0, -4.05, 0], [4.05, 0, 1], [-4.05, 0, 1]].forEach(function (t) {
+        var tr = new THREE.Mesh(trimGeo[t[2]], MAT.brass); tr.position.set(t[2] ? t[0] : 0, -0.025, t[2] ? 0 : t[1]); board.add(tr);
+      });
+      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8 }));
+      base.position.y = -0.62; base.receiveShadow = true; board.add(base);
+      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1 }));
+      floor.rotation.x = -Math.PI / 2; floor.position.y = -0.78; floor.receiveShadow = true; board.add(floor);
+      scene.add(board);
+
+      // coordinates
+      for (var i = 0; i < 8; i++) {
+        ['file', 'rank'].forEach(function (kind) {
+          var ch = kind === 'file' ? 'abcdefgh'[i] : String(i + 1);
+          var mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), new THREE.MeshBasicMaterial({ map: labelTexture(ch), transparent: true, depthWrite: false }));
+          mesh.rotation.x = -Math.PI / 2; mesh.userData = { kind: kind, i: i };
+          labels.push(mesh); scene.add(mesh);
+        });
+      }
+      placeLabels();
+
+      plane = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+      plane.rotation.x = -Math.PI / 2; scene.add(plane);
+
+      // ambient dust
+      var dustGeo = new THREE.BufferGeometry(), N = 220, arr = new Float32Array(N * 3);
+      for (var d = 0; d < N; d++) { arr[d * 3] = (Math.random() - 0.5) * 26; arr[d * 3 + 1] = Math.random() * 9; arr[d * 3 + 2] = (Math.random() - 0.5) * 26; }
+      dustGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      var dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x4cc9f0, size: 0.04, transparent: true, opacity: 0.45, depthWrite: false }));
+      dust.name = 'dust'; scene.add(dust);
+
+      scene.add(pieceGroup); scene.add(overlay); scene.add(arrowGroup); scene.add(fxGroup); scene.add(starGroup);
+
+      var el2 = renderer.domElement, down = null;
+      el2.addEventListener('pointerdown', function (e) {
+        down = { x: e.clientX, y: e.clientY }; Sound.unlock();
+        var sq = pick(e);
+        if (sq && dragFns && dragFns.can(sq) && meshes[sq]) {
+          controls.enabled = false;
+          drag = { from: sq, mesh: meshes[sq], active: false, id: e.pointerId };
+          try { el2.setPointerCapture(e.pointerId); } catch (x) { }
+        }
+      });
+      el2.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.active && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { drag.active = true; dragFns.start(drag.from); }
+        if (!drag.active) return;
+        var p = planePoint(e); if (!p) return;
+        drag.mesh.position.set(p.x, 0.55, p.z);
+        var over = squareAt(p); api.markers('hover', over ? [over] : []);
+      });
+      function snapBack(d) {
+        var p0 = d.mesh.position.clone(), p1 = pos(d.from);
+        tween(180, function (k) { d.mesh.position.set(p0.x + (p1.x - p0.x) * k, p0.y * (1 - k), p0.z + (p1.z - p0.z) * k); });
+      }
+      function endDrag(e, cancelled) {
+        var d = drag; drag = null; controls.enabled = true; api.markers('hover', []);
+        try { el2.releasePointerCapture(d.id); } catch (x) { }
+        if (!d.active) return false;
+        down = null;
+        var ok = false;
+        if (!cancelled) {
+          try {
+            var p = planePoint(e), to = p ? squareAt(p) : null;
+            ok = !!(to && to !== d.from && dragFns.drop(d.from, to));
+          } catch (err) { console.error(err); ok = false; }
+        }
+        if (!ok) snapBack(d);
+        // Watchdog: a piece must never be left floating between squares.
+        setTimeout(function () { if (!drag && dragFns && dragFns.fen) { var f = dragFns.fen(); if (f) api.settle(f); } }, ok ? 2500 : 400);
+        return true;
+      }
+      el2.addEventListener('pointercancel', function (e) { if (drag) endDrag(e, true); down = null; });
+      el2.addEventListener('lostpointercapture', function (e) { if (drag && drag.active) endDrag(e, false); });
+      window.addEventListener('pointerup', function (e) { if (drag && e.target !== el2) endDrag(e, false); });
+      window.addEventListener('blur', function () { if (drag) endDrag(null, true); });
+      el2.addEventListener('pointerup', function (e) {
+        if (drag) { if (endDrag(e, false)) return; }
+        if (!down) return;
+        var moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null;
+        if (moved > 7) return;
+        var sq = pick(e); if (sq) onClick(sq);
+      });
+      var hoverPending = null;
+      el2.addEventListener('pointermove', function (e) {
+        if (e.pointerType !== 'mouse') return;
+        hoverPending = e;
+      });
+      setInterval(function () {
+        if (!hoverPending) return;
+        var sq = pick(hoverPending); hoverPending = null;
+        el2.style.cursor = sq && hoverFn(sq) ? 'pointer' : 'grab';
+      }, 80);
+
+      new ResizeObserver(resize).observe(container);
+      resize();
+      api.setOrientation('w', false);
+      requestAnimationFrame(loop);
+    };
+
+    var hPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.3);
+    function planePoint(e) {
+      var rect = renderer.domElement.getBoundingClientRect();
+      ptr.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ptr.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      ray.setFromCamera(ptr, camera);
+      var out = new THREE.Vector3();
+      return ray.ray.intersectPlane(hPlane, out) ? out : null;
+    }
+    function squareAt(p) { var f = Math.floor(p.x + 4), r = Math.floor(4 - p.z); return f >= 0 && f < 8 && r >= 0 && r < 8 ? 'abcdefgh'[f] + (r + 1) : null; }
+    api.setDrag = function (fns) { dragFns = fns; };
+    api.setCameraFixed = function (v) { cameraFixed = !!v; if (controls) controls.enableRotate = !cameraFixed; };
+    api.settle = function (fen) {
+      if (tweens.length) return;
+      var bad = Object.keys(meshes).some(function (sq) { var m = meshes[sq], p = pos(sq); return Math.abs(m.position.x - p.x) > 0.01 || Math.abs(m.position.z - p.z) > 0.01 || m.position.y > 0.01; });
+      if (bad) api.sync(fen);
+    };
+    function pick(e) {
+      var rect = renderer.domElement.getBoundingClientRect();
+      ptr.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ptr.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      ray.setFromCamera(ptr, camera);
+      var hits = ray.intersectObjects(pieceGroup.children.concat(starGroup.children), true);
+      for (var i = 0; i < hits.length; i++) {
+        var o = hits[i].object;
+        while (o && !(o.userData && o.userData.sq)) o = o.parent;
+        if (o) return o.userData.sq;
+      }
+      var ph = ray.intersectObject(plane);
+      if (ph.length) {
+        var p = ph[0].point, f = Math.floor(p.x + 4), r = Math.floor(4 - p.z);
+        if (f >= 0 && f < 8 && r >= 0 && r < 8) return 'abcdefgh'[f] + (r + 1);
+      }
+      return null;
+    }
+
+    function fitDist() {
+      var w = container.clientWidth || 1, h = container.clientHeight || 1, aspect = w / h;
+      var base = viewMode === 'top' ? 13.5 : 12.6;
+      return base * Math.max(1, Math.pow(1.15 / aspect, 0.85));
+    }
+    function resize() {
+      var w = container.clientWidth, h = container.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h, false);
+      renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%';
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    function camTarget() {
+      var d = fitDist(), s = orient === 'w' ? 1 : -1;
+      if (viewMode === 'top') return new THREE.Vector3(0, d, 0.001 * s);
+      return new THREE.Vector3(0, d * 0.72, d * 0.69 * s);
+    }
+    function moveCamera(animate) {
+      var to = camTarget();
+      if (!animate) { camera.position.copy(to); controls.update(); return Promise.resolve(); }
+      var from = camera.position.clone();
+      // swing around the board instead of passing through it
+      var a0 = Math.atan2(from.x, from.z), a1 = Math.atan2(to.x, to.z);
+      var r0 = Math.hypot(from.x, from.z), r1 = Math.hypot(to.x, to.z);
+      if (Math.abs(a1 - a0) > Math.PI) a1 += a1 < a0 ? Math.PI * 2 : -Math.PI * 2;
+      var tok = ++camTok;
+      return tween(900, function (k) {
+        if (tok !== camTok) return;
+        var a = a0 + (a1 - a0) * k, r = r0 + (r1 - r0) * k;
+        camera.position.set(Math.sin(a) * r, from.y + (to.y - from.y) * k, Math.cos(a) * r);
+      });
+    }
+    function placeLabels() {
+      labels.forEach(function (l) {
+        var i = l.userData.i, s = orient === 'w' ? 1 : -1;
+        if (l.userData.kind === 'file') l.position.set(i - 3.5, -0.032, 4.33 * s);
+        else l.position.set(-4.33 * s, -0.032, 3.5 - i);
+        l.rotation.z = orient === 'w' ? 0 : Math.PI;
+      });
+    }
+    api.setOrientation = function (c, animate) {
+      orient = c; placeLabels();
+      return moveCamera(animate !== false);
+    };
+    api.orientation = function () { return orient; };
+    api.toggleView = function () { viewMode = viewMode === '3d' ? 'top' : '3d'; controls.autoRotate = false; moveCamera(true); return viewMode; };
+    api.idle = function () { controls.autoRotate = false; };
+    api.recenter = function () { moveCamera(true); };
+
+    function loop(now) {
+      requestAnimationFrame(loop);
+      if (document.hidden) return;
+      for (var i = tweens.length - 1; i >= 0; i--) {
+        var t = tweens[i], k = Math.min(1, (now - t.t0) / t.dur);
+        if (k < 0) continue;
+        t.update(t.ease(k));
+        if (k >= 1) { tweens.splice(i, 1); t.res(); }
+      }
+      var time = now / 1000;
+      starGroup.children.forEach(function (s, j) { s.rotation.y = time * 1.6 + j; s.position.y = 0.45 + Math.sin(time * 2 + j) * 0.07; });
+      var dust = scene.getObjectByName('dust'); if (dust) dust.rotation.y = time * 0.01;
+      var cp = camera.position, dist = Math.hypot(cp.x, cp.y, cp.z) || 1, fromTop = cp.y / dist > 0.9;
+      if (fromTop !== lastTop) { lastTop = fromTop; pieceGroup.children.forEach(function (pc) { if (pc.userData.decalMesh) pc.userData.decalMesh.visible = fromTop; }); }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // ---------- pieces ----------
+    function addPiece(sq, type, color) {
+      var m = makePiece(type, color);
+      m.position.copy(pos(sq));
+      m.userData.sq = sq;
+      if (m.userData.decalMesh) m.userData.decalMesh.visible = !!lastTop;
+      pieceGroup.add(m); meshes[sq] = m;
+      return m;
+    }
+    function removeMesh(m) { pieceGroup.remove(m); }
+    function parseFen(fen) {
+      var out = {}, rows = fen.split(' ')[0].split('/');
+      rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } out['abcdefgh'[f] + (8 - ri)] = { type: ch.toLowerCase(), color: ch === ch.toLowerCase() ? 'b' : 'w' }; f++; } });
+      return out;
+    }
+    api.setPosition = function (fen, opts) {
+      opts = opts || {};
+      Object.keys(meshes).forEach(function (k) { removeMesh(meshes[k]); });
+      meshes = {};
+      var map = parseFen(fen), n = 0, proms = [];
+      Object.keys(map).forEach(function (sq) {
+        var m = addPiece(sq, map[sq].type, map[sq].color);
+        if (opts.drop && !REDUCED) {
+          var delay = n++ * 14, h = 2.4 + Math.random() * 1.2;
+          m.position.y = h; m.visible = false;
+          proms.push(api.wait(delay).then(function () { m.visible = true; return tween(520, function (k) { m.position.y = h * (1 - k); }, easeOutBounce); }));
+        }
+      });
+      return Promise.all(proms);
+    };
+    function easeOutBounce(x) { var n1 = 7.5625, d1 = 2.75; if (x < 1 / d1) return n1 * x * x; if (x < 2 / d1) return n1 * (x -= 1.5 / d1) * x + 0.75; if (x < 2.5 / d1) return n1 * (x -= 2.25 / d1) * x + 0.9375; return n1 * (x -= 2.625 / d1) * x + 0.984375; }
+    api.sync = function (fen) {
+      var map = parseFen(fen);
+      Object.keys(meshes).forEach(function (sq) {
+        var want = map[sq], m = meshes[sq];
+        if (!want || want.type !== m.userData.type || want.color !== m.userData.color) { removeMesh(m); delete meshes[sq]; }
+        else { m.position.copy(pos(sq)); m.scale.set(1, 1, 1); m.visible = true; }
+      });
+      Object.keys(map).forEach(function (sq) { if (!meshes[sq]) addPiece(sq, map[sq].type, map[sq].color); });
+    };
+    function slide(m, from, to, lift) {
+      var p0 = pos(from), p1 = pos(to), dist = p0.distanceTo(p1);
+      var h = lift * Math.min(1, 0.45 + dist * 0.12);
+      return tween(260 + dist * 45, function (k) {
+        m.position.set(p0.x + (p1.x - p0.x) * k, Math.sin(Math.PI * k) * h, p0.z + (p1.z - p0.z) * k);
+      });
+    }
+    function capture(m) {
+      if (!m) return Promise.resolve();
+      var y0 = m.position.y;
+      return tween(320, function (k) { m.scale.setScalar(1 - k * 0.9); m.position.y = y0 - k * 0.3; m.rotation.y = k * 2; }).then(function () { removeMesh(m); });
+    }
+    api.animateMove = function (mv, fenAfter) {
+      var m = meshes[mv.from];
+      if (!m) { if (fenAfter) api.sync(fenAfter); return Promise.resolve(); }
+      var proms = [];
+      var capSq = mv.flags === 'e' ? mv.to[0] + mv.from[1] : mv.to;
+      var victim = mv.captured ? meshes[capSq] : null;
+      delete meshes[mv.from];
+      if (victim) delete meshes[capSq];
+      var lift = m.userData.type === 'n' ? 1.0 : 0.45;
+      var mover = mv.dropped ? (function () { var p0 = m.position.clone(), p1 = pos(mv.to); return tween(140, function (k) { m.position.set(p0.x + (p1.x - p0.x) * k, p0.y * (1 - k), p0.z + (p1.z - p0.z) * k); }); })() : slide(m, mv.from, mv.to, lift);
+      proms.push(mover.then(function () {
+        if (victim) { burst(capSq, [0xe2695c, 0xf0e4c8, 0xe0b45c], 18); capture(victim); }
+        if (mv.promotion) {
+          removeMesh(m);
+          var nm = addPiece(mv.to, mv.promotion, mv.color);
+          burst(mv.to, [0xf1c873, 0xffffff], 30);
+          return tween(380, function (k) { nm.scale.setScalar(0.3 + 0.7 * easeOutBack(k)); });
+        }
+      }));
+      m.userData.sq = mv.to; meshes[mv.to] = m;
+      if (mv.flags === 'k' || mv.flags === 'q') {
+        var rank = mv.from[1];
+        var rf = mv.flags === 'k' ? 'h' + rank : 'a' + rank, rt = mv.flags === 'k' ? 'f' + rank : 'd' + rank;
+        var rm = meshes[rf];
+        if (rm) { delete meshes[rf]; rm.userData.sq = rt; meshes[rt] = rm; proms.push(api.wait(120).then(function () { return slide(rm, rf, rt, 0.7); })); }
+      }
+      return Promise.all(proms).then(function () { if (fenAfter) api.sync(fenAfter); });
+    };
+
+    // ---------- markers ----------
+    var CAT = {
+      hover: { color: 0xffffff, op: 0.1, y: 0.002 }, last: { color: 0xe7c66b, op: 0.32, y: 0.003 }, mark: { color: 0x6fa8dc, op: 0.45, y: 0.004 },
+      sel: { color: 0xd6a54e, op: 0.6, y: 0.005 }, check: { color: 0xe2695c, op: 0.65, y: 0.006 }, hint: { color: 0x73c48f, op: 0.55, y: 0.007 },
+      bad: { color: 0xe2695c, op: 0.6, y: 0.008 }, good: { color: 0x73c48f, op: 0.6, y: 0.008 }, moves: { color: 0x10161e, op: 0.5, y: 0.01 }
+    };
+    api.markers = function (cat, items) {
+      (cats[cat] || []).forEach(function (m) { overlay.remove(m); m.material.dispose(); });
+      cats[cat] = [];
+      var c = CAT[cat];
+      (items || []).forEach(function (it) {
+        var sq = typeof it === 'string' ? it : it.sq;
+        var geo = cat === 'moves' ? (it.cap ? GEO.ring : GEO.dot) : GEO.square;
+        var mat = new THREE.MeshBasicMaterial({ color: col(c.color), transparent: true, opacity: c.op, depthWrite: false });
+        var m = new THREE.Mesh(geo, mat);
+        m.rotation.x = -Math.PI / 2; m.position.copy(pos(sq, c.y));
+        overlay.add(m); cats[cat].push(m);
+      });
+    };
+    api.flash = function (cat, sqs, ms) { api.markers(cat, sqs); setTimeout(function () { api.markers(cat, []); }, ms || 650); };
+
+    api.arrows = function (list) {
+      while (arrowGroup.children.length) { var old = arrowGroup.children[0]; arrowGroup.remove(old); old.children.forEach(function (c) { c.geometry.dispose(); c.material.dispose(); }); }
+      (list || []).forEach(function (a) {
+        var p0 = pos(a[0]), p1 = pos(a[1]);
+        var dx = p1.x - p0.x, dz = p1.z - p0.z, L = Math.hypot(dx, dz);
+        if (L < 0.1) return;
+        var start = 0.22, head = 0.42, w = 0.075, hw = 0.24, end = L - 0.12;
+        var s = new THREE.Shape();
+        s.moveTo(start, -w); s.lineTo(end - head, -w); s.lineTo(end - head, -hw); s.lineTo(end, 0); s.lineTo(end - head, hw); s.lineTo(end - head, w); s.lineTo(start, w); s.lineTo(start, -w);
+        var mesh = new THREE.Mesh(new THREE.ShapeGeometry(s), new THREE.MeshBasicMaterial({ color: col(COLORS[a[2] || 'g'] || COLORS.g), transparent: true, opacity: 0.82, depthWrite: false, side: THREE.DoubleSide }));
+        mesh.rotation.x = -Math.PI / 2;
+        var g = new THREE.Group(); g.add(mesh);
+        g.position.set(p0.x, 0.03 + arrowGroup.children.length * 0.002, p0.z);
+        g.rotation.y = Math.atan2(-dz, dx);
+        arrowGroup.add(g);
+      });
+    };
+
+    // ---------- stars and effects ----------
+    api.stars = function (list) {
+      Object.keys(stars).forEach(function (k) { starGroup.remove(stars[k]); });
+      stars = {};
+      (list || []).forEach(function (sq) {
+        var m = new THREE.Mesh(GEO.star, MAT.star); m.castShadow = true;
+        m.position.copy(pos(sq, 0.45)); m.userData = { sq: sq };
+        starGroup.add(m); stars[sq] = m;
+      });
+    };
+    api.takeStar = function (sq) {
+      var m = stars[sq]; if (!m) return false;
+      delete stars[sq];
+      burst(sq, [0xf1c873, 0xffe9b0, 0xffffff], 26);
+      tween(260, function (k) { m.scale.setScalar(1 + k); m.position.y = 0.45 + k * 0.8; }).then(function () { starGroup.remove(m); });
+      return true;
+    };
+    function burst(sq, colors, n) {
+      if (REDUCED) return;
+      var origin = pos(sq, 0.3), parts = [];
+      for (var i = 0; i < n; i++) {
+        var m = new THREE.Mesh(GEO.spark, new THREE.MeshBasicMaterial({ color: col(colors[i % colors.length]), transparent: true }));
+        m.position.copy(origin);
+        var v = new THREE.Vector3((Math.random() - 0.5) * 3, 2 + Math.random() * 3, (Math.random() - 0.5) * 3);
+        parts.push({ m: m, v: v }); fxGroup.add(m);
+      }
+      tween(900, function (k) {
+        var t = k * 0.9;
+        parts.forEach(function (p) {
+          p.m.position.set(origin.x + p.v.x * t, origin.y + p.v.y * t - 4.9 * t * t, origin.z + p.v.z * t);
+          p.m.rotation.x = t * 8; p.m.rotation.y = t * 6;
+          p.m.material.opacity = 1 - k;
+        });
+      }, function (k) { return k; }).then(function () { parts.forEach(function (p) { fxGroup.remove(p.m); p.m.material.dispose(); }); });
+    }
+    api.burst = function (sq) { burst(sq, [0x73c48f, 0xf1c873, 0xf0e4c8, 0x6fa8dc], 44); };
+    api.clearAll = function () { Object.keys(cats).forEach(function (c) { api.markers(c, []); }); api.arrows([]); api.stars([]); };
+    return api;
+  })();
+
+  // ================= DOM helpers =================
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var panel, ACT = {};
+  function setPanel(html) { panel.innerHTML = html; panel.scrollTop = 0; }
+  function toast(msg, kind) {
+    var t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.className = 'toast'; }, 2200);
+  }
+  function setStatus(text, kind) {
+    var el = $('#status'); if (!el) return;
+    el.innerHTML = text; el.className = 'status ' + (kind || '');
+  }
+  var PIECE_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+  var GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+
+  // ================= Board interaction =================
+  var IX = { game: null, enabled: false, selected: null, canMove: function () { return false; }, onMove: null, collect: null };
+  function kingSq(g) { var k = g.kings[g.side ? 1 : 0]; return k >= 0 ? Game.sqName(k) : null; }
+  function showCheck(g) { B3.markers('check', g && g.inCheck() ? [kingSq(g)] : []); }
+  function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); }
+  function selectSq(sq) {
+    IX.selected = sq;
+    var ms = IX.game.moves({ square: sq });
+    B3.markers('sel', [sq]);
+    B3.markers('moves', ms.map(function (m) { return { sq: m.to, cap: !!m.captured }; }));
+  }
+  function askPromotion(color) {
+    return new Promise(function (res) {
+      var box = $('#promo');
+      box.innerHTML = '<div class="promo-card"><p>Promote to</p><div class="promo-row">' + ['q', 'r', 'b', 'n'].map(function (t) {
+        return '<button class="promo-btn" data-p="' + t + '" aria-label="' + PIECE_NAME[t] + '"><span class="glyph">' + pieceSVG(t, color, 40) + '</span><span>' + PIECE_NAME[t] + '</span></button>';
+      }).join('') + '</div></div>';
+      box.hidden = false;
+      box.onclick = function (e) { var b = e.target.closest('[data-p]'); if (!b) return; box.hidden = true; box.onclick = null; res(b.dataset.p); };
+    });
+  }
+  function onBoardClick(sq) {
+    if (IX.collect) return Collect.click(sq);
+    if (!IX.enabled || !IX.game) return;
+    var g = IX.game, p = g.get(sq);
+    if (IX.selected) {
+      if (sq === IX.selected) { deselect(); return; }
+      var legal = g.moves({ square: IX.selected }).filter(function (m) { return m.to === sq; });
+      if (legal.length) {
+        var from = IX.selected; deselect();
+        if (legal.length > 1) { askPromotion(g.turn()).then(function (pr) { submitMove({ from: from, to: sq, promotion: pr }); }); }
+        else submitMove({ from: from, to: sq, promotion: legal[0].promotion });
+        return;
+      }
+      if (p && p.color === g.turn() && IX.canMove(p.color)) { selectSq(sq); return; }
+      deselect();
+      return;
+    }
+    if (p && p.color === g.turn() && IX.canMove(p.color)) selectSq(sq);
+  }
+  function onBoardHover(sq) {
+    if (IX.collect) return sq === IX.collect.at || !!IX.collect.targets[sq];
+    if (!IX.enabled || !IX.game) return false;
+    var p = IX.game.get(sq);
+    if (p && p.color === IX.game.turn() && IX.canMove(p.color)) return true;
+    if (IX.selected) return IX.game.moves({ square: IX.selected }).some(function (m) { return m.to === sq; });
+    return false;
+  }
+  function submitMove(mv) {
+    IX.enabled = false;
+    var uci = mv.from + mv.to + (mv.promotion || '');
+    var g = IX.game;
+    Promise.resolve(IX.onMove && IX.onMove(mv, uci)).catch(function (e) { console.error(e); IX.enabled = true; })
+      .then(function () { if (PENDING_DROP) { PENDING_DROP = null; if (g) B3.sync(g.fen()); } });
+  }
+  function dragCan(sq) {
+    if (IX.collect) return sq === IX.collect.at && !IX.collect.busy;
+    if (!IX.enabled || !IX.game) return false;
+    var p = IX.game.get(sq);
+    return !!(p && p.color === IX.game.turn() && IX.canMove(p.color));
+  }
+  function dragStart(sq) {
+    if (IX.collect) { IX.collect.selected = true; Collect.refresh(); return; }
+    selectSq(sq);
+  }
+  function dragDrop(from, to) {
+    if (IX.collect) { if (!IX.collect.targets[to]) { IX.collect.selected = false; Collect.refresh(); return false; } IX.collect.dropNext = true; Collect.click(to); return true; }
+    var g = IX.game;
+    var legal = g.moves({ square: from }).filter(function (m) { return m.to === to; });
+    deselect();
+    if (!legal.length) { Sound.play('bad'); return false; }
+    PENDING_DROP = { from: from, to: to };
+    if (legal.length > 1) askPromotion(g.turn()).then(function (pr) { submitMove({ from: from, to: to, promotion: pr }); });
+    else submitMove({ from: from, to: to, promotion: legal[0].promotion });
+    return true;
+  }
+  var PENDING_DROP = null;
+  function applyMove(g, mv) {
+    var res = g.move(mv);
+    if (!res) return Promise.resolve(null);
+    if (PENDING_DROP && PENDING_DROP.from === res.from && PENDING_DROP.to === res.to) { res.dropped = true; PENDING_DROP = null; }
+    B3.markers('last', [res.from, res.to]);
+    B3.arrows([]);
+    Sound.play(res.captured ? 'capture' : (/[+#]/.test(res.san) ? 'check' : 'move'));
+    return B3.animateMove(res, g.fen()).then(function () { showCheck(g); return res; });
+  }
+  function uciObj(u) { return { from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }; }
+  function setupBoard(fen, opts) {
+    opts = opts || {};
+    deselect(); B3.clearAll(); IX.collect = null;
+    var g = new Game(fen);
+    IX.game = g;
+    var p = B3.setPosition(fen, { drop: opts.drop });
+    if (opts.orient) B3.setOrientation(opts.orient);
+    showCheck(g);
+    return g;
+  }
+
+  // ================= Collect mini-game =================
+  var Collect = {
+    start: function (step, onDone) {
+      deselect(); B3.clearAll(); IX.game = null; IX.enabled = false;
+      var fenRows = [];
+      var c = { piece: step.piece, at: step.start, left: step.stars.slice(), moves: 0, par: step.par, onDone: onDone, targets: {}, selected: false, step: step };
+      IX.collect = c;
+      B3.setPosition(fenOf(step.piece, step.start), { drop: true });
+      B3.stars(step.stars);
+      B3.setOrientation('w');
+      Collect.refresh();
+    },
+    refresh: function () {
+      var c = IX.collect; c.targets = {};
+      Collect.reach(c.piece, c.at).forEach(function (s) { c.targets[s] = true; });
+      if (c.selected) { B3.markers('sel', [c.at]); B3.markers('moves', Object.keys(c.targets).map(function (s) { return { sq: s, cap: c.left.indexOf(s) >= 0 }; })); }
+      else { B3.markers('sel', []); B3.markers('moves', []); }
+      var el = $('#collect-count'); if (el) el.textContent = c.moves + ' moves · ' + (c.step.stars.length - c.left.length) + '/' + c.step.stars.length + ' stars';
+    },
+    reach: function (piece, at) {
+      var f = at.charCodeAt(0) - 97, r = +at[1] - 1, out = [];
+      function add(ff, rr) { if (ff >= 0 && ff < 8 && rr >= 0 && rr < 8) out.push('abcdefgh'[ff] + (rr + 1)); }
+      var dirs = { r: [[1, 0], [-1, 0], [0, 1], [0, -1]], b: [[1, 1], [1, -1], [-1, 1], [-1, -1]] };
+      dirs.q = dirs.r.concat(dirs.b);
+      if (piece === 'n') [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(function (d) { add(f + d[0], r + d[1]); });
+      else if (piece === 'k') dirs.q.forEach(function (d) { add(f + d[0], r + d[1]); });
+      else dirs[piece].forEach(function (d) { for (var i = 1; i < 8; i++) add(f + d[0] * i, r + d[1] * i); });
+      return out;
+    },
+    click: function (sq) {
+      var c = IX.collect; if (!c || c.busy) return;
+      if (sq === c.at) { c.selected = !c.selected; Collect.refresh(); return; }
+      if (!c.targets[sq]) { if (c.selected) { c.selected = false; Collect.refresh(); } return; }
+      c.busy = true; c.selected = false; B3.markers('sel', []); B3.markers('moves', []);
+      var from = c.at; c.at = sq; c.moves++;
+      Sound.play('move');
+      var dropped = !!c.dropNext; c.dropNext = false;
+      B3.animateMove({ from: from, to: sq, flags: 'n', color: 'w', dropped: dropped }).then(function () {
+        var i = c.left.indexOf(sq);
+        if (i >= 0) { c.left.splice(i, 1); B3.takeStar(sq); Sound.play('star'); }
+        c.busy = false; c.selected = true;
+        Collect.refresh();
+        if (!c.left.length) {
+          c.selected = false; Collect.refresh();
+          var starsEarned = c.moves <= c.par ? 3 : c.moves <= c.par + 2 ? 2 : 1;
+          IX.collect = null;
+          c.onDone(starsEarned, c.moves);
+        }
+      });
+    }
+  };
+  function fenOf(piece, sq) {
+    var rows = [];
+    for (var r = 8; r >= 1; r--) {
+      var row = '', e = 0;
+      for (var f = 0; f < 8; f++) {
+        var s = 'abcdefgh'[f] + r;
+        if (s === sq) { if (e) { row += e; e = 0; } row += piece.toUpperCase(); } else e++;
+      }
+      if (e) row += e; rows.push(row);
+    }
+    return rows.join('/') + ' w - - 0 1';
+  }
+
+  // ================= Navigation =================
+  var current = null;
+  var LOCKABLE = { openings: 'Openings', play: 'Coach games' };
+  // Features open up quickly: coach games after 1 lesson, openings after 3.
+  var UNLOCK_AT = { play: 1, openings: 3 };
+  function lessonsDone() { return Object.keys(S.lessons).filter(function (k) { return S.lessons[k] && S.lessons[k].done; }).length; }
+  function isLocked(mode) { return !!LOCKABLE[mode] && beginnerMode() && !S.peek[mode] && lessonsDone() < UNLOCK_AT[mode]; }
+  function lockedScreen(mode) {
+    var st = STAGES[0], done = Math.min(lessonsDone(), UNLOCK_AT[mode]);
+    setupBoard(Game.START, { orient: 'w' });
+    setPanel('<div class="locked-screen"><div class="lock-orb" aria-hidden="true">' + pieceSVG(mode === 'play' ? 'k' : 'b', 'w', 54) + '</div>' +
+      '<div class="eyebrow">Unlocks after ' + UNLOCK_AT[mode] + ' lesson' + (UNLOCK_AT[mode] > 1 ? 's' : '') + '</div><h1 class="h1">' + LOCKABLE[mode] + ' are almost ready</h1>' +
+      '<p class="lede">' + (mode === 'play' ? 'Once you know how every piece moves, you will play full games against me, with tips on every move.' : 'Once you know the basics, you will learn real openings, gambits and traps, one move at a time.') + '</p>' +
+      '<div class="lock-progress"><i style="width:' + Math.round(done / UNLOCK_AT[mode] * 100) + '%"></i></div><p class="muted small">' + done + ' of ' + UNLOCK_AT[mode] + ' lessons done</p>' +
+      '<div class="actions"><button class="btn primary big" data-act="startNext">Continue learning</button></div>' +
+      '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button></div>');
+  }
+  ACT.peek = function (d) { S.peek[d.m] = true; save(); go(d.m); };
+  function go(mode, arg) {
+    if (isLocked(mode)) {
+      if (current && current.leave) current.leave();
+      Voice.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null;
+      document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode); });
+      $('#evalbar').hidden = true; $('#mode-label').textContent = LOCKABLE[mode];
+      lockedScreen(mode); return;
+    }
+    if (current && current.leave) current.leave();
+    Voice.stop(); Bubble.hide();
+    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || (mode === 'rush' && b.dataset.go === 'puzzles') || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
+    $('#evalbar').hidden = true;
+    B3.idle(false);
+    IX.enabled = false; IX.onMove = null; IX.collect = null;
+    current = MODES[mode];
+    document.body.dataset.mode = mode;
+    current.enter(arg);
+    $('#mode-label').textContent = current.label || '';
+    setLayout();
+  }
+  // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
+  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1 };
+  function setLayout() {
+    var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
+    document.body.dataset.layout = board ? 'board' : 'browse';
+    closeTools();
+  }
+  var MQ = window.matchMedia ? window.matchMedia('(max-width: 880px) and (orientation: portrait)') : null;
+  function applyMob() {
+    var mob = !!(MQ && MQ.matches), b = $('#coach-bubble'), app = $('#app');
+    document.body.classList.toggle('mob', mob);
+    if (!b) return;
+    if (b.parentNode !== app) app.insertBefore(b, $('#panel'));
+  }
+  function closeTools() { var t = $('.board-tools'); if (t) t.classList.remove('open'); var tb = $('#tools-btn'); if (tb) tb.setAttribute('aria-expanded', 'false'); }
+
+  // ================= Path (home) =================
+  function stageUnlocked(i) {
+    var st = STAGES[i];
+    if (S.band >= st.min) return true;
+    if (i === 0) return true;
+    var prev = STAGES[i - 1];
+    return prev.lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
+  }
+  function nextLesson() {
+    for (var i = 0; i < STAGES.length; i++) {
+      if (!stageUnlocked(i)) continue;
+      for (var j = 0; j < STAGES[i].lessons.length; j++) { var id = STAGES[i].lessons[j]; if (!(S.lessons[id] && S.lessons[id].done)) return id; }
+    }
+    return STAGES[STAGES.length - 1].lessons[0];
+  }
+  function stageOf(lessonId) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].lessons.indexOf(lessonId) >= 0) return i; return 0; }
+
+  var MODES = {};
+  var PATHUI = { open: null };
+  // Everything the app can do, visible from day one; locked items say exactly when they open.
+  function exploreStrip() {
+    var items = [
+      { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
+      { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
+      { m: 'play', ico: 'k', t: 'Play the coach', s: '5 levels, live tips' },
+      { m: 'openings', ico: 'b', t: 'Openings', s: OPENINGS.length + ' lines & traps' },
+      { m: 'progress', ico: 'r', t: 'Badges', s: 'Track your climb' }
+    ];
+    return '<div class="sect-head"><h2>Explore</h2><span class="muted small">jump in anytime</span></div><div class="explore">' + items.map(function (it) {
+      var lock = isLocked(it.m), need = lock ? UNLOCK_AT[it.m] - lessonsDone() : 0;
+      return '<button class="ex-tile' + (lock ? ' locked' : '') + '" ' + (it.act ? 'data-act="' + it.act + '"' : 'data-act="goMode" data-m="' + it.m + '"') + '><span class="ex-ico">' + pieceSVG(it.ico, 'w', 24) + '</span><b>' + it.t + '</b><span>' + (lock ? '🔒 after ' + need + ' more lesson' + (need > 1 ? 's' : '') : it.s) + '</span></button>';
+    }).join('') + '</div>';
+  }
+  ACT.goMode = function (d) { go(d.m); };
+  MODES.path = {
+    label: 'Training path',
+    enter: function (rerender) {
+      if (!rerender) {
+        setupBoard(Game.START, { drop: true, orient: 'w' });
+        setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
+      }
+      var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), L = LESSONS[nl], cur = stageOf(nl);
+      var openStage = PATHUI.open == null ? cur : PATHUI.open;
+      var R = S.puzzle.rating, marks = [100, 400, 800, 1200, 1600, 2000];
+      var seg = 0; while (seg < 4 && R >= marks[seg + 1]) seg++;
+      var pct = Math.max(0, Math.min(100, (seg + Math.min(1, Math.max(0, (R - marks[seg]) / (marks[seg + 1] - marks[seg])))) * 20));
+      var chip = function (done, label, sub, act, icon) {
+        return '<button class="mchip ' + (done ? 'done' : '') + '" data-act="' + act + '"><span class="mc-ico" aria-hidden="true">' + (done ? '✓' : icon) + '</span><span class="mc-label">' + label + '</span><span class="mc-sub">' + sub + '</span></button>';
+      };
+      var html =
+        '<section class="hero-card"><span class="hero-mark" aria-hidden="true">' + pieceSVG('n', 'w', 130) + '</span>' +
+        '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + '</div>' +
+        '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
+        '<p class="lede">' + esc(L.goal) + '</p>' +
+        '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + L.minutes + ' min</button>' +
+        '</section>' +
+        '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
+        '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
+        '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>' +
+        '<div class="sect-head"><h2>Today\'s missions</h2><span class="pill-count">' + missionsDone(d) + '/' + missionsTotal() + '</span></div>' +
+        '<div class="mchips">' + missionList(d).map(function (m, i) { return chip(m.done, m.label, m.sub || esc(L.title), m.act, String(i + 1)); }).join('') + '</div>' +
+        exploreStrip() +
+        (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })() +
+        '<div class="sect-head"><h2>Your journey</h2><button class="link" data-act="tour">Replay tour</button></div>' +
+        '<ol class="journey">' + STAGES.map(function (st, i) {
+          var open = stageUnlocked(i), expanded = i === openStage && open;
+          var doneN = st.lessons.filter(function (id) { return S.lessons[id] && S.lessons[id].done; }).length;
+          var state = doneN === st.lessons.length ? 'done' : i === cur ? 'current' : open ? 'open' : 'locked';
+          return '<li class="jstage ' + state + (expanded ? ' expanded' : '') + '">' +
+            '<button class="jhead" data-act="toggleStage" data-i="' + i + '" ' + (open ? '' : 'disabled') + ' aria-expanded="' + expanded + '">' +
+            '<span class="jdot" aria-hidden="true">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : i + 1) + '</span>' +
+            '<span class="jtext"><span class="jname">' + esc(st.name) + '</span><span class="jband">' + st.band + ' · ' + doneN + '/' + st.lessons.length + ' lessons</span></span>' +
+            '<span class="jchev" aria-hidden="true">' + (open ? (expanded ? '−' : '+') : '') + '</span></button>' +
+            (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p><div class="jlessons">' + st.lessons.map(function (id, k) {
+              var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl;
+              return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
+                '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : L2.minutes + ' min') + '</span></button>';
+            }).join('') + '</div>' : '') + '</li>';
+        }).join('') + '</ol>';
+      setPanel(html);
+    },
+    leave: function () { B3.idle(false); }
+  };
+  ACT.startNext = function () { go('lesson', nextLesson()); };
+  ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
+  ACT.toggleStage = function (d) { var i = +d.i, cur = PATHUI.open == null ? stageOf(nextLesson()) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
+  ACT.lesson = function (d) { go('lesson', d.id); };
+  ACT.goPuzzles = function () { go('puzzles'); };
+  ACT.goOpenings = function () { go('openings'); };
+  ACT.goPlay = function () { go('play'); };
+  ACT.goPath = function () { go('path'); };
+
+  // ================= Lesson =================
+  var LS = null;
+  MODES.lesson = {
+    label: 'Lesson',
+    enter: function (id) {
+      LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false };
+      Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
+      MODES.lesson.render();
+      MODES.lesson.loadStep();
+    },
+    render: function () {
+      var L = LS.L, st = STAGES[stageOf(LS.id)], step = L.steps[LS.i];
+      var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
+      var kind = step.t === 'read' ? 'Concept' : step.t === 'collect' ? 'Mini-game' : 'Your move';
+      var actions = '';
+      if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
+      else actions = '<button class="btn ghost" data-act="hint">Hint</button><button class="btn ghost" data-act="resetStep">Reset</button><button class="btn primary" data-act="nextStep" ' + (LS.stepDone ? '' : 'disabled') + '>' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
+      setPanel('<button class="back" data-act="goPath">← Path</button>' +
+        '<div class="eyebrow">' + esc(st.name) + ' · ' + st.band + '</div>' +
+        '<h1 class="h1">' + esc(L.title) + '</h1>' +
+        '<p class="lede">' + esc(L.goal) + '</p>' +
+        '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div><p class="coach-text">' + esc(step.text) + '</p>' +
+        (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
+        (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
+        '</div>' +
+        '<div id="status" class="status"></div>' +
+        '<div class="actions">' + actions + '</div>');
+    },
+    loadStep: function () {
+      var step = LS.L.steps[LS.i];
+      LS.stepDone = step.t === 'read'; LS.ply = 0; LS.hintUsed = false;
+      Voice.say([LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }]);
+      if (step.t === 'collect') {
+        Collect.start(step, function (stars, moves) {
+          LS.stepDone = true; LS.stars = Math.min(LS.stars || 3, stars);
+          B3.burst(step.stars[step.stars.length - 1] || 'e4'); Sound.play('good'); Voice.say([V('allstars', 'allstars')]);
+          MODES.lesson.render();
+          setStatus('<strong>All stars in ' + moves + ' moves.</strong> ' + (stars === 3 ? 'Perfect route!' : 'Par is ' + step.par + '. Reset to try a shorter route.'), 'good');
+        });
+        Collect.refresh();
+        return;
+      }
+      var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: new Game(step.fen).turn() });
+      if (step.arrows) B3.arrows(step.arrows);
+      if (step.marks) B3.markers('mark', step.marks);
+      if (step.t === 'move') {
+        IX.enabled = true;
+        IX.canMove = function (c) { return c === g.turn(); };
+        IX.onMove = MODES.lesson.onMove;
+      }
+    },
+    onMove: function (mv, uci) {
+      var step = LS.L.steps[LS.i], g = IX.game, fenBefore = g.fen();
+      var expected = step.sol[LS.ply];
+      var accepted = uci === expected || (LS.ply === 0 && step.accept && step.accept.indexOf(uci) >= 0);
+      var test = new Game(fenBefore); test.move(mv);
+      var mates = test.inCheckmate();
+      if (step.judge === 'safe') {
+        setStatus('Checking your move…');
+        return Eng.call('analyzeMove', fenBefore, uci, 30, 700).then(function (a) {
+          var ok = a && a.loss <= 120 && !(a.reply && a.reply.score > 90000);
+          if (!ok) {
+            LS.mistakes++; Sound.play('bad'); B3.flash('bad', [mv.to]); Voice.say([V('notsafe', 'notsafe')]);
+            setStatus('<strong>Not safe.</strong> ' + (a && a.replySan ? 'Your opponent answers ' + esc(a.replySan) + '. ' : '') + 'Try again.', 'bad');
+            IX.enabled = true; return;
+          }
+          return applyMove(g, mv).then(function () { MODES.lesson.stepWin(step, mv.to); });
+        });
+      }
+      if (!accepted && !(step.anyMate && mates)) {
+        LS.mistakes++; Sound.play('bad'); B3.flash('bad', [mv.to]); Voice.say([V('notquite', 'notquite')]);
+        setStatus('<strong>Not quite.</strong> ' + esc(step.hint || 'Look for a stronger move.'), 'bad');
+        IX.enabled = true; return;
+      }
+      return applyMove(g, mv).then(function () {
+        if (mates || uci !== expected || LS.ply + 1 >= step.sol.length) return MODES.lesson.stepWin(step, mv.to);
+        LS.ply++;
+        setStatus('Good. Keep going…', 'good'); Voice.say([V('keepgoing', 'keepgoing')]);
+        return B3.wait(450).then(function () { return applyMove(g, uciObj(step.sol[LS.ply])); }).then(function () {
+          LS.ply++;
+          if (LS.ply >= step.sol.length) return MODES.lesson.stepWin(step, step.sol[LS.ply - 1].slice(2, 4));
+          IX.enabled = true;
+        });
+      });
+    },
+    stepWin: function (step, sq) {
+      LS.stepDone = true; IX.enabled = false;
+      B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
+      var stepIdx = LS.L.steps.indexOf(step);
+      Voice.say([V('correct', 'correct'), step.done ? { id: 'L-' + LS.id + '-' + stepIdx + '-d', text: step.done } : null]);
+      addXP(10);
+      MODES.lesson.render();
+      setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good');
+    },
+    leave: function () { IX.collect = null; }
+  };
+  ACT.nextStep = function () {
+    if (!LS) return;
+    if (LS.i < LS.L.steps.length - 1) { LS.i++; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
+    var stars = LS.mistakes === 0 ? 3 : LS.mistakes <= 2 ? 2 : 1;
+    if (LS.stars) stars = Math.min(stars, LS.stars);
+    if (LS.finished) return;
+    LS.finished = true;
+    var prev = S.lessons[LS.id], wasLocked = { play: isLocked('play'), openings: isLocked('openings') };
+    S.lessons[LS.id] = { done: true, stars: Math.max(stars, prev && prev.stars || 0) };
+    today().lesson = true; today().lessons = (today().lessons || 0) + 1; addXP(50); save();
+    Badges.award('first_lesson');
+    var stI = stageOf(LS.id), stDone = STAGES[stI].lessons.every(function (id) { return S.lessons[id] && S.lessons[id].done; });
+    if (stDone) Badges.award('stage_' + (stI + 1));
+    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
+    var nl = nextLesson();
+    document.body.dataset.layout = 'browse';
+    setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
+      '<p class="big-stars" aria-label="' + stars + ' of 3 stars">' + '★'.repeat(stars) + '<span class="dim">' + '★'.repeat(3 - stars) + '</span></p></div>' +
+      '<p class="muted small">' + (LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') + ' along the way. Repeat it later to lock the pattern in.' : 'Flawless.') + '</p>' +
+      whatNext(LS.id, nl, wasLocked) +
+      (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
+      '<div class="actions plain"><button class="btn ghost" data-act="lesson" data-id="' + LS.id + '">Repeat lesson</button><button class="btn ghost" data-act="goPath">Back to path</button></div>');
+  };
+
+  // After a lesson: invite the player to use the idea straight away, in a different way.
+  var LESSON_THEME = { 'l-traps': 'mate', 'l-smothered': 'mate', 'l-rookmate': 'endgame', 'l-qmate': 'mate', 'l-check': 'mate', 'l-values': 'hanging', 'l-principles': 'hanging', 'l-forks': 'fork', 'l-pins': 'pin', 'l-skewers': 'skewer', 'l-backrank': 'mate', 'l-discovered': 'discovered', 'l-defender': 'defender', 'l-patterns': 'mate', 'l-cct': 'all', 'l-kp': 'endgame', 'l-rook-end': 'endgame', 'l-king-pawn': 'promotion', 'l-convert': 'all', 'l-calc': 'all' };
+  function whatNext(id, nl, wasLocked) {
+    var L = LESSONS[id], theme = LESSON_THEME[id] || 'all';
+    var st = L.steps.filter(function (s) { return s.t === 'move' && /K/.test(s.fen.split(' ')[0]) && /k/.test(s.fen.split(' ')[0]); }).pop();
+    var nDone = lessonsDone(), lessonsToday = today().lessons || 0;
+    var cards = [];
+    var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
+    if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
+    cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
+    if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
+    if (nl) cards.push({ k: 'lesson', ico: 'r', t: 'Next lesson', s: LESSONS[nl].title, act: 'data-act="lesson" data-id="' + nl + '"' });
+    // Variety: after two lessons in a row, nudge toward doing instead of reading
+    var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
+    if (playNew) pref = 'play'; else if (opNew) pref = 'opening';
+    if (!cards.some(function (c) { return c.k === pref; })) pref = cards[0].k;
+    cards.sort(function (a, b) { return (b.k === pref) - (a.k === pref); });
+    return '<div class="sect-head"><h2>What next?</h2><span class="muted small">pick any, switch anytime</span></div><div class="wn-grid">' + cards.map(function (c) {
+      return '<button class="wn-card' + (c.k === pref ? ' pref' : '') + '" ' + c.act + '><span class="wn-ico">' + pieceSVG(c.ico, 'w', 26) + '</span><span class="wn-txt"><b>' + esc(c.t) + (c.isNew ? ' <em class="new-tag">New</em>' : '') + (c.k === pref ? ' <em class="rec-tag">Suggested</em>' : '') + '</b><span>' + esc(c.s) + '</span></span></button>';
+    }).join('') + '</div>';
+  }
+  ACT.wnPlay = function () { go('play'); };
+  ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
+  ACT.wnOpening = function () { go('openings'); };
+  ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
+  ACT.resetStep = function () { if (LS) { MODES.lesson.render(); MODES.lesson.loadStep(); } };
+  ACT.hint = function () {
+    var step = LS.L.steps[LS.i];
+    if (step.t === 'collect') { setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return; }
+    var u = step.sol[LS.ply];
+    if (LS.hintUsed) { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); setStatus('The arrow shows the move.'); }
+    else { B3.markers('hint', [u.slice(0, 2)]); setStatus(esc(step.hint || 'Look at the highlighted piece.')); LS.hintUsed = true; }
+    LS.mistakes += 0.5;
+  };
+  ACT.playLine = function () {
+    var step = LS.L.steps[LS.i];
+    var g = setupBoard(step.fen, {});
+    var i = 0;
+    setStatus('Watch the plan unfold…');
+    (function nextMove() {
+      if (i >= step.line.length || current !== MODES.lesson) return;
+      var san = step.line[i];
+      applyMove(g, san).then(function (r) {
+        if (!r) return;
+        var hist = g.history();
+        setStatus('<span class="mono">' + esc(hist.join('  ')) + '</span>');
+        i++; setTimeout(nextMove, 850);
+      });
+    })();
+  };
+
+  // ================= Openings =================
+  var OP = { filter: 'all' };
+  function mastery(id) { var r = S.openings[id] || {}; return Math.min(3, r.perfect || 0); }
+  MODES.openings = {
+    label: 'Opening explorer',
+    enter: function () {
+      setupBoard(Game.START, { drop: true, orient: 'w' });
+      MODES.openings.render();
+    },
+    render: function () {
+      var F = [['all', 'All'], ['w', 'As White'], ['b', 'As Black'], ['gambit', 'Gambits'], ['trap', 'Traps']];
+      var q = (OP.q || '').toLowerCase().trim();
+      var list = OPENINGS.filter(function (o) {
+        if (q && (o.name + ' ' + o.eco + ' ' + o.family).toLowerCase().indexOf(q) < 0) return false;
+        if (OP.filter === 'all') return true;
+        if (OP.filter === 'gambit') return o.gambit;
+        if (OP.filter === 'trap') return o.family === 'Traps';
+        return o.side === OP.filter;
+      });
+      setPanel('<div class="eyebrow">' + OPENINGS.length + ' lines</div><h1 class="h1">Openings and gambits</h1>' +
+        '<p class="lede">Learn the idea behind every move, then drill it until you can play it from memory. Three perfect drills masters a line.</p>' +
+        (q ? '' : '<div class="sect-head"><h2>Recommended for you</h2><span class="muted small">for ~' + Math.round(S.puzzle.rating) + '</span></div><div class="recs">' + recommendedOpenings().map(function (o) {
+          return '<button class="rec-card" data-act="openOp" data-id="' + o.id + '"><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span><b>' + esc(o.name) + '</b><span class="muted small">' + esc(o.idea.split('. ')[0].replace(/\.$/, '')) + '.</span></button>';
+        }).join('') + '</div>') +
+        '<div class="search"><input id="op-search" type="search" placeholder="Search openings, e.g. Sicilian" value="' + esc(OP.q || '') + '" aria-label="Search openings"></div>' +
+        '<div class="chips">' + F.map(function (f) { return '<button class="chip ' + (OP.filter === f[0] ? 'on' : '') + '" data-act="opFilter" data-f="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>' +
+        (list.length ? '' : '<p class="muted">No openings match that search.</p>') +
+        '<div class="op-list">' + list.map(function (o) {
+          var m = mastery(o.id);
+          return '<button class="op-card" data-act="openOp" data-id="' + o.id + '">' +
+            '<span class="op-top"><span class="eco">' + o.eco + '</span><span class="side ' + o.side + '">' + (o.side === 'w' ? 'White' : 'Black') + '</span>' + (o.gambit ? '<span class="pill">Gambit</span>' : '') + '<span class="lvl">' + o.level + '</span></span>' +
+            '<span class="op-name">' + esc(o.name) + '</span>' +
+            '<span class="op-moves mono">' + esc(o.moves.slice(0, 6).map(function (s, i) { return (i % 2 === 0 ? (i / 2 + 1) + '.' : '') + s; }).join(' ')) + '…</span>' +
+            '<span class="meter" aria-label="Mastery ' + m + ' of 3"><i style="width:' + (m / 3 * 100) + '%"></i></span></button>';
+        }).join('') + '</div>');
+      var inp = $('#op-search');
+      if (inp) {
+        inp.oninput = function () { OP.q = inp.value; var pos = inp.selectionStart; MODES.openings.render(); var n = $('#op-search'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { } };
+      }
+    }
+  };
+  function recommendedOpenings() {
+    var R = S.puzzle.rating;
+    var ids = R < 800 ? ['italian', 'london', 'caro', 'scandi', 'qga'] : R < 1400 ? ['ruy', 'qgd', 'french', 'sicilian-dragon', 'scotch', 'evans'] : ['sicilian-najdorf', 'kid', 'nimzo', 'english', 'slav', 'kings-gambit'];
+    var list = ids.map(function (id) { return OPENINGS.filter(function (o) { return o.id === id; })[0]; }).filter(function (o) { return o && mastery(o.id) < 3; });
+    return list.slice(0, 3);
+  }
+  ACT.opFilter = function (d) { OP.filter = d.f; MODES.openings.render(); };
+  ACT.openOp = function (d) { go('opening', { id: d.id, mode: 'learn' }); };
+
+  var OD = null;
+  function moveListHtml(moves, upto, clickAct) {
+    var out = '';
+    for (var i = 0; i < moves.length; i++) {
+      if (i % 2 === 0) out += '<span class="mn">' + (i / 2 + 1) + '.</span>';
+      out += '<button class="mv ' + (i === upto - 1 ? 'cur' : '') + (i >= upto ? ' future' : '') + '" ' + (clickAct ? 'data-act="' + clickAct + '" data-i="' + (i + 1) + '"' : 'disabled') + '>' + esc(moves[i]) + '</button>';
+    }
+    return '<div class="movelist mono">' + out + '</div>';
+  }
+  MODES.opening = {
+    label: 'Opening trainer',
+    enter: function (arg) {
+      var o = OPENINGS.filter(function (x) { return x.id === arg.id; })[0];
+      OD = { o: o, mode: arg.mode, ply: 0, errors: 0, misses: {} };
+      var g = setupBoard(Game.START, { drop: true, orient: o.side });
+      OD.g = g;
+      if (arg.mode === 'drill') MODES.opening.startDrill();
+      else MODES.opening.renderLearn();
+    },
+    renderLearn: function () {
+      var o = OD.o, i = OD.ply;
+      var nextNote = i < o.moves.length ? o.notes[i] : 'End of the main line. Now drill it from memory.';
+      var lastNote = i > 0 ? o.notes[i - 1] : o.idea;
+      Voice.say([i > 0 ? { id: 'O-' + o.id + '-' + (i - 1), text: o.notes[i - 1] } : { id: 'O-' + o.id + '-idea', text: o.name + '. ' + o.idea }]);
+      setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
+        '<div class="eyebrow">' + o.eco + ' · ' + o.family + ' · You play ' + (o.side === 'w' ? 'White' : 'Black') + '</div>' +
+        '<h1 class="h1">' + esc(o.name) + '</h1><p class="lede">' + esc(o.idea) + '</p>' +
+        '<div class="seg"><button class="on">Learn</button><button data-act="drillOp">Drill</button></div>' +
+        '<div class="coach-card"><div class="coach-tag">' + (i === 0 ? 'The idea' : 'Move ' + Math.ceil(i / 2) + (i % 2 ? '' : '…') + ' ' + esc(o.moves[i - 1])) + '</div><p class="coach-text">' + esc(lastNote) + '</p>' +
+        (i < o.moves.length ? '<p class="next-note"><span class="muted">Next:</span> <span class="mono">' + esc(o.moves[i]) + '</span> · ' + esc(nextNote) + '</p>' : '<p class="next-note">' + esc(nextNote) + '</p>') + '</div>' +
+        moveListHtml(o.moves, i, 'opJump') +
+        '<div class="actions"><button class="btn ghost" data-act="opPrev" ' + (i === 0 ? 'disabled' : '') + '>← Back</button><button class="btn" data-act="opAuto">Autoplay</button>' +
+        (i < o.moves.length ? '<button class="btn primary" data-act="opNext">Next move →</button>' : '<button class="btn primary" data-act="drillOp">Drill it</button>') + '</div>');
+      // arrow for upcoming move
+      if (i < o.moves.length) {
+        var t = new Game(OD.g.fen()); var mv = t.move(o.moves[i]);
+        if (mv) B3.arrows([[mv.from, mv.to, OD.g.turn() === o.side ? 'g' : 'b']]);
+      } else B3.arrows([]);
+    },
+    gotoPly: function (n) {
+      var g = OD.g, o = OD.o;
+      if (OD.busy) return;
+      if (n === OD.ply + 1) {
+        OD.busy = true;
+        applyMove(g, o.moves[OD.ply]).then(function () { OD.busy = false; OD.ply++; MODES.opening.renderLearn(); });
+        return;
+      }
+      var t = new Game();
+      for (var i = 0; i < n; i++) t.move(o.moves[i]);
+      OD.g = t; IX.game = t; OD.ply = n;
+      B3.sync(t.fen()); B3.markers('last', []); showCheck(t);
+      MODES.opening.renderLearn();
+    },
+    startDrill: function () {
+      var o = OD.o, g = setupBoard(Game.START, { orient: o.side });
+      OD.g = g; OD.mode = 'drill'; OD.ply = 0; OD.errors = 0; OD.misses = {};
+      MODES.opening.renderDrill('Play the ' + (o.side === 'w' ? 'White' : 'Black') + ' moves of the ' + o.name + ' from memory.');
+      MODES.opening.drillContinue();
+    },
+    renderDrill: function (msg, kind) {
+      var o = OD.o;
+      setPanel('<button class="back" data-act="goOpenings">← Openings</button>' +
+        '<div class="eyebrow">' + o.eco + ' · Drill</div><h1 class="h1">' + esc(o.name) + '</h1>' +
+        '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
+        '<div class="drill-stats"><span><b>' + Math.floor(OD.ply / 2) + '</b> / ' + Math.ceil(o.moves.length / 2) + ' moves</span><span><b>' + OD.errors + '</b> mistakes</span><span>Mastery <b>' + mastery(o.id) + '</b>/3</span></div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + msg + '</div>' +
+        moveListHtml(o.moves, OD.ply, null) +
+        '<div class="actions"><button class="btn ghost" data-act="drillHint">Show me</button><button class="btn" data-act="drillOp">Restart</button></div>');
+    },
+    drillContinue: function () {
+      var o = OD.o, g = OD.g;
+      if (OD.ply >= o.moves.length) return MODES.opening.drillDone();
+      var myTurn = g.turn() === o.side;
+      if (!myTurn) {
+        IX.enabled = false;
+        B3.wait(420).then(function () {
+          if (current !== MODES.opening || OD.mode !== 'drill') return;
+          applyMove(g, o.moves[OD.ply]).then(function () { OD.ply++; MODES.opening.renderDrill('Opponent played <span class="mono">' + esc(o.moves[OD.ply - 1]) + '</span>. Your move.'); MODES.opening.drillContinue(); });
+        });
+        return;
+      }
+      IX.enabled = true; IX.canMove = function (c) { return c === o.side; };
+      IX.onMove = function (mv) {
+        var t = new Game(g.fen()), exp = t.move(o.moves[OD.ply]);
+        if (exp && exp.from === mv.from && exp.to === mv.to) {
+          return applyMove(g, mv).then(function () {
+            OD.ply++;
+            MODES.opening.renderDrill('<strong>' + esc(exp.san) + '</strong> ' + esc(o.notes[OD.ply - 1]), 'good');
+            if (OD.ply < o.moves.length - 1 && chance(0.35)) Voice.say([V('drillright')], true);
+            MODES.opening.drillContinue();
+          });
+        }
+        OD.errors++; OD.misses[OD.ply] = (OD.misses[OD.ply] || 0) + 1; Voice.say([V('drillwrong', 'drillwrong')]);
+        Sound.play('bad'); B3.flash('bad', [mv.to]);
+        if (OD.misses[OD.ply] >= 2) B3.arrows([[exp.from, exp.to, 'g']]);
+        MODES.opening.renderDrill('<strong>Not this line.</strong> ' + (OD.misses[OD.ply] >= 2 ? 'The book move is <span class="mono">' + esc(exp.san) + '</span>: ' + esc(o.notes[OD.ply]) : 'Think about the idea: ' + esc(o.idea)), 'bad');
+        IX.enabled = true;
+      };
+    },
+    drillDone: function () {
+      var o = OD.o, rec = S.openings[o.id] || { drills: 0, perfect: 0 };
+      rec.drills++; if (!OD.errors) rec.perfect = (rec.perfect || 0) + 1;
+      if (!OD.errors) Badges.award('perfect_drill');
+      if (rec.perfect >= 3) Badges.award('opening_master');
+      S.openings[o.id] = rec; today().opening = true; addXP(OD.errors ? 15 : 30); save();
+      Sound.play(OD.errors ? 'good' : 'win'); B3.burst('e4'); Voice.say([OD.errors ? V('drilldone', 'drilldone') : V('drillperfect', 'drillperfect')]);
+      setPanel('<button class="back" data-act="goOpenings">← Openings</button><div class="eyebrow">Drill complete</div><h1 class="h1">' + esc(o.name) + '</h1>' +
+        '<p class="lede">' + (OD.errors ? OD.errors + ' mistake' + (OD.errors > 1 ? 's' : '') + '. Drill again for a perfect run.' : 'Perfect run! Mastery ' + mastery(o.id) + '/3.') + '</p>' +
+        '<div class="actions"><button class="btn" data-act="drillOp">Drill again</button><button class="btn primary" data-act="playFromHere">Play on vs coach</button></div>' +
+        '<div class="card tip">Playing on from the final position teaches you the middlegame plans that follow this opening.</div>');
+    },
+    leave: function () { }
+  };
+  ACT.goOpenings = function () { go('openings'); };
+  ACT.opNext = function () { MODES.opening.gotoPly(OD.ply + 1); };
+  ACT.opPrev = function () { MODES.opening.gotoPly(OD.ply - 1); };
+  ACT.opJump = function (d) { MODES.opening.gotoPly(+d.i); };
+  ACT.opAuto = function () {
+    (function step() {
+      if (current !== MODES.opening || OD.mode !== 'learn' || OD.ply >= OD.o.moves.length) return;
+      MODES.opening.gotoPly(OD.ply + 1); setTimeout(step, 1300);
+    })();
+  };
+  ACT.drillOp = function () { OD.mode = 'drill'; MODES.opening.startDrill(); };
+  ACT.learnOp = function () { go('opening', { id: OD.o.id, mode: 'learn' }); };
+  ACT.drillHint = function () {
+    var t = new Game(OD.g.fen()), exp = t.move(OD.o.moves[OD.ply]);
+    if (exp && OD.g.turn() === OD.o.side) { B3.arrows([[exp.from, exp.to, 'g']]); OD.errors++; setStatus('The book move: <span class="mono">' + esc(exp.san) + '</span>. ' + esc(OD.o.notes[OD.ply])); }
+  };
+  ACT.playFromHere = function () { go('play', { fen: OD.g.fen(), color: OD.o.side, from: OD.o.name }); };
+
+  // ================= Puzzles =================
+  var PZ = { theme: 'all', cur: null, sessionStreak: 0 };
+  function puzzleFen(p) { if (p.fen) return p.fen; var g = new Game(); p.pre.forEach(function (s) { g.move(s); }); return g.fen(); }
+  function pickPuzzle() {
+    var pool = PUZZLES.filter(function (p) { return PZ.theme === 'all' || p.theme === PZ.theme; });
+    var unsolved = pool.filter(function (p) { return !S.puzzle.solved[p.id]; });
+    var src = unsolved.length ? unsolved : pool.slice().sort(function (a, b) { return (S.puzzle.solved[a.id] || 0) - (S.puzzle.solved[b.id] || 0); }).slice(0, 6);
+    var R = S.puzzle.rating;
+    src = src.slice().sort(function (a, b) { return Math.abs(a.r - R) - Math.abs(b.r - R); });
+    var top = src.slice(0, Math.min(3, src.length));
+    var choice = top[Math.floor(Math.random() * top.length)];
+    if (PZ.cur && choice && choice.id === PZ.cur.p.id && src.length > 1) choice = src[1];
+    return choice;
+  }
+  function ratingBand(r) { return r < 400 ? 'Beginner' : r < 800 ? 'Novice' : r < 1200 ? 'Club player' : r < 1600 ? 'Strong club' : r < 2000 ? 'Advanced' : 'Expert'; }
+  MODES.puzzles = {
+    label: 'Puzzle trainer',
+    enter: function (arg) { if (arg && arg.theme) PZ.theme = arg.theme; MODES.puzzles.next(); },
+    next: function () {
+      var p = pickPuzzle();
+      if (!p) { setPanel('<h1 class="h1">No puzzles</h1>'); return; }
+      var fen = puzzleFen(p);
+      PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0 };
+      var g = setupBoard(fen, { drop: true, orient: new Game(fen).turn() });
+      if (p.pre) { var t = new Game(); p.pre.forEach(function (s) { var m = t.move(s); if (m) B3.markers('last', [m.from, m.to]); }); }
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !PZ.cur.done; }; IX.onMove = MODES.puzzles.onMove;
+      Voice.say([V(p.mate === 1 ? 'puzzle_mate1' : p.mate === 2 ? 'puzzle_mate2' : 'puzzle_start')], true);
+      MODES.puzzles.render();
+    },
+    render: function (msg, kind) {
+      var c = PZ.cur, p = c.p, turn = new Game(c.fen).turn();
+      var themes = ['all'].concat(['mate', 'fork', 'hanging', 'combo', 'pin', 'skewer', 'discovered', 'defender', 'promotion', 'endgame'].filter(function (t) { return PUZZLES.some(function (q) { return q.theme === t; }); }));
+      var hist = S.puzzle.hist.slice(-1)[0];
+      setPanel('<div class="rating-row"><div><div class="eyebrow">Puzzle rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + (PZ.sessionStreak > 1 ? ' · ' + PZ.sessionStreak + ' in a row' : '') + '</div></div>' +
+        '<canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
+        '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></div>' +
+        '<div class="chips">' + themes.map(function (t) { return '<button class="chip ' + (PZ.theme === t ? 'on' : '') + '" data-act="pzTheme" data-t="' + t + '">' + (t === 'all' ? 'All themes' : t === 'combo' ? 'combination' : t) + '</button>'; }).join('') + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">Puzzle · ' + p.r + '</div>' +
+        '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
+        (c.done ? '<p class="next-note"><strong>' + esc(p.title) + '</strong> · ' + esc(p.theme) + ' · ' + esc(p.explain) + '</p>' : '') + '</div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions">' + (c.done ? '<button class="btn primary" data-act="pzNext">Next puzzle</button>' : '<button class="btn ghost" data-act="pzHint">Hint</button><button class="btn ghost" data-act="pzShow">Solution</button><button class="btn" data-act="pzNext">Skip</button>') + '</div>');
+      drawSpark($('#spark'), S.puzzle.hist.map(function (h) { return h[1]; }));
+    },
+    grade: function (win) {
+      var c = PZ.cur; if (c.graded) return; c.graded = true;
+      var R = S.puzzle.rating, P = c.p.r, E = 1 / (1 + Math.pow(10, (P - R) / 400)), K = S.puzzle.hist.length < 20 ? 40 : 24;
+      var delta = Math.round(K * ((win ? 1 : 0) - E));
+      S.puzzle.rating = Math.max(100, R + delta);
+      S.puzzle.hist.push([dayKey(), S.puzzle.rating]);
+      if (S.puzzle.hist.length > 300) S.puzzle.hist.shift();
+      if (win) {
+        S.puzzle.solved[c.p.id] = Date.now(); today().puzzles++; PZ.sessionStreak++; addXP(12);
+        var nSolved = Object.keys(S.puzzle.solved).filter(function (k) { return S.puzzle.solved[k] > 1; }).length;
+        if (nSolved >= 10) Badges.award('puzzles_10'); if (nSolved >= 25) Badges.award('puzzles_25');
+      }
+      else { PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
+      save();
+      return delta;
+    },
+    onMove: function (mv, uci) {
+      var c = PZ.cur, g = IX.game, p = c.p;
+      var expected = p.sol[c.ply];
+      var t = new Game(g.fen()); t.move(mv);
+      var ok = uci === expected || (c.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
+      if (!ok) {
+        Sound.play('bad'); B3.flash('bad', [mv.to]);
+        var d = !c.failed ? MODES.puzzles.grade(false) : 0; Voice.say([V('puzzlemiss', 'puzzlemiss')]);
+        c.failed = true;
+        MODES.puzzles.render('<strong>Not the move.</strong> ' + (d ? 'Rating ' + d + '. ' : '') + 'Try again, or ask for a hint.', 'bad');
+        IX.enabled = true; return;
+      }
+      return applyMove(g, mv).then(function () {
+        c.ply++;
+        if (t.inCheckmate() || c.ply >= p.sol.length || uci !== expected) return MODES.puzzles.win(mv.to);
+        MODES.puzzles.render('Correct, keep going.', 'good'); Voice.say([V('keepgoing', 'keepgoing')]);
+        return B3.wait(450).then(function () { return applyMove(g, uciObj(p.sol[c.ply])); }).then(function () {
+          c.ply++;
+          if (c.ply >= p.sol.length) return MODES.puzzles.win(p.sol[c.ply - 1].slice(2, 4));
+          IX.enabled = true;
+        });
+      });
+    },
+    win: function (sq) {
+      var c = PZ.cur; c.done = true; IX.enabled = false;
+      var d = c.failed || c.hinted ? 0 : MODES.puzzles.grade(true);
+      if (c.failed || c.hinted) { today().puzzles++; save(); }
+      Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
+      B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
+      MODES.puzzles.render('<strong>Solved!</strong> ' + (d ? 'Rating +' + d + '.' : c.failed ? 'Solved after a miss, no rating gain.' : ''), 'good');
+      renderTop();
+    }
+  };
+  var RU = null;
+  MODES.rush = {
+    label: 'Puzzle Rush',
+    enter: function () {
+      var pool = PUZZLES.slice().sort(function (a, b) { return a.r - b.r + (Math.random() - 0.5) * 300; });
+      RU = { pool: pool, i: -1, score: 0, lives: 3, end: Date.now() + 180000, over: false };
+      clearInterval(MODES.rush.timer);
+      MODES.rush.timer = setInterval(function () { if (current !== MODES.rush || !RU || RU.over) return; var el = $('#rush-time'); if (el) el.textContent = MODES.rush.left(); if (Date.now() >= RU.end) MODES.rush.finish(); }, 250);
+      Voice.say([V('rush_start')]);
+      MODES.rush.next();
+    },
+    left: function () { var s = Math.max(0, Math.ceil((RU.end - Date.now()) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); },
+    next: function () {
+      if (RU.over) return;
+      RU.i = (RU.i + 1) % RU.pool.length;
+      var p = RU.pool[RU.i], fen = puzzleFen(p), g = setupBoard(fen, { orient: new Game(fen).turn() });
+      RU.cur = { p: p, ply: 0 };
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn(); }; IX.onMove = MODES.rush.onMove;
+      MODES.rush.render();
+    },
+    render: function (msg, kind) {
+      var p = RU.cur.p, turn = new Game(puzzleFen(p)).turn();
+      setPanel('<button class="back" data-act="goPuzzles">← Puzzles</button><div class="rush-head"><div><div class="eyebrow">Puzzle Rush</div><div class="rating">' + RU.score + '</div></div><div class="rush-meta"><span class="rush-time mono" id="rush-time">' + MODES.rush.left() + '</span><span class="lives" aria-label="' + RU.lives + ' lives left">' + [0, 1, 2].map(function (k) { return '<i class="' + (k < RU.lives ? 'on' : '') + '"></i>'; }).join('') + '</span></div></div>' +
+        '<div class="coach-card"><p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (p.mate ? 'Mate in ' + p.mate + '.' : 'Best move?') + '</p></div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || 'Solve as many as you can in 3 minutes. Three misses and you are out.') + '</div>');
+    },
+    onMove: function (mv, uci) {
+      var c = RU.cur, p = c.p, g = IX.game;
+      var t = new Game(g.fen()); t.move(mv);
+      var ok = uci === p.sol[c.ply] || (c.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
+      if (!ok) {
+        RU.lives--; Sound.play('bad'); B3.flash('bad', [mv.to]);
+        if (RU.lives <= 0) return MODES.rush.finish();
+        MODES.rush.render('Missed that one. Next!', 'bad');
+        return B3.wait(500).then(MODES.rush.next);
+      }
+      return applyMove(g, mv).then(function () {
+        c.ply++;
+        if (t.inCheckmate() || c.ply >= p.sol.length || uci !== p.sol[c.ply - 1]) { RU.score++; Sound.play('good'); B3.burst(mv.to); if (RU.score >= 10) Badges.award('rush_10'); return B3.wait(350).then(MODES.rush.next); }
+        return B3.wait(250).then(function () { return applyMove(g, uciObj(p.sol[c.ply])); }).then(function () {
+          c.ply++;
+          if (c.ply >= p.sol.length) { RU.score++; Sound.play('good'); return B3.wait(300).then(MODES.rush.next); }
+          IX.enabled = true;
+        });
+      });
+    },
+    finish: function () {
+      if (RU.over) return; RU.over = true; IX.enabled = false; clearInterval(MODES.rush.timer);
+      var best = Math.max(S.rushBest || 0, RU.score), isBest = RU.score > (S.rushBest || 0) && RU.score > 0;
+      S.rushBest = best; addXP(RU.score * 5); save();
+      Voice.say([V('rush_end')]);
+      setPanel('<button class="back" data-act="goPuzzles">← Puzzles</button><div class="eyebrow">Puzzle Rush</div><h1 class="h1">' + (isBest ? 'New best!' : 'Time!') + '</h1>' +
+        '<div class="rush-final"><div class="rating">' + RU.score + '</div><span class="muted">puzzles solved · best ' + best + '</span></div>' +
+        '<div class="actions"><button class="btn primary big" data-act="rushStart">Play again</button></div>');
+      if (isBest) B3.burst('e4');
+    },
+    leave: function () { clearInterval(MODES.rush.timer); if (RU) RU.over = true; }
+  };
+  ACT.rushStart = function () { go('rush'); };
+  ACT.pzTheme = function (d) { PZ.theme = d.t; MODES.puzzles.next(); };
+  ACT.pzNext = function () { MODES.puzzles.next(); };
+  ACT.pzHint = function () {
+    var c = PZ.cur; if (c.done) return;
+    var u = c.p.sol[c.ply];
+    if (!c.hinted) { MODES.puzzles.grade(false); c.failed = true; }
+    c.hinted++;
+    Voice.say([V('hint')]);
+    if (c.hinted === 1) { B3.markers('hint', [u.slice(0, 2)]); setStatus('Move the highlighted piece.'); }
+    else { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); setStatus('Play the arrow.'); }
+  };
+  ACT.pzShow = function () {
+    var c = PZ.cur; if (c.done) return;
+    if (!c.failed) { MODES.puzzles.grade(false); c.failed = true; }
+    IX.enabled = false;
+    var g = IX.game;
+    Voice.say([pickPool('solution_intro')]);
+    setTimeout(function step() {
+      if (c.ply >= c.p.sol.length) { c.done = true; MODES.puzzles.render('Here is the solution. ' + esc(c.p.explain)); Voice.say([{ id: 'P-' + c.p.id, text: c.p.explain }]); return; }
+      var u = c.p.sol[c.ply], t = new Game(g.fen()), mv = t.move(uciObj(u));
+      B3.arrows([[u.slice(0, 2), u.slice(2, 4), c.ply % 2 ? 'b' : 'g']]);
+      if (mv && c.ply % 2 === 0) Voice.say(moveParts(mv.san, mv.from, mv.to, mv.piece, mv.captured));
+      setTimeout(function () { applyMove(g, uciObj(u)).then(function () { c.ply++; setTimeout(step, 1300); }); }, 900);
+    }, 1200);
+  };
+  function drawSpark(cv, vals) {
+    if (!cv || !cv.getContext) return;
+    var x = cv.getContext('2d'), W = cv.width, H = cv.height;
+    x.clearRect(0, 0, W, H);
+    if (vals.length < 2) { x.fillStyle = '#6d7886'; x.font = '12px "Atkinson Hyperlegible", sans-serif'; x.fillText('Solve puzzles to see your trend', 4, H / 2 + 4); return; }
+    vals = vals.slice(-40);
+    var lo = Math.min.apply(null, vals) - 20, hi = Math.max.apply(null, vals) + 20;
+    x.strokeStyle = 'rgba(152,162,174,.18)'; x.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach(function (f) { x.beginPath(); x.moveTo(0, H * f); x.lineTo(W, H * f); x.stroke(); });
+    var pts = vals.map(function (v, i) { return [i / (vals.length - 1) * (W - 8) + 4, H - 6 - (v - lo) / (hi - lo) * (H - 12)]; });
+    var grad = x.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, 'rgba(255,79,139,.35)'); grad.addColorStop(1, 'rgba(255,79,139,0)');
+    x.beginPath(); x.moveTo(pts[0][0], H); pts.forEach(function (p) { x.lineTo(p[0], p[1]); }); x.lineTo(pts[pts.length - 1][0], H); x.fillStyle = grad; x.fill();
+    x.beginPath(); pts.forEach(function (p, i) { if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.strokeStyle = '#ff4f8b'; x.lineWidth = 2; x.stroke();
+    var e = pts[pts.length - 1]; x.beginPath(); x.arc(e[0], e[1], 3.5, 0, Math.PI * 2); x.fillStyle = '#ffd23f'; x.fill();
+  }
+
+  // ================= Play vs coach =================
+  var PL = null;
+  var COACH_STYLES = [
+    { id: 'teach', name: 'Teach me', blurb: 'Comments, tips and the right move every time.' },
+    { id: 'key', name: 'Key moments', blurb: 'Only brilliant moves, mistakes and real threats.' },
+    { id: 'quiet', name: 'Let me play', blurb: 'Silent game, full review at the end.' }
+  ];
+  function coachStyle() { return S.coach.style || (S.puzzle.rating < 1000 ? 'teach' : 'key'); }
+  function showEvalBar() { return S.coach.evalbar == null ? S.puzzle.rating >= 1000 : S.coach.evalbar; }
+  ACT.setStyle = function (d) { S.coach.style = d.s; save(); MODES.play.renderSetup(); };
+  // FENs of earlier positions in this game, so the engine knows about repetitions
+  var HINT_LEVEL = { depth: 40, time: 2200, margin: 0 };
+  function prevFens(startFen, sans) {
+    var h = new Game(startFen), out = [h.fen()];
+    for (var i = 0; i < sans.length - 1; i++) { h.move(sans[i]); out.push(h.fen()); }
+    return sans.length ? out.slice(-40) : [];
+  }
+  function levelById(id) { return COACH_LEVELS.filter(function (l) { return l.id === id; })[0] || COACH_LEVELS[1]; }
+  var CLASS = {
+    brilliant: { key: 'brilliant', label: 'Brilliant', cls: 'brill', positive: true },
+    great: { key: 'great', label: 'Great move', cls: 'great', positive: true },
+    best: { key: 'best', label: 'Best', cls: 'good', positive: true },
+    excellent: { key: 'excellent', label: 'Excellent', cls: 'good', positive: true },
+    good: { key: 'good', label: 'Good', cls: 'good', positive: true },
+    book: { key: 'book', label: 'Book move', cls: 'book', positive: true },
+    inacc: { key: 'inacc', label: 'Could be better', cls: 'warn' },
+    mistake: { key: 'mistake', label: 'Mistake', cls: 'warn' },
+    blunder: { key: 'blunder', label: 'Blunder', cls: 'bad' }
+  };
+  var VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  function winChance(cp) { if (cp > 90000) return 1; if (cp < -90000) return 0; return 1 / (1 + Math.pow(10, -cp / 400)); }
+  var BOOK = null;
+  function posKey(fen) { return fen.split(' ').slice(0, 4).join(' '); }
+  function bookMoves(fen) {
+    if (!BOOK) {
+      BOOK = {};
+      OPENINGS.forEach(function (o) {
+        var g = new Game();
+        o.moves.forEach(function (s) { var k = posKey(g.fen()), m = g.move(s); if (m) { var e = (BOOK[k] = BOOK[k] || {}), u = m.from + m.to; e[u] = e[u] && e[u] !== o.name ? 'many' : o.name; } });
+      });
+      // Sound, well-known first moves and replies
+      var extra = { '': ['e4', 'd4', 'c4', 'Nf3', 'g3', 'b3', 'Nc3', 'f4', 'e3'], 'e4': ['e5', 'c5', 'e6', 'c6', 'd5', 'd6', 'g6', 'Nf6', 'Nc6'], 'd4': ['d5', 'Nf6', 'e6', 'c5', 'g6', 'f5', 'd6'], 'c4': ['e5', 'c5', 'Nf6', 'e6', 'g6'], 'Nf3': ['d5', 'Nf6', 'c5', 'g6'] };
+      Object.keys(extra).forEach(function (pre) {
+        var g = new Game(); if (pre) g.move(pre);
+        var k = posKey(g.fen());
+        extra[pre].forEach(function (s) { var t = new Game(g.fen()), m = t.move(s); if (m) (BOOK[k] = BOOK[k] || {})[m.from + m.to] = BOOK[k][m.from + m.to] || 'a well-known opening'; });
+      });
+    }
+    return BOOK[posKey(fen)] || null;
+  }
+  // Grade a move by how much it changes the winning chances, not raw points.
+  function grade(a, res, fenBefore, uci) {
+    var bm = bookMoves(fenBefore);
+    if (bm && bm[uci.slice(0, 4)] && a.loss < 120) return { c: CLASS.book, opening: bm[uci.slice(0, 4)] };
+    var drop = winChance(a.bestScore) - winChance(a.playedScore);
+    var ply = new Game(fenBefore).full * 2;
+    if (ply <= 14 && !(a.reply && a.reply.captured) && Math.abs(a.bestScore) < 200) drop /= 1.6; // quiet opening moves: judge gently
+    var isBest = a.loss <= 6 || (a.best.from + a.best.to) === uci.slice(0, 4);
+    if (isBest) {
+      var offered = a.reply && a.reply.to === res.to && a.reply.captured && VAL[res.piece] >= 3 && VAL[res.piece] > (res.captured ? VAL[res.captured] : 0);
+      if (offered && a.playedScore > -80) return { c: CLASS.brilliant };
+      if (a.secondScore != null && winChance(a.bestScore) - winChance(a.secondScore) >= 0.15 && a.bestScore > -250) return { c: CLASS.great };
+      return { c: CLASS.best };
+    }
+    if (drop <= 0.02) return { c: CLASS.excellent };
+    if (drop <= 0.05) return { c: CLASS.good };
+    if (drop <= 0.11) return { c: CLASS.inacc };
+    if (drop <= 0.22) return { c: CLASS.mistake };
+    return { c: CLASS.blunder };
+  }
+  function classify(loss) { return loss <= 15 ? CLASS.best : loss <= 50 ? CLASS.good : loss <= 120 ? CLASS.inacc : loss <= 280 ? CLASS.mistake : CLASS.blunder; }
+  MODES.play = {
+    label: 'Play the coach',
+    enter: function (arg) {
+      PL = { setup: true, arg: arg || null };
+      if (arg && arg.color) { S.coach.color = arg.color; save(); }
+      setupBoard(arg && arg.fen || Game.START, { drop: true, orient: arg && arg.color || S.coach.color });
+      MODES.play.renderSetup();
+    },
+    renderSetup: function () {
+      var c = S.coach, from = PL.arg && PL.arg.from;
+      setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
+        '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
+        '<div class="sect-head"><h2>Opponent</h2></div>' +
+        '<div class="levels">' + COACH_LEVELS.map(function (l) { return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
+        '<div class="sect-head"><h2>Your colour</h2></div>' +
+        '<div class="seg">' + [['w', 'White'], ['b', 'Black'], ['r', 'Random']].map(function (x) { return '<button class="' + (c.color === x[0] ? 'on' : '') + '" data-act="setColor" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="sect-head"><h2>Coach style</h2></div>' +
+        '<div class="styles">' + COACH_STYLES.map(function (s) { return '<button class="style-opt ' + (coachStyle() === s.id ? 'on' : '') + '" data-act="setStyle" data-s="' + s.id + '"><b>' + s.name + '</b><span>' + s.blurb + '</span></button>'; }).join('') + '</div>' +
+        '<div class="toggles">' +
+        '<label class="toggle"><input type="checkbox" id="opt-threats" ' + (c.threats ? 'checked' : '') + '> <span>Warn me about real threats</span></label>' +
+        '<label class="toggle"><input type="checkbox" id="opt-eval" ' + (showEvalBar() ? 'checked' : '') + '> <span>Show the "who\'s winning" bar</span></label></div>' +
+        '<div class="actions"><button class="btn primary wide" data-act="startGame">Start game</button></div>');
+      $('#opt-threats').onchange = function (e) { S.coach.threats = e.target.checked; save(); };
+      $('#opt-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); };
+    },
+    start: function () {
+      var c = S.coach, color = c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
+      var fen = PL.arg && PL.arg.fen || Game.START;
+      var g = setupBoard(fen, { orient: color });
+      PL = { g: g, color: color, level: levelById(c.level), log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: coachStyle(), from: PL.arg && PL.arg.from };
+      setEval(0); $('#evalbar').hidden = !showEvalBar();
+      setLayout();
+      Voice.say([V('gamestart')]);
+      Voice.prefetch(['M-to_n', 'V-best-0', 'V-blunder-0', 'V-why_wins-0']);
+      MODES.play.render();
+      MODES.play.turn();
+    },
+    render: function () {
+      var g = PL.g, hist = g.history();
+      var rows = '';
+      var startBlack = new Game(PL.startFen).turn() === 'b';
+      var offset = startBlack ? 1 : 0;
+      for (var i = 0; i < hist.length + offset; i += 2) {
+        var n = Math.floor(i / 2) + 1;
+        var a = i - offset, b = i + 1 - offset;
+        rows += '<span class="mn">' + n + '.</span>' + cell(a) + cell(b);
+      }
+      function cell(k) {
+        if (k < 0) return '<span class="mv-cell">…</span>';
+        if (k >= hist.length) return '<span class="mv-cell"></span>';
+        var lg = PL.log[k];
+        return '<span class="mv-cell">' + esc(hist[k]) + (lg && lg.cls ? '<i class="cdot ' + lg.cls + '" title="' + esc(lg.label) + '"></i>' : '') + '</span>';
+      }
+      var turnTxt = PL.over ? PL.over : PL.thinking ? 'Coach is thinking…' : (g.turn() === PL.color ? 'Your move' : '');
+      setPanel('<div class="play-head"><div><div class="eyebrow">vs ' + PL.level.name + ' · ~' + PL.level.elo + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
+        '<div class="play-btns"><button class="icon-btn" data-act="pHint" title="Hint" aria-label="Hint">?</button><button class="icon-btn" data-act="pUndo" title="Take back" aria-label="Take back">↶</button><button class="icon-btn" data-act="pResign" title="Resign" aria-label="Resign">⚑</button></div></div>' +
+        '<div class="feed">' + (PL.feed.length ? PL.feed.slice(-6).reverse().map(function (f, k) {
+          var n = PL.feed.length - 1 - k, open = k === 0 || PL.feedOpen === n;
+          if (open) return '<div class="feed-item ' + f.cls + '"><span class="fi-tag">' + esc(f.tag) + '</span><p>' + f.html + '</p></div>';
+          var tmp = document.createElement('div'); tmp.innerHTML = f.html; var line = (tmp.textContent || '').split(/(?<=[.!?])\s/)[0];
+          return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
+        }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(S.settings.coachName) + '</span><p>' + (PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
+        '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted">No moves yet</span>') + '</div>' +
+        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button><button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
+      var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
+    },
+    say: function (tag, html, cls) { PL.feed.push({ tag: tag, html: html, cls: cls || '' }); },
+    turn: function () {
+      var g = PL.g;
+      if (MODES.play.checkOver()) return;
+      if (g.turn() === PL.color) {
+        IX.enabled = true; IX.canMove = function (c) { return c === PL.color && !PL.over; };
+        IX.onMove = MODES.play.userMove;
+        if (S.coach.threats && PL.style !== 'quiet') {
+          Eng.call('threat', g.fen()).then(function (t) {
+            if (!t || PL.g !== g || g.turn() !== PL.color) return;
+            if (t.kind !== 'mate' && (t.gain < 150 || t.piece === 'p')) return;
+            var tkey = t.kind + t.to + (t.piece || '');
+            if (PL.lastThreat === tkey) return;
+            PL.lastThreat = tkey;
+            B3.arrows([PL.retryArrow, [t.from, t.to, 'r']].filter(Boolean));
+            Voice.say([t.kind === 'mate' ? V('threat_mate', 'threatmate') : V('threat_piece', 'threatpiece')], t.kind !== 'mate');
+            MODES.play.say('Threat', t.kind === 'mate' ? 'Your opponent threatens <strong>checkmate</strong> on ' + t.to + '. Deal with it first.' : 'Your ' + PIECE_NAME[t.piece] + ' on ' + t.to + ' is under attack and not safe.', 'warn');
+            MODES.play.render();
+          });
+        }
+      } else {
+        IX.enabled = false; PL.thinking = true; MODES.play.render();
+        var t0 = Date.now(), fen = g.fen();
+        Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())).then(function (r) {
+          if (!PL || PL.g !== g || PL.over) return;
+          var wait = Math.max(0, 450 - (Date.now() - t0));
+          setTimeout(function () {
+            PL.thinking = false;
+            if (!r || !r.move) { MODES.play.checkOver(); return; }
+            applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
+              PL.log.push({});
+              if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
+              else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
+              setEval(PL.color === 'w' ? -r.score : r.score, true);
+              MODES.play.render();
+              MODES.play.turn();
+              setTimeout(function () { if (PL && PL.g === g && g.turn() === PL.color) MODES.play.coachTip(); }, 2600);
+            });
+          }, wait);
+        });
+      }
+    },
+    userMove: function (mv, uci) {
+      var g = PL.g, fenBefore = g.fen(), moveNo = g.history().length;
+      PL.retryArrow = null;
+      PL.log[moveNo] = {};
+      var res;
+      return applyMove(g, mv).then(function (r) {
+        res = r;
+        if (S.coach.explain) {
+          Eng.call('analyzeMove', fenBefore, uci, 30, 1100).then(function (a) { if (PL && PL.g === g) MODES.play.comment(a, res, moveNo, fenBefore); });
+        }
+        MODES.play.render();
+        MODES.play.turn();
+      });
+    },
+    comment: function (a, res, idx, fenBefore) {
+      if (!a) return;
+      var uci = res.from + res.to + (res.promotion || '');
+      var gr = grade(a, res, fenBefore, uci), c = gr.c;
+      if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
+      PL.log[idx] = { cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan };
+      if (c.key === 'brilliant') Badges.award('brilliant');
+      var style = PL.style, quiet = style === 'quiet', keyOnly = style === 'key';
+      var ply = idx + 1, best = a.best;
+      setEval(PL.color === 'w' ? a.playedScore : -a.playedScore, true);
+      MODES.play.trackSwing(a.playedScore);
+      var html = '<strong>' + esc(res.san) + '</strong> ', spoken;
+      if (c.positive) {
+        var praise = '';
+        if (c.key === 'book') praise = gr.opening === 'many' || gr.opening === 'a well-known opening' ? 'A classic opening move. That is theory.' : 'Straight out of the ' + esc(gr.opening) + '. That is opening theory.';
+        else if (c.key === 'brilliant') praise = 'A real sacrifice, and it works! The piece is offered but taking it does not help them.';
+        else if (c.key === 'great') praise = 'The only move that keeps your position together. Well found.';
+        else if (res.flags === 'k' || res.flags === 'q') praise = 'King tucked away. Good habit.';
+        else if (ply <= 16 && (res.piece === 'n' || res.piece === 'b') && /[18]$/.test(res.from)) praise = 'Developing a piece. Exactly what the opening wants.';
+        else if (res.captured) praise = 'Good capture.';
+        else if (/[+#]/.test(res.san)) praise = 'Strong check.';
+        else if (c.key !== 'best' && a.bestSan && a.bestSan !== res.san) praise = 'Also strong was ' + esc(a.bestSan) + '.';
+        html += c.label + '. ' + praise;
+        var flavour = (res.flags === 'k' || res.flags === 'q') ? 'castle'
+          : (ply <= 16 && (res.piece === 'n' || res.piece === 'b') && /[18]$/.test(res.from)) ? 'develop'
+          : res.captured ? 'capture' : /\+$/.test(res.san) ? 'check_given' : null;
+        var talk = { brilliant: 1, great: 1, best: 0.6, excellent: 0.45, good: 0.35, book: PL.saidBook ? 0.2 : 1 }[c.key];
+        if (c.key === 'book') PL.saidBook = true;
+        if (c.key === 'brilliant' || c.key === 'great') spoken = [V(c.key, 'best')];
+        else if (!keyOnly && (flavour === 'castle' || chance(talk))) spoken = [flavour && c.key !== 'book' && chance(0.7) ? V(flavour) : V(c.key, c.key === 'book' ? 'good' : c.key === 'excellent' ? 'best' : c.key)];
+        if (quiet) { if (!PL.over) MODES.play.render(); return; }
+        if (!keyOnly || c.key === 'brilliant' || c.key === 'great') MODES.play.say(c.label, html, c.cls);
+        if (spoken) Voice.say(spoken, c.key !== 'brilliant' && c.key !== 'great');
+      } else {
+        var why = '';
+        if (a.bestScore > 90000) why = 'You had a forced mate starting with <strong>' + esc(a.bestSan) + '</strong>.';
+        else if (a.reply && a.reply.captured && { n: 1, b: 1, r: 1, q: 1 }[a.reply.captured] && a.loss > 120) why = 'This lets ' + esc(a.replySan) + ' win your ' + PIECE_NAME[a.reply.captured] + ' on ' + a.reply.to + '.';
+        else if (a.reply && a.reply.score > 90000) why = 'This allows ' + esc(a.replySan) + ' with a mating attack.';
+        else if (best.captured && a.loss > 120) why = 'You could have won the ' + PIECE_NAME[best.captured] + ' on ' + best.to + '.';
+        else if (c.key === 'inacc') why = 'It works, but there was something a little better.';
+        if (ply <= 10 && res.piece === 'q' && !res.captured) why += ' Moving the queen early lets your opponent develop with tempo.';
+        var wb = whyBest(a, a.bestSan, ply, fenBefore);
+        PL.log[idx].why = wb[0];
+        html += c.label + '. ' + why + '<span class="better">Best was <strong>' + esc(a.bestSan) + '</strong>. ' + esc(wb[1]) + '</span>' +
+          '<span class="fi-actions"><button class="mini-btn" data-act="pRetry" data-i="' + idx + '">↶ Retry this move</button><button class="mini-btn ghost" data-act="pSayBest" data-i="' + idx + '">▶ Hear it</button></span>';
+        if (quiet || (keyOnly && c.key === 'inacc')) { if (!PL.over) MODES.play.render(); return; }
+        MODES.play.say(c.label, html, c.cls);
+        var reason = null;
+        if (a.bestScore > 90000) reason = 'missed_mate';
+        else if (a.reply && a.reply.score > 90000) reason = 'allows_mate';
+        else if (a.reply && a.reply.captured && a.loss > 120 && /[pnbrq]/.test(a.reply.captured)) reason = 'hang_' + a.reply.captured;
+        else if (best.captured && a.loss > 120 && /[nbrq]/.test(best.captured)) reason = 'missed_' + best.captured;
+        spoken = [c.key === 'inacc' ? (V('okay') || V('inacc', 'inacc')) : V(c.key, c.key), reason ? V(reason) : null];
+        if (c.key !== 'inacc' || chance(0.6)) spoken = spoken.concat([pickPool('better_was')], moveParts(a.bestSan, best.from, best.to, best.piece, best.captured), [pickPool(wb[0])]);
+        Voice.say(spoken);
+      }
+      if (!PL.over) MODES.play.render();
+    },
+    trackSwing: function (score) {
+      if (!PL) return;
+      PL.minEval = Math.min(PL.minEval == null ? score : PL.minEval, score);
+      if (!PL.toldComeback && PL.minEval < -250 && score > 120) { PL.toldComeback = true; var l = V('comeback'); if (l) { MODES.play.say('Coach', esc(l.text), 'good'); Voice.say([l], true); } }
+    },
+    coachTip: function () {
+      if (!PL || PL.over || PL.style !== 'teach') return;
+      var g = PL.g, me = PL.color, moveNo = Math.floor(g.history().length / 2) + 1, tip = null, once = PL.tips || (PL.tips = {});
+      var board = g.boardArray(), mat = { w: 0, b: 0 }, minors = 0, queens = 0, total = 0;
+      board.forEach(function (row) { row.forEach(function (p) { if (!p) return; mat[p.color] += VAL[p.type]; if (p.type !== 'p' && p.type !== 'k') total += VAL[p.type]; if (p.type === 'q') queens++; if (p.color === me && (p.type === 'n' || p.type === 'b') && p.square[1] === (me === 'w' ? '1' : '8')) minors++; }); });
+      var diff = mat[me] - mat[me === 'w' ? 'b' : 'w'];
+      var kingHome = g.get(me === 'w' ? 'e1' : 'e8');
+      var castled = !(kingHome && kingHome.type === 'k');
+      if (!once.castle && !castled && moveNo >= 9 && /[KQkq]/.test(g.fen().split(' ')[2])) tip = 'tip_castle';
+      else if (!once.develop && minors >= 2 && moveNo >= 8) tip = 'tip_develop';
+      else if (!once.endgame && (total <= 26 || queens === 0) && moveNo >= 15) tip = 'tip_endgame';
+      else if (!once.ahead && diff >= 3) tip = 'tip_ahead';
+      else if (!once.behind && diff <= -3) tip = 'tip_behind';
+      else if (moveNo - (PL.lastTipMove || 0) >= 7 && moveNo >= 6 && chance(0.5)) tip = moveNo < 12 ? 'tip_opening' : total <= 26 ? 'tip_endgame_gen' : 'tip_middle';
+      if (!tip) return;
+      var line = V(tip);
+      if (!line) return;
+      if (!/_(opening|middle|endgame_gen)$/.test(tip)) once[tip.slice(4)] = true;
+      PL.lastTipMove = moveNo;
+      MODES.play.say('Coach tip', esc(line.text), 'tip');
+      Voice.say([line], true);
+      MODES.play.render();
+    },
+    checkOver: function () {
+      var g = PL.g, msg = null, result = null;
+      if (g.inCheckmate()) { var winner = g.turn() === 'w' ? 'b' : 'w'; result = winner === PL.color ? 'win' : 'loss'; msg = result === 'win' ? 'Checkmate. You win!' : 'Checkmate. The coach wins.'; }
+      else if (g.inStalemate()) { result = 'draw'; msg = 'Stalemate. Draw.'; }
+      else if (g.insufficient()) { result = 'draw'; msg = 'Draw by insufficient material.'; }
+      else if (g.threefold()) { result = 'draw'; msg = 'Draw by repetition.'; }
+      else if (g.half >= 100) { result = 'draw'; msg = 'Draw by the 50-move rule.'; }
+      if (!msg) return false;
+      MODES.play.finish(result, msg);
+      return true;
+    },
+    finish: function (result, msg) {
+      if (PL.over) return;
+      PL.over = msg; IX.enabled = false;
+      var mine = PL.log.filter(function (l) { return l && l.cls; });
+      var acc = mine.length ? Math.round(mine.reduce(function (s, l) { return s + 100 * Math.exp(-Math.max(0, l.loss) / 220); }, 0) / mine.length) : null;
+      var count = function (k) { return mine.filter(function (l) { return l.label === k; }).length; };
+      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length });
+      if (S.games.length > 200) S.games.shift();
+      today().game = true; addXP(result === 'win' ? 60 : 30); save();
+      if (result === 'win') Badges.award('beat_' + PL.level.id);
+      if (PL.toldComeback && result === 'win') Badges.award('comeback');
+      PL.result = result; PL.acc = acc;
+      if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); }
+      var endLine = result === 'win' ? 'win' : result === 'draw' ? 'draw' : /Checkmate/.test(msg) ? 'loss' : null;
+      if (endLine) Voice.say([V(endLine, endLine)]);
+      else Voice.say([V('resign')]);
+      MODES.play.say('Game over', esc(msg) + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
+      MODES.play.render();
+    },
+    leave: function () { PL = null; }
+  };
+  function setEval(cpWhite, show) {
+    var bar = $('#evalbar i'), lab = $('#evalbar span');
+    var v = Math.max(-1, Math.min(1, Math.tanh(cpWhite / 600)));
+    var whiteShare = 50 + v * 46;
+    var flipped = B3.orientation() === 'b';
+    bar.style.height = whiteShare + '%';
+    $('#evalbar').classList.toggle('flip', flipped);
+    lab.textContent = Math.abs(cpWhite) > 90000 ? 'M' : (cpWhite > 0 ? '+' : '') + (cpWhite / 100).toFixed(1);
+  }
+  function nextLevel(l) { var i = COACH_LEVELS.indexOf(l); return i >= 0 && i < COACH_LEVELS.length - 1 ? COACH_LEVELS[i + 1] : null; }
+  ACT.rematch = function () { var keep = PL; go('play', keep.from ? { fen: keep.startFen, color: keep.color, from: keep.from } : null); MODES.play.start(); };
+  ACT.harder = function () { var n = nextLevel(PL.level); if (n) { S.coach.level = n.id; save(); } ACT.rematch(); };
+  ACT.reviewGame = function () {
+    if (!PL) return;
+    go('review', { log: PL.log.slice(), startFen: PL.startFen, moves: PL.g.history(), color: PL.color, result: PL.result, acc: PL.acc, level: PL.level, over: PL.over });
+  };
+  ACT.feedOpen = function (d) { if (PL) { PL.feedOpen = +d.i; MODES.play.render(); } };
+  ACT.setLevel = function (d) { S.coach.level = d.id; save(); MODES.play.renderSetup(); };
+  ACT.setColor = function (d) { S.coach.color = d.c; save(); if (d.c !== 'r') B3.setOrientation(d.c); MODES.play.renderSetup(); };
+  ACT.startGame = function () { MODES.play.start(); };
+  ACT.newGame = function () { go('play'); };
+  ACT.pResign = function () { if (PL && !PL.over && PL.g) MODES.play.finish('loss', 'You resigned.'); };
+  ACT.pUndo = function () {
+    if (!PL || !PL.g || PL.thinking || PL.over) return;
+    var g = PL.g, n = 0;
+    while (g.history().length && n < 2) { g.undo(); n++; if (g.turn() === PL.color) break; }
+    PL.log.length = g.history().length;
+    deselect(); B3.sync(g.fen()); B3.markers('last', []); B3.arrows([]); showCheck(g);
+    MODES.play.say('Takeback', 'Position restored. Find a better move.', '');
+    Voice.say([V('takeback')]);
+    MODES.play.render(); MODES.play.turn();
+  };
+  ACT.pRetry = function (d) {
+    if (!PL || !PL.g || PL.thinking) return;
+    var idx = +d.i, g = PL.g, lg = PL.log[idx];
+    if (PL.over) { PL.over = false; }
+    while (g.history().length > idx) g.undo();
+    PL.log.length = idx;
+    deselect(); B3.sync(g.fen()); B3.markers('last', []); showCheck(g);
+    PL.retryArrow = lg && lg.best ? [lg.best.from, lg.best.to, 'g'] : null;
+    if (lg && lg.best) { B3.arrows([[lg.best.from, lg.best.to, 'g']]); B3.flash('hint', [lg.best.from, lg.best.to], 2200); }
+    MODES.play.say('Retry', 'Rewound to before your move. ' + (lg && lg.bestSan ? 'Try <strong>' + esc(lg.bestSan) + '</strong>, shown by the green arrow.' : ''), 'good');
+    Voice.say([pickPool('retry_intro')]);
+    MODES.play.render(); MODES.play.turn();
+  };
+  ACT.pSayBest = function (d) {
+    var lg = PL && PL.log[+d.i]; if (!lg || !lg.best) return;
+    Voice.say([pickPool('better_was')].concat(moveParts(lg.bestSan, lg.best.from, lg.best.to, lg.best.piece, lg.best.captured), [lg.why ? pickPool(lg.why) : null]));
+    B3.arrows([[lg.best.from, lg.best.to, 'g']]);
+  };
+  ACT.pHint = function () {
+    if (!PL || !PL.g || PL.over || PL.g.turn() !== PL.color) return;
+    var g = PL.g;
+    if (PL.hinting) return;
+    PL.hinting = true;
+    toast('Finding the best move…');
+    Eng.call('pickMove', g.fen(), HINT_LEVEL, prevFens(PL.startFen, g.history())).then(function (r) {
+      PL.hinting = false;
+      if (!r || !r.move || PL.g !== g) return;
+      B3.arrows([[r.move.from, r.move.to, 'g']]);
+      MODES.play.say('Hint', 'Consider moving the ' + PIECE_NAME[r.move.piece] + ' on ' + r.move.from + '. The arrow shows the move.', 'good');
+      MODES.play.render();
+    });
+  };
+
+  // ================= Game review =================
+  var RV = null;
+  MODES.review = {
+    label: 'Game review',
+    enter: function (arg) {
+      RV = arg; RV.ply = arg.moves.length;
+      var mine = arg.log.map(function (l, i) { return l && l.cls ? Object.assign({ i: i }, l) : null; }).filter(Boolean);
+      var bad = mine.filter(function (l) { return !CLASS[l.key] || !CLASS[l.key].positive; }).sort(function (x, y) { return y.loss - x.loss; });
+      var bril = mine.filter(function (l) { return l.key === 'brilliant' || l.key === 'great'; });
+      RV.moments = bad.slice(0, 3).concat(bril.slice(0, 1)).sort(function (x, y) { return x.i - y.i; });
+      RV.mine = mine;
+      setupBoard(arg.startFen, { orient: arg.color });
+      MODES.review.goto(arg.moves.length, true);
+      Voice.say([V('review_intro')]);
+    },
+    position: function (n) { var g = new Game(RV.startFen); for (var i = 0; i < n; i++) g.move(RV.moves[i]); return g; },
+    goto: function (n, silent) {
+      RV.ply = Math.max(0, Math.min(RV.moves.length, n));
+      var g = MODES.review.position(RV.ply);
+      IX.game = g; B3.sync(g.fen()); showCheck(g);
+      var lg = RV.log[RV.ply - 1], arrows = [];
+      if (RV.ply > 0) { var t = MODES.review.position(RV.ply - 1), m = t.move(RV.moves[RV.ply - 1]); if (m) B3.markers('last', [m.from, m.to]); }
+      else B3.markers('last', []);
+      if (lg && lg.best && CLASS[lg.key] && !CLASS[lg.key].positive) arrows.push([lg.best.from, lg.best.to, 'g']);
+      B3.arrows(arrows);
+      MODES.review.render();
+    },
+    render: function () {
+      var r = RV, g = MODES.review.position(r.ply);
+      var count = function (k) { return r.mine.filter(function (l) { return l.key === k; }).length; };
+      var chips = Object.keys(CLASS).filter(function (k) { return count(k); }).map(function (k) { return '<span class="sum-chip ' + CLASS[k].cls + '">' + count(k) + ' ' + CLASS[k].label + '</span>'; }).join('');
+      var rows = '';
+      for (var i = 0; i < r.moves.length; i += 2) {
+        rows += '<span class="mn">' + (i / 2 + 1) + '.</span>' + cell(i) + cell(i + 1);
+      }
+      function cell(k) {
+        if (k >= r.moves.length) return '<span></span>';
+        var lg = r.log[k];
+        return '<button class="rv-mv ' + (r.ply === k + 1 ? 'cur' : '') + '" data-act="rvGo" data-n="' + (k + 1) + '">' + esc(r.moves[k]) + (lg && lg.cls ? '<i class="cdot ' + lg.cls + '"></i>' : '') + '</button>';
+      }
+      var cur = r.log[r.ply - 1], curHtml = '';
+      if (cur && cur.label) {
+        curHtml = '<div class="feed-item ' + cur.cls + '"><span class="fi-tag">Move ' + Math.ceil(r.ply / 2) + ' · ' + esc(cur.label) + '</span><p><strong>' + esc(cur.san) + '</strong>' +
+          (CLASS[cur.key] && !CLASS[cur.key].positive ? ' Best was <strong>' + esc(cur.bestSan) + '</strong> (green arrow).' + (cur.reply ? ' After your move, ' + esc(cur.reply) + ' was strong for your opponent.' : '') + ' <button class="link" data-act="rvSay" data-n="' + r.ply + '">▶ Explain</button>' : ' Well played.') + '</p></div>';
+      }
+      setPanel('<button class="back" data-act="goPlay">← New game</button><div class="eyebrow">Game review · vs ' + esc(r.level.name) + '</div>' +
+        '<h1 class="h1">' + esc(r.over || 'Game review') + '</h1>' +
+        '<div class="rv-hero"><div><div class="muted small">Your accuracy</div><div class="rating">' + (r.acc != null ? r.acc + '%' : '–') + '</div></div><div class="summary-row">' + chips + '</div></div>' +
+        (r.moments.length ? '<div class="sect-head"><h2>Moments that decided the game</h2></div><div class="moments">' + r.moments.map(function (m, k) {
+          return '<button class="moment ' + m.cls + '" data-act="rvMoment" data-k="' + k + '"><span class="mo-n">' + (k + 1) + '</span><span><b>Move ' + Math.ceil((m.i + 1) / 2) + ': ' + esc(m.san) + '</b><span class="mo-sub">' + esc(m.label) + (m.bestSan && CLASS[m.key] && !CLASS[m.key].positive ? ' · best was ' + esc(m.bestSan) : '') + '</span></span><span class="mo-go">▶</span></button>';
+        }).join('') + '</div>' + (r.moments.some(function (m) { return !CLASS[m.key].positive; }) ? '<button class="btn primary big" data-act="rvPractice">Practise these positions</button>' : '') : '<p class="lede">No big mistakes this game. Impressive!</p>') +
+        curHtml +
+        '<div class="rv-nav"><button class="icon-btn" data-act="rvGo" data-n="0" aria-label="Start">⏮</button><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply - 1) + '" aria-label="Back">◀</button><span class="mono small">' + r.ply + ' / ' + r.moves.length + '</span><button class="icon-btn" data-act="rvGo" data-n="' + (r.ply + 1) + '" aria-label="Forward">▶</button><button class="icon-btn" data-act="rvGo" data-n="' + r.moves.length + '" aria-label="End">⏭</button></div>' +
+        '<div class="score rv-score mono">' + rows + '</div>');
+    },
+    explain: function (n) {
+      var lg = RV.log[n - 1]; if (!lg || !lg.best) return;
+      Voice.say([V('review_moment'), V(lg.key, lg.key), pickPool('better_was')].concat(moveParts(lg.bestSan, lg.best.from, lg.best.to, lg.best.piece, lg.best.captured), [lg.why ? pickPool(lg.why) : null]));
+    },
+    leave: function () { }
+  };
+  ACT.rvGo = function (d) { MODES.review.goto(+d.n); };
+  ACT.rvSay = function (d) { MODES.review.explain(+d.n); };
+  ACT.rvMoment = function (d) {
+    var m = RV.moments[+d.k];
+    MODES.review.goto(m.i); // position before the move
+    var lg = RV.log[m.i];
+    var arrows = [[lg.uci.slice(0, 2), lg.uci.slice(2, 4), 'r']];
+    if (lg.best && !CLASS[lg.key].positive) arrows.push([lg.best.from, lg.best.to, 'g']);
+    B3.arrows(arrows);
+    if (CLASS[lg.key].positive) Voice.say([V(lg.key, 'best')]); else MODES.review.explain(m.i + 1);
+    toast('Red: what you played. Green: the better move.');
+  };
+  ACT.rvPractice = function () {
+    var list = RV.moments.filter(function (m) { return !CLASS[m.key].positive; }).map(function (m) { return { fen: m.fen, best: m.best, bestSan: m.bestSan, color: RV.color }; });
+    go('practice', { list: list, back: RV });
+  };
+
+  // ================= Practice positions (from reviews and lessons) =================
+  var PR = null;
+  MODES.practice = {
+    label: 'Practice',
+    enter: function (arg) { PR = { list: arg.list, i: 0, solved: 0, back: arg.back }; MODES.practice.load(); Voice.say([V('practice_start')]); },
+    load: function () {
+      var item = PR.list[PR.i], g = setupBoard(item.fen, { drop: true, orient: new Game(item.fen).turn() });
+      PR.tries = 0;
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn(); }; IX.onMove = MODES.practice.onMove;
+      MODES.practice.render();
+    },
+    render: function (msg, kind) {
+      var item = PR.list[PR.i];
+      setPanel('<button class="back" data-act="practiceBack">← Back to review</button><div class="eyebrow">Practice ' + (PR.i + 1) + ' of ' + PR.list.length + '</div><h1 class="h1">Find a better move</h1>' +
+        '<p class="lede">This is a position from your game where you went wrong. ' + (new Game(item.fen).turn() === 'w' ? 'White' : 'Black') + ' to move.</p>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions"><button class="btn ghost" data-act="practiceHint">Show the move</button>' + (PR.done ? '<button class="btn primary" data-act="practiceNext">' + (PR.i < PR.list.length - 1 ? 'Next position' : 'Finish') + '</button>' : '') + '</div>');
+    },
+    onMove: function (mv, uci) {
+      var g = IX.game, fen = g.fen();
+      setStatus('Checking…');
+      return Eng.call('analyzeMove', fen, uci, 30, 1200).then(function (a) {
+        if (a && a.loss <= 40) {
+          return applyMove(g, mv).then(function () {
+            PR.done = true; PR.solved++; B3.burst(mv.to); Sound.play('good');
+            Voice.say([V('practice_good', 'correct')]);
+            MODES.practice.render('<strong>That works!</strong> ' + (uci.slice(0, 4) === a.best.from + a.best.to ? 'Exactly the best move.' : 'The engine\'s top choice was ' + esc(a.bestSan) + ', but yours is just as good.'), 'good');
+          });
+        }
+        PR.tries++; Sound.play('bad'); B3.flash('bad', [mv.to]);
+        Voice.say([V('practice_retry', 'notquite')]);
+        MODES.practice.render('<strong>Still not the one.</strong> ' + (PR.tries >= 2 ? 'Hint: move your ' + PIECE_NAME[a.best.piece] + ' from ' + a.best.from + '.' : 'Look for checks, captures and threats.'), 'bad');
+        IX.enabled = true;
+      });
+    },
+    leave: function () { }
+  };
+  ACT.practiceHint = function () { var it = PR.list[PR.i]; B3.arrows([[it.best.from, it.best.to, 'g']]); Voice.say([pickPool('better_was')].concat(moveParts(it.bestSan, it.best.from, it.best.to, it.best.piece, it.best.captured))); PR.done = true; MODES.practice.render('The move was <strong>' + esc(it.bestSan) + '</strong>.'); };
+  ACT.practiceNext = function () { PR.done = false; if (PR.i < PR.list.length - 1) { PR.i++; MODES.practice.load(); } else if (PR.back && PR.back.moves) { go('review', PR.back); } else go('path'); };
+  ACT.practiceBack = function () { if (PR.back && PR.back.moves) go('review', PR.back); else go('path'); };
+
+  // ================= Progress =================
+  MODES.progress = {
+    label: 'Your progress',
+    enter: function () {
+      setupBoard(Game.START, { orient: 'w' });
+      setTimeout(function () { if (current === MODES.progress) B3.idle(true); }, 600);
+      var lessonsDone = Object.keys(S.lessons).filter(function (k) { return S.lessons[k].done; }).length;
+      var opsMastered = OPENINGS.filter(function (o) { return mastery(o.id) >= 3; }).length;
+      var solved = Object.keys(S.puzzle.solved).filter(function (k) { return S.puzzle.solved[k] > 1; }).length;
+      var games = S.games, wins = games.filter(function (g) { return g.result === 'win'; }).length;
+      var accs = games.filter(function (g) { return g.acc != null; }).slice(-10);
+      var avgAcc = accs.length ? Math.round(accs.reduce(function (s, g) { return s + g.acc; }, 0) / accs.length) : null;
+      var cells = '';
+      var start = S.startDate ? new Date(S.startDate + 'T00:00:00') : new Date();
+      for (var i = 0; i < 30; i++) {
+        var d = new Date(start); d.setDate(d.getDate() + i);
+        var rec = S.daily[dayKey(d)], n = rec ? Math.round(missionsDone(rec) / missionsTotal() * 4) : 0;
+        var isToday = dayKey(d) === dayKey();
+        cells += '<span class="cal-cell l' + n + (isToday ? ' today' : '') + '" title="Day ' + (i + 1) + '"><b>' + (i + 1) + '</b></span>';
+      }
+      var bestWinLevel = null;
+      COACH_LEVELS.forEach(function (l) { if (games.some(function (g) { return g.result === 'win' && g.level === l.id; })) bestWinLevel = l; });
+      setPanel('<div class="eyebrow">Day ' + Math.min(dayNumber(), 30) + ' of 30 · Streak ' + S.streak + '</div><h1 class="h1">Your progress</h1>' +
+        '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
+        '<div class="stat-grid">' +
+        stat('Lessons', lessonsDone + '/' + Object.keys(LESSONS).length) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +
+        stat('Puzzles solved', solved + '/' + PUZZLES.length) + stat('Coach games', games.length + (games.length ? ' · ' + wins + ' won' : '')) +
+        stat('Avg accuracy', avgAcc != null ? avgAcc + '%' : '–') + stat('Best win', bestWinLevel ? bestWinLevel.name + ' ~' + bestWinLevel.elo : '–') +
+        '</div>' +
+        '<div class="sect-head"><h2>30-day plan</h2><span class="muted small">missions per day</span></div><div class="cal">' + cells + '</div>' +
+        '<div class="legend"><span><i class="cal-cell l0"></i>0</span><span><i class="cal-cell l2"></i>2</span><span><i class="cal-cell l4"></i>4 missions</span></div>' +
+        '<div class="card tip"><strong>How the climb works.</strong> Ratings rise from fewer blunders, not more theory. Keep coach-game accuracy above 80%, beat the next coach level, and keep your puzzle rating rising. When you beat the Expert coach regularly, you are playing well above 1500.</div>' +
+        '<div class="sect-head"><h2>Badges</h2><span class="muted small">' + Object.keys(S.badges).length + ' of ' + Object.keys(BADGES).length + '</span></div>' +
+        '<div class="badge-grid">' + Object.keys(BADGES).map(function (k) { var b = BADGES[k], got = S.badges[k]; return '<div class="badge-tile ' + (got ? 'got' : '') + '" title="' + esc(b.text) + '"><span class="bt-ico">' + pieceSVG(b.icon, got ? 'w' : 'b', 30) + '</span><span class="bt-name">' + esc(b.name) + '</span></div>'; }).join('') + '</div>' +
+        '<div class="sect-head"><h2>Your data</h2></div>' +
+        '<p class="muted small">Progress is saved in this browser. Make a backup code to move it to another device or keep it safe.</p>' +
+        '<div class="actions"><button class="btn" data-act="backup">Make backup code</button><button class="btn" data-act="restore">Restore from code</button><button class="btn ghost" data-act="askReset">Reset progress</button></div><div id="reset-zone"></div>');
+      drawSpark($('#spark'), S.puzzle.hist.map(function (h) { return h[1]; }));
+      function stat(k, v) { return '<div class="stat"><span class="muted small">' + k + '</span><b>' + v + '</b></div>'; }
+    },
+    leave: function () { B3.idle(false); }
+  };
+  function coachAvatar() {
+    return '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4f8b"/><stop offset="1" stop-color="#4cc9f0"/></linearGradient></defs>' +
+      '<circle cx="20" cy="20" r="20" fill="url(#cav)"/><path d="M8 38c1.5-7 6-10 12-10s10.5 3 12 10" fill="#1b2445"/><path d="M15.5 28.5l4.5 5 4.5-5" fill="#ffd23f"/>' +
+      '<circle cx="20" cy="17" r="7.5" fill="#f2c9a5"/><path d="M12.4 16.2c-.3-5 3.2-8.4 7.8-8.4 4.4 0 7.7 2.9 7.5 7.6-1.4-1.9-3.6-3-6.7-3.2-3.3-.2-6.4 1.3-8.6 4z" fill="#2b1d16"/>' +
+      '<circle cx="17.3" cy="17.6" r=".9" fill="#2b1d16"/><circle cx="22.7" cy="17.6" r=".9" fill="#2b1d16"/><path d="M17.6 20.6c1.4 1.1 3.4 1.1 4.8 0" stroke="#2b1d16" stroke-width="1" fill="none" stroke-linecap="round"/></svg>';
+  }
+  function openSettings() {
+    var s = S.settings, m = $('#modal');
+    m.classList.remove('intro');
+    m.innerHTML = '<div class="modal-card settings" role="dialog" aria-modal="true" aria-labelledby="set-title"><div class="set-head"><span class="cb-avatar big">' + coachAvatar() + '</span><div><div class="eyebrow">Settings</div><h1 class="h1" id="set-title">Your coach</h1></div></div>' +
+      '<label class="field"><span>Coach name</span><input id="set-name" type="text" maxlength="24" value="' + esc(s.coachName) + '"></label>' +
+      '<label class="field"><span>Voice volume <b id="vol-v">' + Math.round(s.volume * 100) + '%</b></span><input id="set-vol" type="range" min="0" max="1" step="0.05" value="' + s.volume + '"></label>' +
+      '<div class="field"><span>Voice speed</span><div class="seg">' + [[0.9, 'Calm'], [1, 'Normal'], [1.15, 'Quick']].map(function (r) { return '<button class="' + (s.rate === r[0] ? 'on' : '') + '" data-rate="' + r[0] + '">' + r[1] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="field"><span>Coach style in games</span><div class="seg">' + COACH_STYLES.map(function (cs) { return '<button class="' + (coachStyle() === cs.id ? 'on' : '') + '" data-style="' + cs.id + '">' + cs.name + '</button>'; }).join('') + '</div></div>' +
+      '<label class="toggle"><input type="checkbox" id="set-snd" ' + (S.sound ? 'checked' : '') + '> <span>Sound effects</span></label>' +
+      '<label class="toggle"><input type="checkbox" id="set-sub" ' + (s.subtitles ? 'checked' : '') + '> <span>Show what the coach says on the board</span></label>' +
+      '<label class="toggle"><input type="checkbox" id="set-2d" ' + (s.board2d ? 'checked' : '') + '> <span>Use a flat 2D board (lighter, faster on old phones)</span></label>' +
+      '<label class="toggle"><input type="checkbox" id="set-cam" ' + (s.cameraFixed ? 'checked' : '') + '> <span>Keep the 3D camera fixed (no rotating)</span></label>' +
+      '<label class="toggle"><input type="checkbox" id="set-eval" ' + (showEvalBar() ? 'checked' : '') + '> <span>Show the "who\'s winning" bar in games</span></label>' +
+      '<div class="actions"><button class="btn ghost" data-set="test">▶ Test voice</button><button class="btn primary" data-set="close">Done</button></div></div>';
+    m.hidden = false;
+    $('#set-name').oninput = function (e) { s.coachName = e.target.value.trim() || 'Coach Leo'; save(); };
+    $('#set-vol').oninput = function (e) { s.volume = +e.target.value; $('#vol-v').textContent = Math.round(s.volume * 100) + '%'; save(); };
+    $('#set-sub').onchange = function (e) { s.subtitles = e.target.checked; save(); };
+    $('#set-snd').onchange = function (e) { S.sound = e.target.checked; save(); renderTop(); if (S.sound) Sound.play('move'); };
+    $('#set-2d').onchange = function (e) { s.board2d = e.target.checked; save(); try { location.reload(); } catch (x) { } };
+    $('#set-cam').onchange = function (e) { s.cameraFixed = e.target.checked; save(); B3.setCameraFixed(s.cameraFixed); };
+    $('#set-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); if (current === MODES.play && PL && PL.g) $('#evalbar').hidden = !e.target.checked; };
+    m.onclick = function (e) {
+      var b = e.target.closest('[data-rate],[data-style],[data-set]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
+      if (b.dataset.rate) { s.rate = +b.dataset.rate; save(); openSettings(); Voice.say([V('good', 'good')]); }
+      else if (b.dataset.style) { S.coach.style = b.dataset.style; save(); openSettings(); }
+      else if (b.dataset.set === 'test') Voice.say([V('welcome_back')]);
+      else { m.hidden = true; m.onclick = null; }
+    };
+  }
+  ACT.settings = function () { openSettings(); };
+  function encodeState() { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
+  ACT.backup = function () {
+    var code = 'CA1:' + encodeState();
+    $('#reset-zone').innerHTML = '<div class="card"><p>Your backup code. Copy it somewhere safe (notes, email to yourself).</p><textarea id="bk-code" class="code-box" readonly>' + esc(code) + '</textarea><div class="actions"><button class="btn primary" data-act="copyBackup">Copy code</button></div></div>';
+  };
+  ACT.copyBackup = function () {
+    var ta = $('#bk-code');
+    try { navigator.clipboard.writeText(ta.value).then(function () { toast('Backup code copied.'); }, function () { ta.select(); toast('Select the code and copy it.'); }); }
+    catch (e) { ta.select(); toast('Select the code and copy it.'); }
+  };
+  ACT.restore = function () {
+    $('#reset-zone').innerHTML = '<div class="card"><p>Paste a backup code. This replaces the progress on this device.</p><textarea id="rs-code" class="code-box" placeholder="CA1:…"></textarea><div class="actions"><button class="btn primary" data-act="doRestore">Restore</button><button class="btn ghost" data-act="cancelReset">Cancel</button></div></div>';
+  };
+  ACT.doRestore = function () {
+    var raw = ($('#rs-code').value || '').trim();
+    try {
+      if (raw.indexOf('CA1:') !== 0) throw new Error('code');
+      var data = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
+      if (!data || typeof data !== 'object' || !data.puzzle) throw new Error('code');
+      S = Object.assign(freshState(), data); save(); renderTop(); toast('Progress restored.'); go('progress');
+    } catch (e) { toast('That code is not valid. Check that you copied all of it.', 'bad'); }
+  };
+  ACT.askReset = function () { $('#reset-zone').innerHTML = '<div class="card danger"><p>Erase all lessons, ratings and history on this device?</p><div class="actions"><button class="btn" data-act="cancelReset">Keep</button><button class="btn danger" data-act="doReset">Erase</button></div></div>'; };
+  ACT.cancelReset = function () { $('#reset-zone').innerHTML = ''; };
+  ACT.doReset = function () { S = freshState(); save(); renderTop(); onboard(); };
+
+  // ================= Top bar and onboarding =================
+  var lastMissions = null;
+  function renderTop() {
+    var d = today();
+    var nm = missionsDone(d);
+    if (lastMissions !== null && nm > lastMissions) setTimeout(function () { Voice.say([V(nm >= missionsTotal() ? 'all_missions' : 'mission_done')], true); }, 2600);
+    lastMissions = nm;
+    $('#top-day').textContent = 'Day ' + Math.min(dayNumber(), 30);
+    $('#top-missions').textContent = missionsDone(d) + '/' + missionsTotal();
+    $('#top-missions-bar').style.width = (missionsDone(d) / missionsTotal() * 100) + '%';
+    var lv = Levels.of(S.xp);
+    $('#top-level').textContent = lv.name; $('#top-level-bar').style.width = Math.round(lv.progress * 100) + '%';
+    $('#top-rating').textContent = Math.round(S.puzzle.rating);
+    $('#top-xp').textContent = S.xp;
+    $('#top-streak').textContent = S.streak;
+    $('#sound-btn').setAttribute('aria-pressed', S.sound ? 'true' : 'false');
+    $('#sound-btn').classList.toggle('off', !S.sound);
+    $('#voice-btn').setAttribute('aria-pressed', S.voice ? 'true' : 'false');
+    $('#voice-btn').classList.toggle('off', !S.voice);
+  }
+  var BANDS = [
+    { v: 100, t: 'Brand new', s: 'I am learning how the pieces move.' },
+    { v: 400, t: 'I know the rules', s: 'I play casually, around 200–500.' },
+    { v: 800, t: 'Club beginner', s: 'About 600–1000 online.' },
+    { v: 1200, t: 'Improving player', s: 'About 1000–1400 online.' },
+    { v: 1600, t: 'Experienced', s: 'About 1400–1800 online.' }
+  ];
+  function onboard() {
+    var m = $('#modal');
+    m.classList.add('intro');
+    m.innerHTML = '<div class="intro-card" role="dialog" aria-modal="true" aria-labelledby="ob-title">' +
+      '<div class="coach-orb" aria-hidden="true"><span>' + pieceSVG('n', 'w', 50) + '</span></div>' +
+      '<h1 class="intro-title" id="ob-title">Chess <em>Ascent</em></h1>' +
+      '<p class="intro-tag">Your personal coach, from your very first move to 2000.</p>' +
+      '<ul class="intro-points"><li>Bite-size lessons</li><li>Real openings &amp; gambits</li><li>A coach who reacts to every move</li></ul>' +
+      '<button class="btn primary big" data-ob="meet">Meet your coach</button>' +
+      '<p class="muted small">Sound on for the full experience.</p></div>';
+    m.hidden = false;
+    m.onclick = function (e) {
+      var b = e.target.closest('[data-ob],[data-band]'); if (!b) return;
+      if (b.dataset.ob === 'meet') {
+        Sound.unlock(); Voice.say([C('welcome')]);
+        m.querySelector('.intro-card').innerHTML =
+          '<div class="coach-orb small" aria-hidden="true"><span>' + pieceSVG('n', 'w', 32) + '</span></div>' +
+          '<div class="eyebrow">Step 1 of 2</div><h1 class="h1">Where are you starting?</h1>' +
+          '<p class="lede">Pick the closest match. You can always revisit earlier lessons.</p>' +
+          '<div class="bands">' + BANDS.map(function (bd) { return '<button class="band-btn" data-band="' + bd.v + '"><span class="bb-v">' + bd.v + '</span><span><span class="bb-t">' + bd.t + '</span><span class="bb-s">' + bd.s + '</span></span><span class="bb-go" aria-hidden="true">→</span></button>'; }).join('') + '</div>';
+        return;
+      }
+      var v = +b.dataset.band;
+      S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = Math.max(400, v);
+      S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
+      save(); m.hidden = true; m.onclick = null; m.classList.remove('intro');
+      renderTop(); go('path');
+      setTimeout(Tour.start, 700);
+    };
+  }
+
+  // ================= Levels, badges, celebrations =================
+  var Levels = (function () {
+    var L = [{ name: 'Pawn', xp: 0, icon: 'p' }, { name: 'Knight', xp: 300, icon: 'n' }, { name: 'Bishop', xp: 800, icon: 'b' }, { name: 'Rook', xp: 1600, icon: 'r' }, { name: 'Queen', xp: 3000, icon: 'q' }, { name: 'King', xp: 5000, icon: 'k' }, { name: 'Grandmaster', xp: 8000, icon: 'k' }];
+    return {
+      list: L,
+      of: function (xp) {
+        var i = 0; while (i < L.length - 1 && xp >= L[i + 1].xp) i++;
+        var next = L[i + 1] || null;
+        return { i: i, name: L[i].name, icon: L[i].icon, next: next, progress: next ? (xp - L[i].xp) / (next.xp - L[i].xp) : 1 };
+      }
+    };
+  })();
+  var BADGES = {
+    first_lesson: { name: 'First Step', text: 'Finished your first lesson.', icon: 'p' },
+    stage_1: { name: 'Foundations Laid', text: 'Completed the Foundations stage. Openings and coach games are unlocked!', icon: 'r' },
+    stage_2: { name: 'Piece Keeper', text: 'Completed Stop Losing Pieces.', icon: 'n' },
+    stage_3: { name: 'Tactician', text: 'Completed Tactical Weapons.', icon: 'b' },
+    stage_4: { name: 'Endgame Expert', text: 'Completed Endgames & Structure.', icon: 'q' },
+    stage_5: { name: 'Master Mind', text: 'Completed the whole course.', icon: 'k' },
+    brilliant: { name: 'Brilliancy', text: 'Played your first brilliant move.', icon: 'q' },
+    comeback: { name: 'Never Give Up', text: 'Won a game you were losing.', icon: 'k' },
+    beat_novice: { name: 'First Win', text: 'Beat the Novice coach.', icon: 'p' },
+    beat_club: { name: 'Club Player', text: 'Beat the Club coach (~1000).', icon: 'n' },
+    beat_strong: { name: 'Strong Player', text: 'Beat the Strong coach (~1400).', icon: 'b' },
+    beat_expert: { name: 'Expert Slayer', text: 'Beat the Expert coach (~1800).', icon: 'r' },
+    beat_master: { name: 'Master Slayer', text: 'Beat the Master coach (~2100).', icon: 'k' },
+    streak_3: { name: 'On a Roll', text: '3-day training streak.', icon: 'p' },
+    streak_7: { name: 'Week Warrior', text: '7-day training streak.', icon: 'n' },
+    streak_14: { name: 'Unstoppable', text: '14-day training streak.', icon: 'r' },
+    streak_30: { name: 'The Full Climb', text: '30-day training streak.', icon: 'k' },
+    puzzles_10: { name: 'Puzzle Solver', text: 'Solved 10 puzzles.', icon: 'n' },
+    puzzles_25: { name: 'Puzzle Hunter', text: 'Solved 25 puzzles.', icon: 'b' },
+    perfect_drill: { name: 'Book Worm', text: 'A perfect opening drill.', icon: 'b' },
+    opening_master: { name: 'Repertoire', text: 'Mastered your first opening.', icon: 'q' },
+    rush_10: { name: 'Lightning', text: 'Scored 10 in Puzzle Rush.', icon: 'q' }
+  };
+  var Badges = {
+    award: function (id) {
+      if (!BADGES[id] || S.badges[id]) return;
+      S.badges[id] = dayKey(); save(); addXP(40);
+      var b = BADGES[id];
+      Celebrate.show({ kind: 'badge', title: b.name, text: b.text, icon: b.icon, voice: /^stage_/.test(id) ? V('stage_done') : V('badge') });
+      if (id === 'stage_1' && S.band < 400) setTimeout(function () { Voice.say([V('unlock')], true); }, 4200);
+    }
+  };
+  var Celebrate = (function () {
+    var queue = [], open = false;
+    function next() {
+      if (open || !queue.length) return;
+      var c = queue.shift(); open = true;
+      var m = document.createElement('div'); m.className = 'celebrate';
+      m.innerHTML = '<div class="cel-card" role="dialog" aria-modal="true" aria-label="' + esc(c.title) + '"><div class="cel-ray" aria-hidden="true"></div>' +
+        '<div class="medal ' + c.kind + '">' + pieceSVG(c.icon || 'k', 'w', 64) + '</div>' +
+        '<div class="eyebrow">' + (c.kind === 'level' ? 'Level up' : 'Badge unlocked') + '</div><h2 class="cel-title">' + esc(c.title) + '</h2><p>' + esc(c.text) + '</p>' +
+        '<button class="btn primary big" data-cel="ok">Awesome!</button></div>';
+      document.body.appendChild(m);
+      Sound.play('win'); if (c.voice) Voice.say([c.voice]);
+      m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]')) { m.remove(); open = false; setTimeout(next, 250); } });
+    }
+    return { show: function (c) { queue.push(c); setTimeout(next, 500); } };
+  })();
+
+  // ================= Welcome tour =================
+  var Tour = (function () {
+    var i = 0, el = null;
+    function close() { if (el) { el.remove(); el = null; } window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
+    function place() {
+      if (!el) return;
+      var step = TOUR[i], spot = el.querySelector('.tour-spot'), card = el.querySelector('.tour-card');
+      var target = step.sel ? document.querySelector(step.sel) : null;
+      if (target && target.scrollIntoView) target.scrollIntoView({ block: 'nearest' });
+      var r = target ? target.getBoundingClientRect() : null;
+      if (r && r.width && r.height) {
+        var pad = 6;
+        spot.hidden = false;
+        spot.style.left = (r.left - pad) + 'px'; spot.style.top = (r.top - pad) + 'px';
+        spot.style.width = (r.width + pad * 2) + 'px'; spot.style.height = (r.height + pad * 2) + 'px';
+        var cw = Math.min(360, window.innerWidth - 32), ch = card.offsetHeight || 190;
+        var left = Math.max(16, Math.min(window.innerWidth - cw - 16, r.left + r.width / 2 - cw / 2));
+        var below = r.bottom + 14, above = r.top - ch - 14;
+        var right = r.right + 14;
+        var top;
+        if (r.width < 120 && right + cw < window.innerWidth - 8) { left = right; top = Math.max(16, Math.min(window.innerHeight - ch - 16, r.top + r.height / 2 - ch / 2)); }
+        else if (below + ch < window.innerHeight - 8) top = below;
+        else if (above > 8) top = above;
+        else top = Math.max(16, (window.innerHeight - ch) / 2);
+        card.style.left = left + 'px'; card.style.top = top + 'px'; card.style.width = cw + 'px'; card.style.transform = 'none';
+        el.classList.remove('center');
+      } else {
+        spot.hidden = true;
+        card.style.left = '50%'; card.style.top = '50%'; card.style.width = Math.min(400, window.innerWidth - 32) + 'px'; card.style.transform = 'translate(-50%,-50%)';
+        el.classList.add('center');
+      }
+    }
+    function render() {
+      var step = TOUR[i];
+      el.querySelector('.tour-spot').classList.remove('pop'); void el.offsetWidth; el.querySelector('.tour-spot').classList.add('pop');
+      el.querySelector('.tour-card').innerHTML =
+        '<div class="eyebrow">' + (i + 1) + ' / ' + TOUR.length + '</div><h2 class="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
+        '<div class="actions">' + (i > 0 ? '<button class="btn ghost" data-tour="back">Back</button>' : '<button class="btn ghost" data-tour="skip">Skip tour</button>') +
+        '<button class="btn primary" data-tour="next">' + (i === TOUR.length - 1 ? 'Start training' : 'Next') + '</button></div>';
+      place();
+      Voice.say([{ id: 'T-' + i, text: step.text }]);
+    }
+    function start() {
+      if (el) close();
+      if (current !== MODES.path) go('path');
+      i = 0;
+      el = document.createElement('div'); el.className = 'tour';
+      el.innerHTML = '<div class="tour-spot"></div><div class="tour-card" role="dialog" aria-modal="true" aria-label="App tour"></div>';
+      document.body.appendChild(el);
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-tour]'); if (!b) return;
+        var a = b.dataset.tour;
+        if (a === 'skip') close();
+        else if (a === 'back') { i = Math.max(0, i - 1); render(); }
+        else if (i >= TOUR.length - 1) { close(); }
+        else { i++; render(); }
+      });
+      window.addEventListener('resize', place);
+      render();
+    }
+    return { start: start };
+  })();
+  ACT.tour = function () { Tour.start(); };
+
+  function webglOK() { try { var c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } }
+
+  // ================= Boot =================
+  function boot() {
+    panel = $('#panel');
+    $('.brand-mark').innerHTML = pieceSVG('n', 'b', 24);
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest('[data-act]');
+      if (!a || a.disabled) return;
+      var fn = ACT[a.dataset.act];
+      if (fn) { e.preventDefault(); fn(a.dataset); }
+    });
+    document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { go(b.dataset.go); }); });
+    $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
+    $('#replay-btn').onclick = function () { Voice.replay(); };
+    $('#sound-btn').onclick = function () { S.sound = !S.sound; save(); renderTop(); if (S.sound) Sound.play('move'); };
+    $('#view-btn').onclick = function () { var v = B3.toggleView(); $('#view-btn').textContent = v === '3d' ? 'Top view' : '3D view'; };
+    $('#flip-btn').onclick = function () { B3.setOrientation(B3.orientation() === 'w' ? 'b' : 'w'); };
+    $('#center-btn').onclick = function () { B3.recenter(); };
+    $('#settings-btn').onclick = openSettings;
+    $('#tools-btn').onclick = function (e) { e.stopPropagation(); var t = $('.board-tools'), open = !t.classList.contains('open'); t.classList.toggle('open', open); this.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    document.querySelectorAll('.board-tools button').forEach(function (b) { b.addEventListener('click', function () { setTimeout(closeTools, 150); }); });
+    document.addEventListener('pointerdown', function (e) { if (!e.target.closest('.board-tools,#tools-btn')) closeTools(); });
+    $('#coach-bubble').addEventListener('click', function () { Voice.replay(); });
+    applyMob();
+    if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', applyMob); else if (MQ.addListener) MQ.addListener(applyMob); }
+    $('#coach-bubble .cb-avatar').innerHTML = coachAvatar();
+    var use2d = !!S.settings.board2d || typeof THREE === 'undefined' || !THREE.OrbitControls || !webglOK();
+    if (!use2d) {
+      try { B3.init($('#three'), onBoardClick, onBoardHover); }
+      catch (e) { console.error(e); use2d = true; }
+    }
+    if (use2d) {
+      var B2 = BOARD2D_FACTORY();
+      Object.keys(B3).forEach(function (k) { delete B3[k]; });
+      Object.assign(B3, B2);
+      $('#three').innerHTML = '';
+      B3.init($('#three'), onBoardClick, onBoardHover);
+      document.body.classList.add('board-2d');
+    }
+    B3.setDrag({ can: dragCan, start: dragStart, drop: dragDrop, fen: function () { if (IX.collect) return fenOf(IX.collect.piece, IX.collect.at); return IX.game ? IX.game.fen() : null; } });
+    B3.setCameraFixed(S.settings.cameraFixed);
+    renderTop();
+    document.addEventListener('pointerdown', function greet() {
+      document.removeEventListener('pointerdown', greet);
+      if (S.onboarded && S.lastGreet !== dayKey() && S.toured) { S.lastGreet = dayKey(); save(); Voice.say([V('welcome_back')], true); }
+    });
+    if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
+    else { go('path'); if (!S.toured) setTimeout(Tour.start, 900); }
+  }
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD }; } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
