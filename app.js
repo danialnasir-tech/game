@@ -934,7 +934,7 @@
   var PANEL_ANIM = false;
   function setPanel(html) {
     panel.classList.remove('enter');
-    panel.innerHTML = html; panel.scrollTop = 0;
+    panel.innerHTML = hintHtml() + html; panel.scrollTop = 0;
     if (PANEL_ANIM) { PANEL_ANIM = false; void panel.offsetWidth; panel.classList.add('enter'); clearTimeout(setPanel._t); setPanel._t = setTimeout(function () { panel.classList.remove('enter'); }, 900); }
   }
   function toast(msg, kind) {
@@ -1166,6 +1166,7 @@
     IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
     current = MODES[mode];
     document.body.dataset.mode = mode;
+    S.visited = S.visited || {}; if (!S.visited[tab]) { S.visited[tab] = 1; save(); } markNewTabs(); firstHint(mode);
     PANEL_ANIM = true;
     current.enter(arg);
     $('#mode-label').textContent = current.label || '';
@@ -1185,6 +1186,32 @@
     if (!b) return;
     if (b.parentNode !== app) app.insertBefore(b, $('#panel'));
   }
+  // "New" dots on tabs the player has not opened yet, and a one-line hint the first time each area opens
+  function markNewTabs() {
+    if (!S.onboarded) return;
+    S.visited = S.visited || {};
+    document.querySelectorAll('.rail button[data-go]').forEach(function (b) { var m = b.dataset.go; b.classList.toggle('new', !S.visited[m] && !isLocked(m)); });
+  }
+  var HINTS = {
+    puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
+    arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
+    openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
+    play: 'Coach games: pick a level and play. I comment on your moves as you go.',
+    progress: 'Progress: your rating chart, badges and streak live here.',
+    analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
+    mission: 'A coach mission: reach the goal in the shown number of moves.'
+  };
+  var HINT = null;
+  function firstHint(mode) {
+    S.hinted = S.hinted || {}; HINT = null;
+    var t = HINTS[mode];
+    if (!t || S.hinted[mode] || !S.onboarded) return;
+    S.hinted[mode] = 1; save();
+    HINT = { mode: mode, text: t };
+  }
+  function hintHtml() { return HINT && document.body.dataset.mode === HINT.mode ? '<button class="first-hint" data-act="hintOk"><span class="fh-ico" aria-hidden="true">💡</span><span>' + esc(HINT.text) + '</span><span class="fh-x">Got it</span></button>' : ''; }
+  ACT.hintOk = function () { HINT = null; var el = $('.first-hint'); if (el) { el.classList.add('out'); setTimeout(function () { el.remove(); }, 250); } };
+
   function closeTools() { var t = $('.board-tools'); if (t) t.classList.remove('open'); var tb = $('#tools-btn'); if (tb) tb.setAttribute('aria-expanded', 'false'); }
 
   // ================= Path (home) =================
@@ -1233,6 +1260,34 @@
     }).join('') + '</div>';
   }
   ACT.goMode = function (d) { go(d.m); };
+  // ===== First steps: a checklist that walks a new player through every part of the app =====
+  var DISCOVER = [
+    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '4 minutes. Learn how the rook moves.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
+    { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
+    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-rook" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
+    { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
+    { k: 'play', ico: 'p', t: 'Play a game against me', s: 'A real game, with tips on every move.', act: 'data-act="goPlay"', lock: 'play', done: function () { return (S.games || []).length >= 1; } },
+    { k: 'opening', ico: 'b', t: 'Learn an opening', s: 'The first moves the pros play.', act: 'data-act="goMode" data-m="openings"', lock: 'openings', done: function () { return Object.keys(S.openings || {}).length >= 1; } },
+    { k: 'analyze', ico: 'n', t: 'Analyze a chess.com game', s: 'See your mistakes and how to fix them.', act: 'data-act="goAnalyze"', done: function () { return (S.anHist || []).length >= 1; } }
+  ];
+  function discCount() { return DISCOVER.filter(function (x) { return x.done(); }).length; }
+  function discAllDone() { return discCount() >= DISCOVER.length; }
+  // reward each newly explored area once
+  function discSync() {
+    S.disc = S.disc || {}; var fresh = [];
+    DISCOVER.forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
+    if (!fresh.length) return;
+    save(); addXP(20 * fresh.length);
+    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + DISCOVER.length + ' explored');
+  }
+  function discoverCard() {
+    var n = discCount(), next = DISCOVER.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
+    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / DISCOVER.length * 100) + '"><b>' + n + '</b>/' + DISCOVER.length + '</span></div>' +
+      '<div class="disc-list">' + DISCOVER.filter(function (x) { return !x.done(); }).concat(DISCOVER.filter(function (x) { return x.done(); })).map(function (x) {
+        var ok = x.done(), lock = !ok && x.lock && isLocked(x.lock), need = lock ? UNLOCK_AT[x.lock] - lessonsDone() : 0;
+        return '<button class="disc-item' + (ok ? ' done' : '') + (lock ? ' locked' : '') + (x === next ? ' next' : '') + '" ' + (lock ? 'data-act="goMode" data-m="' + x.lock + '"' : x.act) + '><span class="disc-ico">' + (ok ? '✓' : pieceSVG(x.ico, 'w', 18)) + '</span><span class="disc-t"><b>' + esc(x.t) + '</b><span>' + (lock ? '🔒 After ' + need + ' more lesson' + (need > 1 ? 's' : '') : esc(x.s)) + '</span></span>' + (x === next ? '<span class="disc-go">Try it →</span>' : ok ? '' : '<span class="disc-xp">+20</span>') + '</button>';
+      }).join('') + '</div></section>';
+  }
   MODES.path = {
     label: 'Training path',
     enter: function (rerender) {
@@ -1246,6 +1301,7 @@
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
+      discSync(); var fresh = !discAllDone() && discCount() < 3 && lessonsDone() < 2; // newcomers get a short, focused home
       if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
       var L = LESSONS[nl], cur = allClear ? STAGES.length - 1 : stageOf(nl), placed = placementStage();
       var openStage = PATHUI.open == null ? cur : PATHUI.open;
@@ -1264,15 +1320,15 @@
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' +
+        (discAllDone() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
-        '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
+        (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
-        '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>' +
+        '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>') +
         '<div class="sect-head"><h2>Today\'s missions</h2><span class="pill-count">' + missionsDone(d) + '/' + missionsTotal() + '</span></div>' +
         '<div class="mchips">' + missionList(d).map(function (m, i) { return chip(m.done, m.label, m.sub || esc(L.title), m.act, String(i + 1)); }).join('') + '</div>' +
-        exploreStrip() +
-        (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })() +
+        (fresh ? '' : exploreStrip()) +
+        (fresh ? '' : (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })()) +
         '<div class="sect-head"><h2>Your journey</h2><button class="link" data-act="tour">Replay tour</button></div>' +
         '<ol class="journey">' + STAGES.map(function (st, i) {
           var open = stageUnlocked(i), expanded = i === openStage && open;
@@ -3660,6 +3716,7 @@
   // ================= Top bar and onboarding =================
   var lastMissions = null;
   function renderTop() {
+    if (S.onboarded && !renderTop.busy) { renderTop.busy = true; try { discSync(); markNewTabs(); } finally { renderTop.busy = false; } }
     var d = today();
     var nm = missionsDone(d);
     if (lastMissions !== null && nm > lastMissions) setTimeout(function () { Voice.say([V(nm >= missionsTotal() ? 'all_missions' : 'mission_done')], true); }, 2600);
@@ -3763,6 +3820,7 @@
   })();
   var BADGES = {
     first_lesson: { name: 'First Step', text: 'Finished your first lesson.', icon: 'p' },
+    explorer: { name: 'Explorer', text: 'Tried every part of Chess Ascent.', icon: 'n' },
     stage_1: { name: 'Foundations Laid', text: 'Completed the Foundations stage. Openings and coach games are unlocked!', icon: 'r' },
     stage_2: { name: 'Piece Keeper', text: 'Completed Stop Losing Pieces.', icon: 'n' },
     stage_3: { name: 'Tactician', text: 'Completed Tactical Weapons.', icon: 'b' },

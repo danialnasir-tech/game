@@ -3493,7 +3493,7 @@ function BOARD2D_FACTORY() {
   var PANEL_ANIM = false;
   function setPanel(html) {
     panel.classList.remove('enter');
-    panel.innerHTML = html; panel.scrollTop = 0;
+    panel.innerHTML = hintHtml() + html; panel.scrollTop = 0;
     if (PANEL_ANIM) { PANEL_ANIM = false; void panel.offsetWidth; panel.classList.add('enter'); clearTimeout(setPanel._t); setPanel._t = setTimeout(function () { panel.classList.remove('enter'); }, 900); }
   }
   function toast(msg, kind) {
@@ -3725,6 +3725,7 @@ function BOARD2D_FACTORY() {
     IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
     current = MODES[mode];
     document.body.dataset.mode = mode;
+    S.visited = S.visited || {}; if (!S.visited[tab]) { S.visited[tab] = 1; save(); } markNewTabs(); firstHint(mode);
     PANEL_ANIM = true;
     current.enter(arg);
     $('#mode-label').textContent = current.label || '';
@@ -3744,6 +3745,32 @@ function BOARD2D_FACTORY() {
     if (!b) return;
     if (b.parentNode !== app) app.insertBefore(b, $('#panel'));
   }
+  // "New" dots on tabs the player has not opened yet, and a one-line hint the first time each area opens
+  function markNewTabs() {
+    if (!S.onboarded) return;
+    S.visited = S.visited || {};
+    document.querySelectorAll('.rail button[data-go]').forEach(function (b) { var m = b.dataset.go; b.classList.toggle('new', !S.visited[m] && !isLocked(m)); });
+  }
+  var HINTS = {
+    puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
+    arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
+    openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
+    play: 'Coach games: pick a level and play. I comment on your moves as you go.',
+    progress: 'Progress: your rating chart, badges and streak live here.',
+    analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
+    mission: 'A coach mission: reach the goal in the shown number of moves.'
+  };
+  var HINT = null;
+  function firstHint(mode) {
+    S.hinted = S.hinted || {}; HINT = null;
+    var t = HINTS[mode];
+    if (!t || S.hinted[mode] || !S.onboarded) return;
+    S.hinted[mode] = 1; save();
+    HINT = { mode: mode, text: t };
+  }
+  function hintHtml() { return HINT && document.body.dataset.mode === HINT.mode ? '<button class="first-hint" data-act="hintOk"><span class="fh-ico" aria-hidden="true">💡</span><span>' + esc(HINT.text) + '</span><span class="fh-x">Got it</span></button>' : ''; }
+  ACT.hintOk = function () { HINT = null; var el = $('.first-hint'); if (el) { el.classList.add('out'); setTimeout(function () { el.remove(); }, 250); } };
+
   function closeTools() { var t = $('.board-tools'); if (t) t.classList.remove('open'); var tb = $('#tools-btn'); if (tb) tb.setAttribute('aria-expanded', 'false'); }
 
   // ================= Path (home) =================
@@ -3792,6 +3819,34 @@ function BOARD2D_FACTORY() {
     }).join('') + '</div>';
   }
   ACT.goMode = function (d) { go(d.m); };
+  // ===== First steps: a checklist that walks a new player through every part of the app =====
+  var DISCOVER = [
+    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '4 minutes. Learn how the rook moves.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
+    { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
+    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-rook" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
+    { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
+    { k: 'play', ico: 'p', t: 'Play a game against me', s: 'A real game, with tips on every move.', act: 'data-act="goPlay"', lock: 'play', done: function () { return (S.games || []).length >= 1; } },
+    { k: 'opening', ico: 'b', t: 'Learn an opening', s: 'The first moves the pros play.', act: 'data-act="goMode" data-m="openings"', lock: 'openings', done: function () { return Object.keys(S.openings || {}).length >= 1; } },
+    { k: 'analyze', ico: 'n', t: 'Analyze a chess.com game', s: 'See your mistakes and how to fix them.', act: 'data-act="goAnalyze"', done: function () { return (S.anHist || []).length >= 1; } }
+  ];
+  function discCount() { return DISCOVER.filter(function (x) { return x.done(); }).length; }
+  function discAllDone() { return discCount() >= DISCOVER.length; }
+  // reward each newly explored area once
+  function discSync() {
+    S.disc = S.disc || {}; var fresh = [];
+    DISCOVER.forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
+    if (!fresh.length) return;
+    save(); addXP(20 * fresh.length);
+    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + DISCOVER.length + ' explored');
+  }
+  function discoverCard() {
+    var n = discCount(), next = DISCOVER.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
+    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / DISCOVER.length * 100) + '"><b>' + n + '</b>/' + DISCOVER.length + '</span></div>' +
+      '<div class="disc-list">' + DISCOVER.filter(function (x) { return !x.done(); }).concat(DISCOVER.filter(function (x) { return x.done(); })).map(function (x) {
+        var ok = x.done(), lock = !ok && x.lock && isLocked(x.lock), need = lock ? UNLOCK_AT[x.lock] - lessonsDone() : 0;
+        return '<button class="disc-item' + (ok ? ' done' : '') + (lock ? ' locked' : '') + (x === next ? ' next' : '') + '" ' + (lock ? 'data-act="goMode" data-m="' + x.lock + '"' : x.act) + '><span class="disc-ico">' + (ok ? '✓' : pieceSVG(x.ico, 'w', 18)) + '</span><span class="disc-t"><b>' + esc(x.t) + '</b><span>' + (lock ? '🔒 After ' + need + ' more lesson' + (need > 1 ? 's' : '') : esc(x.s)) + '</span></span>' + (x === next ? '<span class="disc-go">Try it →</span>' : ok ? '' : '<span class="disc-xp">+20</span>') + '</button>';
+      }).join('') + '</div></section>';
+  }
   MODES.path = {
     label: 'Training path',
     enter: function (rerender) {
@@ -3805,6 +3860,7 @@ function BOARD2D_FACTORY() {
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
+      discSync(); var fresh = !discAllDone() && discCount() < 3 && lessonsDone() < 2; // newcomers get a short, focused home
       if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
       var L = LESSONS[nl], cur = allClear ? STAGES.length - 1 : stageOf(nl), placed = placementStage();
       var openStage = PATHUI.open == null ? cur : PATHUI.open;
@@ -3823,15 +3879,15 @@ function BOARD2D_FACTORY() {
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' +
+        (discAllDone() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
-        '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
+        (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
-        '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>' +
+        '<div class="ladder-marks">' + marks.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div></div>') +
         '<div class="sect-head"><h2>Today\'s missions</h2><span class="pill-count">' + missionsDone(d) + '/' + missionsTotal() + '</span></div>' +
         '<div class="mchips">' + missionList(d).map(function (m, i) { return chip(m.done, m.label, m.sub || esc(L.title), m.act, String(i + 1)); }).join('') + '</div>' +
-        exploreStrip() +
-        (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })() +
+        (fresh ? '' : exploreStrip()) +
+        (fresh ? '' : (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })()) +
         '<div class="sect-head"><h2>Your journey</h2><button class="link" data-act="tour">Replay tour</button></div>' +
         '<ol class="journey">' + STAGES.map(function (st, i) {
           var open = stageUnlocked(i), expanded = i === openStage && open;
@@ -6219,6 +6275,7 @@ function BOARD2D_FACTORY() {
   // ================= Top bar and onboarding =================
   var lastMissions = null;
   function renderTop() {
+    if (S.onboarded && !renderTop.busy) { renderTop.busy = true; try { discSync(); markNewTabs(); } finally { renderTop.busy = false; } }
     var d = today();
     var nm = missionsDone(d);
     if (lastMissions !== null && nm > lastMissions) setTimeout(function () { Voice.say([V(nm >= missionsTotal() ? 'all_missions' : 'mission_done')], true); }, 2600);
@@ -6322,6 +6379,7 @@ function BOARD2D_FACTORY() {
   })();
   var BADGES = {
     first_lesson: { name: 'First Step', text: 'Finished your first lesson.', icon: 'p' },
+    explorer: { name: 'Explorer', text: 'Tried every part of Chess Ascent.', icon: 'n' },
     stage_1: { name: 'Foundations Laid', text: 'Completed the Foundations stage. Openings and coach games are unlocked!', icon: 'r' },
     stage_2: { name: 'Piece Keeper', text: 'Completed Stop Losing Pieces.', icon: 'n' },
     stage_3: { name: 'Tactician', text: 'Completed Tactical Weapons.', icon: 'b' },
@@ -7082,9 +7140,9 @@ body.tour-tools .stage .board-tools.open { display: flex !important; }
 }
 body { background: #07060e; font-feature-settings: "ss01"; }
 /* living background: slow aurora blobs and a faint board grid */
-body::before, body::after { content: ""; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%; filter: blur(90px); opacity: .55; }
-body::before { width: 62vmax; height: 62vmax; left: -18vmax; top: -24vmax; background: radial-gradient(circle, rgba(139,92,255,.75), transparent 62%); animation: auroraA 26s ease-in-out infinite alternate; }
-body::after { width: 56vmax; height: 56vmax; right: -20vmax; bottom: -26vmax; background: radial-gradient(circle, rgba(255,61,139,.55), transparent 62%); animation: auroraB 32s ease-in-out infinite alternate; }
+body::before, body::after { content: ""; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%; filter: blur(100px); opacity: .3; }
+body::before { width: 62vmax; height: 62vmax; left: -18vmax; top: -24vmax; background: radial-gradient(circle, rgba(139,92,255,.75), transparent 62%); animation: auroraA 40s ease-in-out infinite alternate; }
+body::after { width: 56vmax; height: 56vmax; right: -20vmax; bottom: -26vmax; background: radial-gradient(circle, rgba(255,61,139,.55), transparent 62%); animation: auroraB 48s ease-in-out infinite alternate; }
 #app { position: relative; isolation: isolate; }
 #app::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); }
 @keyframes auroraA { to { transform: translate(14vmax, 10vmax) scale(1.15); } }
@@ -7133,7 +7191,7 @@ body::after { width: 56vmax; height: 56vmax; right: -20vmax; bottom: -26vmax; ba
 .btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
 .btn.primary { position: relative; overflow: hidden; background: var(--brass); border-color: transparent; color: var(--brass-ink); font-weight: 800; box-shadow: 0 4px 0 var(--brass-deep), 0 10px 30px rgba(198,255,61,.28); }
 .btn.primary:hover:not(:disabled) { background: var(--brass-hi); box-shadow: 0 5px 0 var(--brass-deep), 0 14px 40px rgba(198,255,61,.42); }
-.btn.primary::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-18deg); animation: btnShine 3.6s ease-in-out infinite; pointer-events: none; }
+.hero-card .btn.primary::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-18deg); animation: btnShine 3.6s ease-in-out infinite; pointer-events: none; }
 @keyframes btnShine { 0%, 62% { left: -60%; } 100% { left: 130%; } }
 .btn.ghost { background: transparent; }
 .mini-btn { border-radius: 10px; background: var(--brass); color: var(--brass-ink); box-shadow: 0 3px 0 var(--brass-deep); }
@@ -7164,13 +7222,13 @@ body::after { width: 56vmax; height: 56vmax; right: -20vmax; bottom: -26vmax; ba
 
 /* home hero: a poster, not a form */
 .hero-card { border-radius: 26px; padding: 22px 20px 18px; border: 0; background: radial-gradient(120% 140% at 100% 0%, rgba(255,61,139,.55), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(46,230,255,.35), transparent 60%), linear-gradient(140deg, #3a1f8a, #1b1040 70%); box-shadow: 0 20px 50px rgba(139,92,255,.35), inset 0 1px 0 rgba(255,255,255,.18); }
-.hero-card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; background: conic-gradient(from var(--spin, 0deg), #c6ff3d, #2ee6ff, #8b5cff, #ff3d8b, #c6ff3d); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: heroSpin 6s linear infinite; pointer-events: none; }
+.hero-card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; background: conic-gradient(from var(--spin, 0deg), #c6ff3d, #2ee6ff, #8b5cff, #ff3d8b, #c6ff3d); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: heroSpin 14s linear infinite; pointer-events: none; opacity: .7; }
 @property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes heroSpin { to { --spin: 360deg; } }
 .hero-card .eyebrow { background: none; color: var(--brass); -webkit-text-fill-color: currentColor; }
 .hero-card .h1 { font-size: 30px; text-shadow: 0 4px 24px rgba(0,0,0,.35); }
 .hero-card .lede { color: rgba(255,255,255,.82); }
-.hero-mark { opacity: .2; filter: drop-shadow(0 0 30px rgba(255,255,255,.5)); animation: heroFloat 6s ease-in-out infinite; }
+.hero-mark { opacity: .16; filter: drop-shadow(0 0 24px rgba(255,255,255,.35)); animation: heroFloat 9s ease-in-out infinite; }
 @keyframes heroFloat { 50% { transform: rotate(-8deg) translateY(-8px); } }
 .btn.primary.big { font-size: 16px; padding: 14px 18px; border-radius: 16px; }
 
@@ -7236,6 +7294,30 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .ar-tile:nth-child(4n+4) { background: linear-gradient(150deg, #3dffa8, #0f8f7a) !important; }
 .ar-tile * { color: inherit; } .ar-tile .muted, .ar-tile span { color: rgba(255,255,255,.85); }
 .coach-card > .quiz:not(.done) { margin: 4px 0 10px; }
+.disc { margin: 12px 0 4px; padding: 14px; border-radius: 22px; background: linear-gradient(160deg, rgba(198,255,61,.1), rgba(46,230,255,.05) 60%), var(--card); border: 1px solid rgba(198,255,61,.3); }
+.disc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.disc-title { display: block; font: 800 17px var(--f-display); letter-spacing: -.02em; margin-top: 2px; }
+.disc-ring { --p: 0; flex: 0 0 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; gap: 1px; font: 700 12px var(--f-mono); color: var(--muted); background: radial-gradient(closest-side, var(--card) 76%, transparent 78%), conic-gradient(var(--brass) calc(var(--p) * 1%), rgba(255,255,255,.1) 0); }
+.disc-ring b { color: var(--fg); font-size: 15px; }
+.disc-list { display: grid; gap: 6px; }
+.disc-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 10px; border-radius: 14px; border: 1px solid transparent; background: rgba(255,255,255,.035); color: var(--fg); transition: background .2s, border-color .2s, transform .15s; }
+.disc-item:hover { background: rgba(255,255,255,.07); }
+.disc-item:active { transform: scale(.98); }
+.disc-ico { flex: 0 0 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--grad-cool); color: #fff; font-weight: 800; }
+.disc-ico svg { width: 18px; height: 18px; }
+.disc-t { flex: 1; min-width: 0; display: grid; gap: 1px; } .disc-t b { font-size: 14px; } .disc-t span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disc-item.done { opacity: .6; } .disc-item.done .disc-ico { background: var(--good); color: #032417; } .disc-item.done b { text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
+.disc-item.locked { opacity: .55; } .disc-item.locked .disc-ico { background: rgba(255,255,255,.1); }
+.disc-item.next { border-color: rgba(198,255,61,.55); background: rgba(198,255,61,.09); box-shadow: 0 0 0 3px rgba(198,255,61,.08); }
+.disc-go { font: 800 12.5px var(--f-body); color: var(--brass); white-space: nowrap; }
+.disc-xp { font: 700 11px var(--f-mono); color: var(--brass); background: rgba(198,255,61,.12); border-radius: 99px; padding: 2px 7px; }
+.rail button { position: relative; }
+.rail button.new::after { content: ""; position: absolute; top: 7px; right: calc(50% - 18px); width: 9px; height: 9px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 0 2px #0e0b1a, 0 0 10px rgba(255,61,139,.8); }
+.first-hint { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 12px; text-align: left; padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(198,255,61,.45); background: linear-gradient(120deg, rgba(198,255,61,.12), rgba(46,230,255,.06)), var(--card); color: var(--fg); font-size: 13.5px; line-height: 1.4; animation: fhIn .45s cubic-bezier(.2,1.4,.4,1) both; transition: opacity .25s, transform .25s; }
+.panel > .first-hint { order: -2; flex-shrink: 0; }
+.first-hint.out { opacity: 0; transform: translateY(-6px); }
+.fh-ico { font-size: 18px; } .fh-x { margin-left: auto; font-weight: 800; color: var(--brass); white-space: nowrap; font-size: 12.5px; }
+@keyframes fhIn { from { opacity: 0; transform: translateY(-8px); } }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }
@@ -7245,6 +7327,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .panel { border-left: 0; border-top: 1px solid rgba(255,255,255,.07); }
   .h1, .hero-card .h1 { font-size: 26px; }
   .ts { padding: 0; background: none; border: 0; }
+  .rail button.new::after { top: 5px; }
   .ts-day b .small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { body::before, body::after, .hero-card::before, .hero-mark, .btn.primary::after, #mode-label::before { animation: none !important; } }

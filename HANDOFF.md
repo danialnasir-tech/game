@@ -99,6 +99,12 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - The last block in template.html's second `<style>` ("Brand v3") restyles everything on top of the older rules: midnight background with drifting aurora blobs and a faint grid, acid-lime primary (`--brass` now means lime; stars use `--gold`), hot gradients (`--grad-hot`, `--grad-cool`, `--grad-acid`), glass top bar / rail / panel, pill buttons with a shine sweep, colourful sticker tiles in Explore and the Arena, an animated gradient edge on the home hero, and a floating tab bar on phones. Respects reduced motion. The chess boards keep their classic wood look.
 - Avoid the class name `.top` for anything but the header bar.
 
+## First-time experience
+- `DISCOVER` (app.js): a "Your first steps · Try everything once" checklist on the home screen (lesson, puzzle, coach mission, Arena game, coach game, opening, analysis). Each first try gives +20 XP and a toast; all seven award the `explorer` badge. Done items move to the bottom; the next one is highlighted.
+- Newcomers (fewer than 3 explored and fewer than 2 lessons) get a short home: lesson card, checklist, today's missions and the journey. The ladder, Explore strip and tip appear later.
+- Pink "new" dots on tabs not opened yet (`S.visited`), and a one-line "Got it" hint at the top of the panel the first time each area opens (`HINTS`, `S.hinted`).
+- Background motion was toned down (slower, dimmer aurora; shine only on the hero button).
+
 ## Open items
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.
