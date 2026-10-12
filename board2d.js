@@ -18,7 +18,7 @@ function BOARD2D_FACTORY() {
     svgLayer.setAttribute('viewBox', '0 0 8 8'); svgLayer.setAttribute('class', 'b2-svg'); root.appendChild(svgLayer);
     for (var y = 0; y < 8; y++) for (var x = 0; x < 8; x++) { var s = div('b2-sq ' + ((x + y) % 2 ? 'dark' : 'light'), sqLayer); s.style.left = x * 12.5 + '%'; s.style.top = y * 12.5 + '%'; }
     labels = div('b2-labels', root);
-    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), size = Math.max(160, mob ? Math.min(w - 20, h - 20) : Math.min(w - 24, h - 70)); root.style.width = root.style.height = size + 'px'; }
+    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), pad = parseFloat(getComputedStyle(wrap).paddingTop) || 0, size = Math.max(160, mob ? Math.min(w - 20, h - 16 - pad) : Math.min(w - 24, h - 70)); root.style.width = root.style.height = size + 'px'; root.classList.toggle('tiny', size < 300); }
     new ResizeObserver(fit).observe(el); fit();
     drawLabels();
     root.addEventListener('pointerdown', down);
@@ -29,8 +29,8 @@ function BOARD2D_FACTORY() {
   function drawLabels() {
     labels.innerHTML = '';
     for (var i = 0; i < 8; i++) {
-      var f = div('b2-lab file', labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 11.2) + '%';
-      var r = div('b2-lab rank', labels); r.textContent = orient === 'w' ? 8 - i : i + 1; r.style.top = (i * 12.5 + 0.6) + '%';
+      var f = div('b2-lab file' + (i % 2 ? '' : ' on-dark'), labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 11.2) + '%';
+      var r = div('b2-lab rank' + (i % 2 ? ' on-dark' : ''), labels); r.textContent = orient === 'w' ? 8 - i : i + 1; r.style.top = (i * 12.5 + 0.6) + '%';
     }
   }
   function sqAt(e) {

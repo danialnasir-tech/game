@@ -287,7 +287,7 @@ button:disabled { cursor: not-allowed; }
   .ts-day { min-width: 0; } .ts.hide-sm, .ts-level { display: none; }
   #sound-btn { display: none; }
   .sound { width: 38px; height: 38px; }
-  .stage { grid-area: stage; height: min(100vw, 54vh); height: min(100vw, 54dvh); transition: height .35s ease; }
+  .stage { grid-area: stage; height: min(calc(100vw + 26px), 56vh); height: min(calc(100vw + 26px), 56dvh); transition: height .35s ease; }
   body[data-layout="browse"] .stage { height: min(30dvh, 250px); }
   body[data-layout="browse"] .stage .board-tools, body[data-layout="browse"] .tools-btn, body[data-layout="browse"] #evalbar { display: none !important; }
   .stage-top { top: 6px; left: auto; right: 6px; }
@@ -299,8 +299,8 @@ button:disabled { cursor: not-allowed; }
   .board-tools button:active { background: var(--card-2); }
   #evalbar { left: 4px; top: 8px; bottom: 8px; width: 8px; }
   #evalbar span { display: none; }
-  body .b2-wrap { padding-top: 0; }
-  body .b2-board { box-shadow: 0 0 0 3px #161d38, 0 0 0 5px var(--pink), 0 14px 40px rgba(0,0,0,.5); }
+  body .b2-wrap { padding-top: 34px; }
+  body .b2-board { box-shadow: 0 0 0 2px #c9963f, 0 0 0 6px #4a2b17, 0 0 0 7px rgba(233,201,143,.4), 0 14px 40px rgba(0,0,0,.5); }
   /* coach strip between board and panel */
   body.mob #app > .coach-bubble { margin: 6px 10px 0; padding: 7px 12px 7px 7px; gap: 9px; border-radius: 14px; border: 1px solid rgba(255,79,139,.45); background: rgba(16,23,44,.92); }
     body.mob .coach-bubble .cb-avatar { width: 30px; height: 30px; }
@@ -389,6 +389,7 @@ button:disabled { cursor: not-allowed; }
     <div id="evalbar" hidden><i></i><span>0.0</span></div>
     <div class="stage-top"><div id="mode-label">Training path</div>
       <button id="tools-btn" class="tools-btn" aria-label="Board options" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      <button id="dim-btn" class="dim-seg" aria-label="Switch board view"><span data-d="2">2D</span><span data-d="3">3D</span></button>
       <div class="board-tools"><button id="flip-btn">Flip</button><button id="view-btn">Top view</button><button id="replay-btn">Replay voice</button><button id="center-btn">Recenter</button></div></div>
     <div id="toast" class="toast" role="status"></div>
     <div id="coach-bubble" class="coach-bubble" hidden aria-live="polite"><span class="cb-avatar" aria-hidden="true"></span><span class="cb-body"><span class="cb-name">Coach Leo</span><span class="cb-text"></span></span></div>
@@ -705,10 +706,74 @@ body.speaking .coach-bubble .cb-avatar { animation: talk .45s ease-in-out infini
 /* 2D board */
 body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 .b2-wrap { display: grid; place-items: center; padding-top: 34px; }
-.b2-board { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 6px #161d38, 0 0 0 8px var(--pink), 0 24px 60px rgba(0,0,0,.5); touch-action: none; user-select: none; }
+.b2-board { position: relative; border-radius: 4px; overflow: visible; box-shadow: 0 0 0 2px #c9963f, 0 0 0 12px #4a2b17, 0 0 0 13px #2a170b, 0 0 0 14px rgba(233,201,143,.45), 0 26px 60px rgba(0,0,0,.6); touch-action: none; user-select: none; }
 .b2-squares, .b2-layer, .b2-labels { position: absolute; inset: 0; pointer-events: none; }
 .b2-sq { position: absolute; width: 12.5%; height: 12.5%; }
-.b2-sq.light { background: #f2e8d8; } .b2-sq.dark { background: #2c7c8f; }
+.b2-sq.light { background: #eed8b4 linear-gradient(115deg, rgba(255,255,255,.10), rgba(160,110,60,.06) 60%, rgba(255,255,255,.05)); }
+.b2-sq.dark { background: #b07c52 linear-gradient(115deg, rgba(255,230,190,.08), rgba(70,35,10,.10) 55%, rgba(255,230,190,.04)); }
+.board-host { position: absolute; inset: 0; }
+.dim-seg { display: inline-flex; align-items: center; padding: 3px; gap: 2px; border-radius: 999px; border: 1px solid rgba(233,201,143,.35); background: rgba(20,13,8,.78); backdrop-filter: blur(6px); pointer-events: auto; cursor: pointer; position: relative; z-index: 6; }
+.dim-seg span { padding: 5px 11px; border-radius: 999px; font: 800 12px var(--f-mono); letter-spacing: .04em; color: #cdb48c; transition: background .25s, color .25s; }
+body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-d="3"] { background: linear-gradient(180deg, #f2d48d, #c9963f); color: #2a1a0c; box-shadow: 0 2px 8px rgba(201,150,63,.4); }
+body.no-3d .dim-seg { display: none; }
+.stage-top .dim-seg { margin-left: auto; }
+.b2-lab.on-dark { color: #f3dfba; }
+/* coach missions */
+.jmission { display: flex; align-items: center; gap: 10px; width: calc(100% - 28px); margin: -2px 0 6px 28px; padding: 7px 12px; border-radius: 10px; border: 1px dashed rgba(255,210,63,.45); background: rgba(255,210,63,.06); color: var(--fg); font-size: 13.5px; text-align: left; }
+.jmission:hover { border-style: solid; }
+.jmission.done { border-color: rgba(61,220,151,.4); background: rgba(61,220,151,.06); }
+.jm-ico { color: var(--brass-hi); } .jmission.done .jm-ico { color: #3ddc97; }
+.jm-t { flex: 1; font-weight: 600; }
+.jm-pips { display: inline-flex; gap: 4px; } .jm-pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--brass-hi); } .jm-pips i.on { background: var(--brass-hi); }
+.b2-board.tiny .b2-lab { font-size: 8px; opacity: .8; }
+.ms-head { margin-top: 4px; }
+.ms-steps { display: flex; align-items: center; gap: 0; margin: 4px 0 12px; }
+.ms-step { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; font: 800 12px var(--f-mono); color: var(--muted); background: var(--card); border: 1px solid var(--line); }
+.ms-step.done { color: #2a1a0c; background: linear-gradient(180deg, var(--brass-hi), var(--brass)); border-color: transparent; font-size: 14px; }
+.ms-step.on { border-color: var(--brass-hi); box-shadow: 0 0 0 3px rgba(255,210,63,.18); color: var(--fg); }
+.ms-link { width: 18px; height: 2px; background: var(--line); }
+.ms-coach { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; }
+.ms-ava { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,210,63,.5); animation: msBob 3s ease-in-out infinite; }
+.ms-ava svg { width: 100%; height: 100%; display: block; }
+.ms-coach p { margin: 0; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 10px 13px; font-size: 15px; line-height: 1.45; }
+@keyframes msBob { 50% { transform: translateY(-2px) rotate(-2deg); } }
+.ms-track { background: linear-gradient(135deg, rgba(255,210,63,.12), rgba(76,201,240,.06)), var(--card); border: 1px solid rgba(255,210,63,.35); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; }
+.ms-goal { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.ms-goal-ico { color: var(--brass-hi); font-size: 18px; }
+.ms-count { margin-left: auto; font: 800 18px var(--f-mono); color: var(--brass-hi); }
+.ms-moves { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.ms-mvs { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.ms-mv { width: 10px; height: 10px; border-radius: 50%; background: var(--brass-hi); box-shadow: 0 0 6px rgba(255,210,63,.5); transition: background .3s, box-shadow .3s; }
+.ms-mv.used { background: var(--card-2); box-shadow: none; }
+.ms-mv.par { outline: 2px solid rgba(255,255,255,.25); outline-offset: 1px; }
+.ms-bar { height: 8px; border-radius: 99px; background: var(--card-2); overflow: hidden; }
+.ms-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brass), var(--brass-hi)); border-radius: inherit; transition: width .4s cubic-bezier(.2,1.4,.4,1); }
+.ms-tip { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(61,220,151,.1); border: 1px solid rgba(61,220,151,.35); font-size: 14px; }
+.ms-result { text-align: center; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); animation: msPop .5s cubic-bezier(.2,1.5,.4,1) both; }
+.ms-result.win { border-color: rgba(255,210,63,.6); background: radial-gradient(circle at 50% 0, rgba(255,210,63,.22), transparent 70%), var(--card); }
+.ms-result.fail { border-color: rgba(255,93,108,.45); }
+.ms-result h2 { margin: 4px 0; font-size: 22px; } .ms-result p { margin: 4px 0 0; color: var(--muted); }
+@keyframes msPop { from { transform: scale(.85); opacity: 0; } }
+/* lesson quiz */
+.quiz { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,210,63,.16), rgba(255,79,139,.08)); border: 1px solid rgba(255,210,63,.45); animation: quizIn .5s .3s both; }
+.quiz.done { background: rgba(61,220,151,.12); border-color: rgba(61,220,151,.5); }
+.quiz-tag { font: 800 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: #2a1a0c; background: var(--brass-hi); padding: 3px 8px; border-radius: 99px; }
+.quiz.done .quiz-tag { background: #3ddc97; }
+.quiz-q { font-weight: 600; flex: 1 1 160px; }
+.quiz-pips { display: inline-flex; gap: 5px; } .quiz-pips i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--brass-hi); transition: background .25s, transform .25s; } .quiz-pips i.on { background: var(--brass-hi); transform: scale(1.15); }
+@keyframes quizIn { from { transform: translateY(8px); opacity: 0; } }
+.xp-pop { position: absolute; left: 50%; top: 42%; transform: translate(-50%, 0); font: 900 28px var(--f-mono); color: var(--brass-hi); text-shadow: 0 2px 12px rgba(0,0,0,.6); pointer-events: none; z-index: 9; animation: xpUp 1.2s ease-out forwards; }
+@keyframes xpUp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1); } }
+@media (max-width: 880px) and (orientation: portrait) {
+  .ms-steps { margin: 0 0 6px; } .ms-step { min-width: 24px; height: 24px; font-size: 11px; } .ms-link { width: 12px; }
+  .ms-coach { margin: 8px 0; gap: 10px; } .ms-ava { flex-basis: 34px; width: 34px; height: 34px; } .ms-coach p { font-size: 14px; padding: 8px 11px; }
+  .ms-track { padding: 10px 12px; gap: 8px; } .ms-goal { font-size: 15px; }
+  body[data-mode="mission"] .panel .h1 { font-size: 22px; margin: 2px 0; }
+  .ms-result { padding: 10px; } .ms-result .big-stars { font-size: 34px; margin: 0; } .ms-result h2 { font-size: 19px; }
+  .quiz { margin-top: 8px; padding: 8px 10px; }
+  .quiz-q { font-size: 14px; }
+  body[data-mode="lesson"] .coach-card .coach-text { font-size: 14.5px; }
+}
 .b2-piece { position: absolute; width: 12.5%; height: 12.5%; display: grid; place-items: center; transition: left .24s ease, top .24s ease, transform .2s; z-index: 2; }
 .b2-piece svg { width: 86%; height: 86%; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
 .b2-piece.dragging { transition: none; z-index: 5; transform: scale(1.15); }
@@ -724,7 +789,7 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 @keyframes b2float { to { transform: translateY(-6%) rotate(8deg); } }
 .b2-burst { position: absolute; width: 12.5%; height: 12.5%; border-radius: 50%; box-shadow: 0 0 0 0 rgba(255,210,63,.8); animation: b2burst .7s ease-out forwards; z-index: 6; }
 @keyframes b2burst { to { box-shadow: 0 0 0 40px rgba(255,210,63,0); } }
-.b2-lab { position: absolute; font: 600 10px var(--f-mono); color: rgba(16,22,30,.55); }
+.b2-lab { position: absolute; font: 800 11px var(--f-mono); color: #8a5a34; z-index: 3; }
 .b2-lab.file { bottom: 1px; } .b2-lab.rank { left: 3px; }
 /* tour polish */
 .tour-spot { outline-color: var(--pink); border-radius: 14px; }

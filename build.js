@@ -1,5 +1,5 @@
 const fs=require('fs');
-let js=['chesscore.js','engine.js','data.js','puzzles2.js','defences.js','arena.js','voicelines.js','icons.js','board2d.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
+let js=['chesscore.js','engine.js','data.js','puzzles2.js','defences.js','arena.js','missions.js','voicelines.js','icons.js','board2d.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
 const t=fs.readFileSync('template.html','utf8');
 const vf=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
 // A clip whose line text has changed since it was recorded stays silent (text only) until it is re-recorded.

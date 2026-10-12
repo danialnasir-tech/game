@@ -308,8 +308,8 @@ var PUZZLES = [
 ];
 
 var COACH_LEVELS = [
-  { id: 'novice', name: 'Novice', elo: 600, depth: 2, time: 400, margin: 130, blurb: 'Misses tactics often. Good for practising the basics.' },
-  { id: 'club', name: 'Club', elo: 1000, depth: 3, time: 600, margin: 45, blurb: 'Punishes hanging pieces.' },
+  { id: 'novice', name: 'Novice', elo: 600, depth: 2, time: 400, margin: 130, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
+  { id: 'club', name: 'Club', elo: 1000, depth: 3, time: 600, margin: 45, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
   { id: 'strong', name: 'Strong', elo: 1400, depth: 5, time: 900, margin: 18, blurb: 'Sees short combinations.' },
   { id: 'expert', name: 'Expert', elo: 1800, depth: 8, time: 1400, margin: 0, blurb: 'Calculates deeply and rarely slips.' },
   { id: 'master', name: 'Master', elo: 2200, depth: 40, time: 2500, margin: 0, blurb: 'Full strength. Your final boss.' }

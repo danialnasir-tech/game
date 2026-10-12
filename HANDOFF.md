@@ -20,7 +20,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `dist/voice-pack-1..19.mp3` | All 1932 voice clips, packed (32 kbps mono). Packs 1-2 are the start packs (first-session lines) the launch screen downloads; the rest load on demand. `dist/voice-manifest.json` = generator hash per clip (stale clips stay silent). |
 | `pack-voice.js`, `unpack-voice.js`, `ingest.sh` | Turn a voice zip (or a folder) from the user into packs: `sh ingest.sh chess-voice-v4.zip` (needs ffmpeg). It may hold only the new clips: `unpack-voice.js` restores the already packed ones first. A .rar must be extracted to a folder first (e.g. with the free `node-unrar-js`). |
 | `build-kit.js` | Rebuilds `voice-kit-v4/generate-v4-voices.js` from `voice-kit-v4/generate-v4-voices.template.js` with every line (male voice, eleven_v4 only) and prints how many clips are new. `voice-kit/` is the old female template and is no longer used. |
-| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 1410 lines, all generated and packed. |
+| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 1997 lines (1932 packed, 65 waiting to be recorded). |
 | `website/` | Download version: `serve.js` + `Start-Chess-Ascent.bat` (index.html = dist/site.html, plus the 15 packs). |
 | `tests/` | `perft.js`, `validate.js` (checks every lesson/opening/puzzle), `bench.js` (engine match + tactics), `mine.js` (puzzle miner), Playwright scripts (`smoke.py`, `mob.py` phone screenshots, etc.). |
 
@@ -29,6 +29,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 node build.js                 # build everything into dist/
 node tests/perft.js           # rules check
 node tests/validate.js        # content check (must print "errors 0")
+node tests/missions.js        # every coach mission winnable (must print "missions errors 0")
 node build-kit.js             # regenerate voice generator lines
 sh ingest.sh <voice-zip>      # add new voice clips, then rebuild
 ```
@@ -77,7 +78,18 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - `#splash` in template.html with an inline script (sparkles canvas, progress ring and bar, piece row, tips) exposed as `window.__splash`.
 - First visit: `Voice.preloadStart` downloads the start packs with byte progress, then a Start tap (unlocks sound). `S.voiceReady` skips this later. Keep `START_CLIP` (app.js) and `START` (pack-voice.js) in sync.
 
+## Classic boards, 2D default, live 2D/3D switch
+- 3D: procedural maple/walnut squares (`woodCanvas`/`woodTex`), walnut frame with brass inlay and bead, felt pads, lacquered ivory/ebony pieces, warm "study" lighting and reflection map. No more pink/cyan neon in the scene.
+- 2D: classic cream/brown squares, wood-and-brass frame, labels coloured per square. Phone gets a 34px strip above the 2D board for the 2D/3D pill and the ⋯ menu.
+- `Board` (app.js) keeps both implementations behind the `B3` front: it records position, markers, arrows, stars, orientation and drag hooks and replays them on the other board when the player taps the **2D | 3D** pill (`#dim-btn`). 3D is only built on first use; its render loop pauses (`setActive`) while 2D is shown. `S.settings.board2d !== false` means 2D (the default for everyone).
+
+## Coach missions, lesson quizzes, "on purpose" framing
+- `missions.js`: three missions per Foundations lesson (easy → hard): check, capture / captureAll, mate, promote, castle, en passant. `coach: 'wander'` = the coach only walks his king and never captures; `'defend'` = engine at full strength. `node tests/missions.js` proves each one is winnable inside its limit (must print `missions errors 0`). After a Foundations lesson the "What next?" card is the missions (replacing "Play it out"); done lessons show a mission row with pips on the path.
+- Lesson quizzes: a Concept step that shows one lone piece becomes "Your turn: tap N squares it can reach" (`QUIZ_OF` in voicelines.js, voice ids `Q-…`). Next unlocks when found; Skip is allowed.
+- Novice coach in teaching mode leaves a minor piece or rook loose up to 3 times a game (`teachSlip`), and `onPurpose` says so ("I left my knight on c6 loose on purpose…"). Beating Novice/Club gets a "I play like a beginner on purpose" message instead of looking like a broken bot.
+- The home board previews the next lesson; tapping it starts the lesson.
+
 ## Open items
-1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.
+1. Voice: 1932 clips packed. 65 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.
 3. Ideas offered: Stockfish (WASM, GPL) for the website build; accounts / cloud save on Hostinger.

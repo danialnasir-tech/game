@@ -302,7 +302,7 @@ button:disabled { cursor: not-allowed; }
   .ts-day { min-width: 0; } .ts.hide-sm, .ts-level { display: none; }
   #sound-btn { display: none; }
   .sound { width: 38px; height: 38px; }
-  .stage { grid-area: stage; height: min(100vw, 54vh); height: min(100vw, 54dvh); transition: height .35s ease; }
+  .stage { grid-area: stage; height: min(calc(100vw + 26px), 56vh); height: min(calc(100vw + 26px), 56dvh); transition: height .35s ease; }
   body[data-layout="browse"] .stage { height: min(30dvh, 250px); }
   body[data-layout="browse"] .stage .board-tools, body[data-layout="browse"] .tools-btn, body[data-layout="browse"] #evalbar { display: none !important; }
   .stage-top { top: 6px; left: auto; right: 6px; }
@@ -314,8 +314,8 @@ button:disabled { cursor: not-allowed; }
   .board-tools button:active { background: var(--card-2); }
   #evalbar { left: 4px; top: 8px; bottom: 8px; width: 8px; }
   #evalbar span { display: none; }
-  body .b2-wrap { padding-top: 0; }
-  body .b2-board { box-shadow: 0 0 0 3px #161d38, 0 0 0 5px var(--pink), 0 14px 40px rgba(0,0,0,.5); }
+  body .b2-wrap { padding-top: 34px; }
+  body .b2-board { box-shadow: 0 0 0 2px #c9963f, 0 0 0 6px #4a2b17, 0 0 0 7px rgba(233,201,143,.4), 0 14px 40px rgba(0,0,0,.5); }
   /* coach strip between board and panel */
   body.mob #app > .coach-bubble { margin: 6px 10px 0; padding: 7px 12px 7px 7px; gap: 9px; border-radius: 14px; border: 1px solid rgba(255,79,139,.45); background: rgba(16,23,44,.92); }
     body.mob .coach-bubble .cb-avatar { width: 30px; height: 30px; }
@@ -407,6 +407,7 @@ button:disabled { cursor: not-allowed; }
     <div id="evalbar" hidden><i></i><span>0.0</span></div>
     <div class="stage-top"><div id="mode-label">Training path</div>
       <button id="tools-btn" class="tools-btn" aria-label="Board options" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      <button id="dim-btn" class="dim-seg" aria-label="Switch board view"><span data-d="2">2D</span><span data-d="3">3D</span></button>
       <div class="board-tools"><button id="flip-btn">Flip</button><button id="view-btn">Top view</button><button id="replay-btn">Replay voice</button><button id="center-btn">Recenter</button></div></div>
     <div id="toast" class="toast" role="status"></div>
     <div id="coach-bubble" class="coach-bubble" hidden aria-live="polite"><span class="cb-avatar" aria-hidden="true"></span><span class="cb-body"><span class="cb-name">Coach Leo</span><span class="cb-text"></span></span></div>
@@ -1708,8 +1709,8 @@ var PUZZLES = [
 ];
 
 var COACH_LEVELS = [
-  { id: 'novice', name: 'Novice', elo: 600, depth: 2, time: 400, margin: 130, blurb: 'Misses tactics often. Good for practising the basics.' },
-  { id: 'club', name: 'Club', elo: 1000, depth: 3, time: 600, margin: 45, blurb: 'Punishes hanging pieces.' },
+  { id: 'novice', name: 'Novice', elo: 600, depth: 2, time: 400, margin: 130, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
+  { id: 'club', name: 'Club', elo: 1000, depth: 3, time: 600, margin: 45, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
   { id: 'strong', name: 'Strong', elo: 1400, depth: 5, time: 900, margin: 18, blurb: 'Sees short combinations.' },
   { id: 'expert', name: 'Expert', elo: 1800, depth: 8, time: 1400, margin: 0, blurb: 'Calculates deeply and rarely slips.' },
   { id: 'master', name: 'Master', elo: 2200, depth: 40, time: 2500, margin: 0, blurb: 'Full strength. Your final boss.' }
@@ -1981,6 +1982,105 @@ var VISION_GAMES = [
 if (typeof module !== 'undefined') module.exports = { BOSSES: BOSSES, CHALLENGES: CHALLENGES, VISION_GAMES: VISION_GAMES };
 
 ;
+// ===== Coach missions: three short, hands-on scenarios after each Foundations lesson =====
+// goal: 'check' (give check), 'capture' (win `count` pieces, optionally only `types`), 'captureAll' (every enemy piece but the king),
+//       'mate', 'promote', 'castle', 'ep' (capture en passant). `limit` = your moves allowed, `par` = moves for 3 stars.
+// coach: 'wander' = the coach only walks his king around and never captures (a friendly sparring partner),
+//        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
+var MISSIONS = {
+  'l-rook': [
+    { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
+      text: 'Attack my king with your rook. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
+    { id: 'rook-snack', title: 'Pawn Snack', fen: '7k/8/1p6/8/5p2/8/8/R5K1 w - - 0 1', goal: 'capture', count: 2, limit: 6, par: 4, coach: 'wander',
+      text: 'Two of my pawns are loose. Win both of them. I will only move my king.', tip: 'Get on the same line as a pawn first, then take it.' },
+    { id: 'rook-sweep', title: 'Rook Sweep', fen: '7k/1p6/8/4p3/8/2p3p1/8/R5K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
+      text: 'Clear the board: take all four pawns. Plan a route that wastes no moves.', tip: 'After each capture, look for a square that lines up with the next pawn.' }
+  ],
+  'l-bishop-queen': [
+    { id: 'bishop-check', title: 'Diagonal Check', fen: '4k3/8/8/8/8/8/8/5BK1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
+      text: 'Check my king with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
+    { id: 'queen-double', title: 'Queen Grab', fen: '7k/8/2n5/8/8/5r2/8/3Q2K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
+      text: 'My knight and my rook are unguarded. Win both with your queen.', tip: 'Your queen reaches f3 on a diagonal. From f3, look at c6.' },
+    { id: 'queen-clean', title: 'Clean Sweep', fen: '6k1/p7/4r3/8/2b5/1n6/8/3Q2K1 w - - 0 1', goal: 'captureAll', limit: 8, par: 5, coach: 'wander',
+      text: 'Four of my pieces, one queen of yours. Take them all. The queen moves like a rook and a bishop at once.', tip: 'Start with a capture that lands on a square lined up with another piece.' }
+  ],
+  'l-knight': [
+    { id: 'knight-check', title: 'Knight Check', fen: '4k3/8/8/8/4N3/8/8/6K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
+      text: 'Check my king with a knight jump. Remember the L shape.', tip: 'From e4 the knight reaches d6 and f6. Both touch e8.' },
+    { id: 'knight-hop', title: 'Hop and Grab', fen: '7k/8/8/3p4/8/2p5/8/1N4K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
+      text: 'Two pawns, two jumps. Win them both.', tip: 'b1 jumps to c3. From c3, where can it land next?' },
+    { id: 'knight-hunt', title: 'Knight Hunt', fen: '2r4k/8/8/5b2/7p/8/8/1N4K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
+      text: 'My rook, bishop and pawn are stuck in place. Hunt all three down with your knight.', tip: 'Count the jumps to each piece and take the closest first.' }
+  ],
+  'l-king-pawn': [
+    { id: 'pawn-take', title: 'Pawn Bite', fen: '4k3/8/8/8/3n1b2/4P3/8/4K3 w - - 0 1', goal: 'capture', count: 1, limit: 1, par: 1, coach: 'wander',
+      text: 'Your pawn attacks two of my pieces. Take one. Pawns capture diagonally forward.', tip: 'The pawn on e3 captures on d4 or f4.' },
+    { id: 'pawn-run', title: 'Run to Queen', fen: '8/8/1k6/8/8/8/6P1/6K1 w - - 0 1', goal: 'promote', limit: 7, par: 5, coach: 'wander',
+      text: 'Push your pawn all the way and make a new queen. My king is too far away to stop it.', tip: 'On its first move the pawn may jump two squares.' },
+    { id: 'pawn-duo', title: 'Pawn Duo', fen: '8/8/8/8/8/k7/5PP1/5K2 w - - 0 1', goal: 'promote', limit: 8, par: 5, coach: 'defend', sol: ['g2g4', 'g4g5', 'g5g6', 'g6g7', 'g7g8q'],
+      text: 'Now I defend for real and run at your pawns. Pick the pawn my king cannot catch and promote it.', tip: 'The g-pawn is further from my king. Push it, and jump two squares on the first move.' }
+  ],
+  'l-check': [
+    { id: 'check-any', title: 'Find a Check', fen: '3k4/8/8/8/8/2N5/1B6/R3K3 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
+      text: 'Give check. Any piece will do, as long as it is a legal move.', tip: 'Your rook can reach the d-file.' },
+    { id: 'check-backrank', title: 'Back-Rank Mate', fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', goal: 'mate', limit: 1, par: 1, coach: 'defend',
+      text: 'My own pawns box my king in. Checkmate me in one move.', tip: 'Look at the 8th rank.' },
+    { id: 'check-rookmate', title: 'Rook and King', fen: 'k7/8/2K5/8/8/8/8/7R w - - 0 1', goal: 'mate', limit: 3, par: 2, coach: 'defend',
+      text: 'My king is in the corner. Checkmate within 3 moves, and do not stalemate me.', tip: 'Your king takes away b7 and b8 from c6 or b6. The rook gives the check.' }
+  ],
+  'l-special': [
+    { id: 'castle-short', title: 'King to Safety', fen: '4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1', goal: 'castle', limit: 1, par: 1, coach: 'wander',
+      text: 'Castle. Move the king two squares toward a rook.', tip: 'Tap the king, then g1 or c1.' },
+    { id: 'castle-long', title: 'Only One Way', fen: '4k1r1/8/8/8/8/8/8/R3K2R w KQ - 0 1', goal: 'castle', limit: 1, par: 1, coach: 'wander',
+      text: 'Castle again, but one side is not allowed this time. Which one is it?', tip: 'My rook on g8 watches g1. The king cannot castle into check.' },
+    { id: 'ep', title: 'En Passant', fen: '4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1', pre: 'd7d5', goal: 'ep', limit: 1, par: 1, coach: 'wander',
+      text: 'I push my pawn two squares past yours. Capture it en passant, right now, before the chance is gone.', tip: 'Your e5 pawn takes on d6, and my d5 pawn disappears.' }
+  ],
+  'l-qmate': [
+    { id: 'q-mate1', title: 'Queen Finish', fen: '3k4/8/3K4/8/8/8/8/7Q w - - 0 1', goal: 'mate', limit: 1, par: 1, coach: 'defend',
+      text: 'Your king guards the squares in front of mine. Checkmate in one with the queen.', tip: 'The back rank is open.' },
+    { id: 'q-mate2', title: 'Mate in Two', fen: '7k/8/5K2/8/8/8/8/Q7 w - - 0 1', goal: 'mate', limit: 2, par: 2, coach: 'defend',
+      text: 'Checkmate within 2 moves. One quiet queen move first, but leave me a legal move or it is stalemate.', tip: 'Put the queen on the 7th rank, a knight\'s jump from my king.' },
+    { id: 'q-box', title: 'Shrink the Box', fen: '6k1/8/8/8/8/8/8/4K2Q w - - 0 1', goal: 'mate', limit: 12, par: 9, coach: 'defend',
+      text: 'The full technique. My king is on the edge. Box it in, bring your king, and mate within 12 moves.', tip: 'Queen to the 7th rank keeps me on the back rank. Then walk your king up.' }
+  ]
+};
+// The friendly coach: walks his king, never captures, and keeps away from the pieces you are hunting,
+// so a beginner can focus on the piece they just learned. Falls back to any legal move.
+function missionWander(g, rnd) {
+  rnd = rnd || Math.random;
+  var all = g.moves(), quiet = all.filter(function (m) { return !m.captured; }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
+  var pool = kings.length ? kings : quiet.length ? quiet : all;
+  if (!pool.length) return null;
+  var own = [], me = g.turn();
+  for (var f = 0; f < 8; f++) for (var r = 1; r <= 8; r++) { var sq = 'abcdefgh'[f] + r, p = g.get(sq); if (p && p.color === me && p.type !== 'k') own.push(sq); }
+  function dist(a, b) { return Math.max(Math.abs(a.charCodeAt(0) - b.charCodeAt(0)), Math.abs(+a[1] - +b[1])); }
+  // a king step next to one of his own pieces would guard it, so prefer squares two or more away
+  var far = pool.filter(function (m) { return m.piece !== 'k' || own.every(function (o) { return dist(m.to, o) >= 2; }); });
+  if (far.length) pool = far;
+  return pool[Math.floor(rnd() * pool.length)];
+}
+function missionMaterial(g, color) {
+  var n = 0; for (var f = 0; f < 8; f++) for (var r = 1; r <= 8; r++) { var p = g.get('abcdefgh'[f] + r); if (p && p.color === color && p.type !== 'k') n++; }
+  return n;
+}
+// Called after each of your moves. st = { caps: 0 }. Returns 'win' when the goal is met.
+function missionCheck(m, g, mv, st) {
+  if (mv.captured && (!m.types || m.types.indexOf(mv.captured) >= 0)) st.caps = (st.caps || 0) + 1;
+  var foe = mv.color === 'w' ? 'b' : 'w';
+  if (m.goal === 'check' && g.inCheck()) return 'win';
+  if (m.goal === 'capture' && st.caps >= (m.count || 1)) return 'win';
+  if (m.goal === 'captureAll' && missionMaterial(g, foe) === 0) return 'win';
+  if (m.goal === 'mate' && g.inCheckmate()) return 'win';
+  if (m.goal === 'promote' && mv.promotion) return 'win';
+  if (m.goal === 'castle' && (mv.flags === 'k' || mv.flags === 'q')) return 'win';
+  if (m.goal === 'ep' && mv.flags === 'e') return 'win';
+  if (g.inStalemate()) return 'stalemate';
+  return null;
+}
+if (typeof module !== 'undefined') module.exports = { MISSIONS: MISSIONS, missionWander: missionWander, missionCheck: missionCheck, missionMaterial: missionMaterial };
+
+;
 // Fixed coach phrases, and the full list of voice lines the app can play.
 var COACH_LINES = {
   welcome: 'Welcome to Chess Ascent. I am your coach. Pick where you are starting, and we will climb together.',
@@ -2246,6 +2346,43 @@ Object.assign(MORE_POOLS, {
   replay_intro: ["Watch what happens.", "Here's how it plays out.", "Let me show you on the board.", "Follow the moves."]
 });
 
+// ===== Batch 7: coach missions, the coach playing at your level on purpose, hands-on lesson quizzes =====
+Object.assign(MORE_POOLS, {
+  cm_start: ["Mission time. Here's your goal.", "Let's put that lesson to work.", "Quick mission for you. Ready?", "Your turn to use it. Here's the setup.", "Small mission, big skill. Let's go."],
+  cm_done: ["Mission complete. Nicely done.", "Goal reached. You've got it.", "That's the idea exactly. Mission done.", "You made that look easy.", "Done! That piece is starting to obey you."],
+  cm_star3: ["Three stars. Not a single wasted move.", "Perfect route. Full marks.", "Flawless. That's the fastest way.", "Three stars! You planned that perfectly."],
+  cm_fail: ["Not quite. Let's set it up again.", "Close one. Try a different route.", "No problem. Reset and have another go.", "That didn't work this time. You'll get it.", "Almost. Think one move further ahead."],
+  coach_onpurpose: ["At this level I leave pieces loose on purpose. Can you spot them?", "I'm playing like a beginner on purpose. Punish my mistakes.", "I just left something unguarded. That's your training. Find it.", "I make slips at this level so you can practise winning material."],
+  coach_lost_easy: ["You beat me! At this level I play like a beginner on purpose, so you can practise winning. Try the next level when you're ready.", "Well played. I was playing gently, but you took your chances. That's exactly the skill.", "You won! I let a few things slip on purpose, and you punished them. Ready for a tougher me?"],
+  quiz_right: ["Yes, that's one!", "It can go there.", "Right square.", "Good eye.", "That's it.", "Yep, reachable."],
+  quiz_wrong: ["That piece can't reach there.", "Not that square. Think about how it moves.", "Nope, try another square."],
+  quiz_done: ["You found them all!", "Every square. You really know this piece now.", "All found. Brilliant.", "Complete! Let's keep going."]
+});
+
+// Hands-on check after a "Concept" step that shows one lone piece: tap squares it can reach.
+var QUIZ_NEED = { r: 4, b: 3, q: 5, n: 3, k: 3 }, QUIZ_WORD = ['zero', 'one', 'two', 'three', 'four', 'five'], QUIZ_NAME = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
+function QUIZ_OF(step) {
+  if (!step || step.t !== 'read' || !step.fen) return null;
+  var rows = step.fen.split(' ')[0].split('/'), found = [];
+  rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } found.push({ ch: ch, sq: 'abcdefgh'[f] + (8 - ri) }); f++; } });
+  if (found.length !== 1 || !QUIZ_NEED[found[0].ch.toLowerCase()] || found[0].ch !== found[0].ch.toUpperCase()) return null;
+  var type = found[0].ch.toLowerCase(), at = found[0].sq, fi = at.charCodeAt(0) - 97, r = +at[1] - 1, reach = [];
+  function add(ff, rr) { if (ff >= 0 && ff < 8 && rr >= 0 && rr < 8) reach.push('abcdefgh'[ff] + (rr + 1)); }
+  var D = { r: [[1, 0], [-1, 0], [0, 1], [0, -1]], b: [[1, 1], [1, -1], [-1, 1], [-1, -1]] }; D.q = D.r.concat(D.b);
+  if (type === 'n') [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(function (d) { add(fi + d[0], r + d[1]); });
+  else if (type === 'k') D.q.forEach(function (d) { add(fi + d[0], r + d[1]); });
+  else D[type].forEach(function (d) { for (var i = 1; i < 8; i++) add(fi + d[0] * i, r + d[1] * i); });
+  var need = Math.min(QUIZ_NEED[type], reach.length), all = need === reach.length;
+  return { type: type, at: at, reach: reach, need: need, id: 'Q-' + type + '-' + need + (all ? 'a' : ''),
+    text: 'Your turn. Tap ' + (all ? (need === 2 ? 'both' : 'all ' + QUIZ_WORD[need]) : QUIZ_WORD[need]) + ' squares the ' + QUIZ_NAME[type] + ' can reach.' };
+}
+function QUIZ_LINES(data) {
+  var seen = {}, out = [];
+  Object.keys(data.LESSONS).forEach(function (id) { data.LESSONS[id].steps.forEach(function (s) { var q = QUIZ_OF(s); if (q && !seen[q.id]) { seen[q.id] = 1; out.push({ id: q.id, text: q.text, group: 'more' }); } }); });
+  return out;
+}
+if (typeof module !== 'undefined') { module.exports.QUIZ_OF = QUIZ_OF; module.exports.QUIZ_LINES = QUIZ_LINES; }
+
 ;
 // Vector chess piece icons (45x45 viewBox). Font-free so they render identically on every device.
 var PIECE_PATHS = {
@@ -2284,7 +2421,7 @@ function BOARD2D_FACTORY() {
     svgLayer.setAttribute('viewBox', '0 0 8 8'); svgLayer.setAttribute('class', 'b2-svg'); root.appendChild(svgLayer);
     for (var y = 0; y < 8; y++) for (var x = 0; x < 8; x++) { var s = div('b2-sq ' + ((x + y) % 2 ? 'dark' : 'light'), sqLayer); s.style.left = x * 12.5 + '%'; s.style.top = y * 12.5 + '%'; }
     labels = div('b2-labels', root);
-    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), size = Math.max(160, mob ? Math.min(w - 20, h - 20) : Math.min(w - 24, h - 70)); root.style.width = root.style.height = size + 'px'; }
+    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), pad = parseFloat(getComputedStyle(wrap).paddingTop) || 0, size = Math.max(160, mob ? Math.min(w - 20, h - 16 - pad) : Math.min(w - 24, h - 70)); root.style.width = root.style.height = size + 'px'; root.classList.toggle('tiny', size < 300); }
     new ResizeObserver(fit).observe(el); fit();
     drawLabels();
     root.addEventListener('pointerdown', down);
@@ -2295,8 +2432,8 @@ function BOARD2D_FACTORY() {
   function drawLabels() {
     labels.innerHTML = '';
     for (var i = 0; i < 8; i++) {
-      var f = div('b2-lab file', labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 11.2) + '%';
-      var r = div('b2-lab rank', labels); r.textContent = orient === 'w' ? 8 - i : i + 1; r.style.top = (i * 12.5 + 0.6) + '%';
+      var f = div('b2-lab file' + (i % 2 ? '' : ' on-dark'), labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 11.2) + '%';
+      var r = div('b2-lab rank' + (i % 2 ? ' on-dark' : ''), labels); r.textContent = orient === 'w' ? 8 - i : i + 1; r.style.top = (i * 12.5 + 0.6) + '%';
     }
   }
   function sqAt(e) {
@@ -2428,7 +2565,7 @@ function BOARD2D_FACTORY() {
   // ================= Storage =================
   var STORE_KEY = 'chess-ascent-v1';
   function freshState() {
-    return { onboarded: false, band: 100, startDate: null, xp: 0, streak: 0, lastActive: null, lessons: {}, openings: {}, puzzle: { rating: 400, solved: {}, hist: [] }, games: [], daily: {}, sound: true, voice: true, coach: { explain: true, threats: true, level: 'club', color: 'w', style: null, evalbar: null }, settings: { coachName: 'Coach Leo', volume: 1, rate: 1, subtitles: true, cameraFixed: false }, badges: {}, peek: {}, arena: {}, bosses: {}, challenges: {}, cleared: {} };
+    return { onboarded: false, band: 100, startDate: null, xp: 0, streak: 0, lastActive: null, lessons: {}, openings: {}, puzzle: { rating: 400, solved: {}, hist: [] }, games: [], daily: {}, sound: true, voice: true, coach: { explain: true, threats: true, level: 'club', color: 'w', style: null, evalbar: null }, settings: { coachName: 'Coach Leo', volume: 1, rate: 1, subtitles: true, cameraFixed: false }, badges: {}, peek: {}, arena: {}, bosses: {}, challenges: {}, cleared: {}, missions: {} };
   }
   function loadState() {
     try {
@@ -2757,7 +2894,7 @@ function BOARD2D_FACTORY() {
     function V(a) { return a.map(function (p) { return new THREE.Vector2(p[0], p[1]); }); }
     function arc(cx, cy, r, a0, a1, n) { var out = []; for (var i = 0; i <= n; i++) { var a = a0 + (a1 - a0) * i / n; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return out; }
     var BASE = [[0, 0], [0.36, 0], [0.375, 0.025], [0.365, 0.07], [0.31, 0.1], [0.3, 0.14], [0.26, 0.17]];
-    function lathe(pts) { var g = new THREE.LatheGeometry(V(pts), 40); g.computeVertexNormals(); return g; }
+    function lathe(pts) { var g = new THREE.LatheGeometry(V(pts), 56); g.computeVertexNormals(); return g; }
     function buildGeometries() {
       GEO.p = lathe(BASE.concat([[0.2, 0.2], [0.14, 0.3], [0.11, 0.42], [0.19, 0.45], [0.19, 0.48], [0.1, 0.5]]).concat(arc(0, 0.62, 0.15, -1.1, Math.PI / 2, 12)));
       GEO.r = lathe(BASE.concat([[0.25, 0.2], [0.2, 0.3], [0.19, 0.55], [0.27, 0.6], [0.28, 0.8], [0.2, 0.8], [0.2, 0.74], [0, 0.74]]));
@@ -2767,12 +2904,14 @@ function BOARD2D_FACTORY() {
       GEO.k = lathe(QB.map(function (p) { return [p[0], p[1] * 1.04]; }).concat([[0.18, 0.98], [0.23, 1.1], [0.2, 1.13], [0.1, 1.15], [0, 1.16]]));
       GEO.nBase = lathe(BASE.concat([[0.24, 0.2], [0.2, 0.28], [0.19, 0.36], [0, 0.37]]));
       var s = new THREE.Shape();
-      var hp = [[-0.2, 0.3], [0.16, 0.3], [0.12, 0.48], [0.07, 0.58], [0.27, 0.62], [0.32, 0.7], [0.25, 0.79], [0.09, 0.9], [0.04, 1.0], [-0.02, 1.07], [-0.09, 0.96], [-0.17, 0.9], [-0.25, 0.72], [-0.27, 0.5]];
+      // horse head: smooth spline outline (chest, muzzle, forehead, ears, mane), thick rounded bevel
+      var hp = [[-0.22, 0.3], [0.17, 0.3], [0.14, 0.44], [0.1, 0.55], [0.2, 0.58], [0.3, 0.63], [0.33, 0.7], [0.28, 0.77], [0.17, 0.84], [0.1, 0.92], [0.07, 1.02], [0.02, 1.09], [-0.03, 1.02], [-0.08, 1.08], [-0.12, 0.98], [-0.2, 0.9], [-0.26, 0.76], [-0.29, 0.58], [-0.27, 0.42]];
       s.moveTo(hp[0][0], hp[0][1]);
-      for (var i = 1; i < hp.length; i++) s.lineTo(hp[i][0], hp[i][1]);
+      s.splineThru(hp.slice(1).map(function (q) { return new THREE.Vector2(q[0], q[1]); }));
       s.lineTo(hp[0][0], hp[0][1]);
-      GEO.nHead = new THREE.ExtrudeGeometry(s, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.03, bevelSegments: 3, curveSegments: 4 });
-      GEO.nHead.translate(0, 0, -0.1);
+      GEO.nHead = new THREE.ExtrudeGeometry(s, { depth: 0.13, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.04, bevelSegments: 5, curveSegments: 10 });
+      GEO.nHead.translate(0, 0, -0.065);
+      GEO.nHead.computeVertexNormals();
       GEO.crenel = new THREE.BoxGeometry(0.09, 0.08, 0.09);
       GEO.crossV = new THREE.BoxGeometry(0.06, 0.24, 0.06);
       GEO.crossH = new THREE.BoxGeometry(0.18, 0.06, 0.06);
@@ -2787,30 +2926,62 @@ function BOARD2D_FACTORY() {
       GEO.glow = new THREE.CircleGeometry(0.46, 32);
       GEO.spark = new THREE.BoxGeometry(0.07, 0.07, 0.07);
       GEO.decal = new THREE.CircleGeometry(0.3, 32);
+      GEO.felt = new THREE.CylinderGeometry(0.345, 0.345, 0.008, 40);
     }
+    // Procedural wood: long wavy grain lines plus fine fibres and a soft sheen, drawn once to a canvas.
+    function woodCanvas(base, dark, light, seed, size, rings) {
+      var c = document.createElement('canvas'); c.width = c.height = size || 512;
+      var x = c.getContext('2d'), W = c.width, rnd = seed || 1;
+      function R() { rnd = (rnd * 16807) % 2147483647; return rnd / 2147483647; }
+      x.fillStyle = base; x.fillRect(0, 0, W, W);
+      for (var i = 0; i < (rings || 70); i++) {
+        var y0 = R() * W, amp = 3 + R() * 9, fq = 0.004 + R() * 0.01, ph = R() * 6.3;
+        x.strokeStyle = R() < 0.6 ? dark : light; x.globalAlpha = 0.12 + R() * 0.3; x.lineWidth = 0.6 + R() * 2.6;
+        x.beginPath();
+        for (var px = 0; px <= W; px += 8) { var py = y0 + Math.sin(px * fq + ph) * amp + Math.sin(px * fq * 3.1 + ph) * amp * 0.3; if (px) x.lineTo(px, py); else x.moveTo(px, py); }
+        x.stroke();
+      }
+      x.globalAlpha = 0.05;
+      for (var k = 0; k < 900; k++) { x.fillStyle = R() < 0.5 ? dark : light; x.fillRect(R() * W, R() * W, 6 + R() * 30, 1); }
+      x.globalAlpha = 1;
+      return c;
+    }
+    function woodTex(cv, rx, ry, ox, oy, rot) {
+      var t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8;
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx || 1, ry || 1); t.offset.set(ox || 0, oy || 0);
+      if (rot) { t.center.set(0.5, 0.5); t.rotation = rot; }
+      return t;
+    }
+    var WOOD = {};
     function buildMaterials() {
-      MAT.w = new THREE.MeshPhysicalMaterial({ color: col(0xf0e4c8), roughness: 0.55, metalness: 0.0, clearcoat: 0.15, clearcoatRoughness: 0.6 });
-      MAT.b = new THREE.MeshPhysicalMaterial({ color: col(0x23222b), roughness: 0.45, metalness: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.5 });
-      MAT.light = new THREE.MeshStandardMaterial({ color: col(0xf2e8d8), roughness: 0.95, metalness: 0 });
-      MAT.dark = new THREE.MeshStandardMaterial({ color: col(0x2c7c8f), roughness: 0.95, metalness: 0 });
-      MAT.frame = new THREE.MeshStandardMaterial({ color: col(0x161d38), roughness: 0.85, metalness: 0 });
-      MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xff4f8b), emissive: col(0xff4f8b), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.2 });
+      WOOD.maple = woodCanvas('#d8b07a', '#a87440', '#ecd09e', 7, 512, 110);
+      WOOD.walnut = woodCanvas('#6e3f22', '#3e200f', '#8f5a32', 13, 512, 110);
+      WOOD.frame = woodCanvas('#3b2214', '#1f1009', '#5a3620', 29, 512, 80);
+      WOOD.table = woodCanvas('#2a1a10', '#150b06', '#3c2617', 41, 512, 60);
+      // ivory and ebony, lacquered
+      MAT.w = new THREE.MeshPhysicalMaterial({ color: col(0xe6d2a8), roughness: 0.42, metalness: 0.0, clearcoat: 0.6, clearcoatRoughness: 0.25, sheen: 0 });
+      MAT.b = new THREE.MeshPhysicalMaterial({ color: col(0x1e1611), roughness: 0.3, metalness: 0.0, clearcoat: 0.85, clearcoatRoughness: 0.18 });
+      MAT.light = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.62, metalness: 0 });
+      MAT.dark = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0 });
+      MAT.frame = new THREE.MeshPhysicalMaterial({ map: woodTex(WOOD.frame, 2, 1), roughness: 0.45, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+      MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xd4a64a), roughness: 0.32, metalness: 0.95 });
+      MAT.felt = new THREE.MeshStandardMaterial({ color: col(0x1f4a32), roughness: 1, metalness: 0 });
       MAT.star = new THREE.MeshStandardMaterial({ color: col(0xffd23f), emissive: col(0xffb000), emissiveIntensity: 0.75, roughness: 0.3, metalness: 0.3 });
       MAT.glow = new THREE.MeshBasicMaterial({ color: col(0xffd23f), transparent: true, opacity: 0.38, depthWrite: false });
       // how strongly each surface picks up the studio reflections from buildEnvironment()
-      MAT.w.envMapIntensity = 0.5; MAT.b.envMapIntensity = 0.95; MAT.light.envMapIntensity = 0.22; MAT.dark.envMapIntensity = 0.3; MAT.frame.envMapIntensity = 0.45; MAT.star.envMapIntensity = 0.8;
+      MAT.w.envMapIntensity = 0.55; MAT.b.envMapIntensity = 1.1; MAT.light.envMapIntensity = 0.35; MAT.dark.envMapIntensity = 0.35; MAT.frame.envMapIntensity = 0.6; MAT.brass.envMapIntensity = 1.2; MAT.star.envMapIntensity = 0.8;
     }
-    // A small "photo studio" (dark gradient dome, one warm softbox, pink and sky rim panels) baked into
-    // a reflection map, so pieces get glossy highlights that match the scene's lights.
+    // A warm "study" (dark brown dome, a big window softbox, two warm lamp panels) baked into a
+    // reflection map, so the lacquered pieces and brass trim catch believable highlights.
     function buildEnvironment() {
       try {
         var pm = new THREE.PMREMGenerator(renderer), env = new THREE.Scene();
         var dome = new THREE.SphereGeometry(20, 32, 16), p = dome.attributes.position, cols = [];
-        var top = new THREE.Color(0x222c58), bot = new THREE.Color(0x04060d), c = new THREE.Color();
+        var top = new THREE.Color(0x4a3524), bot = new THREE.Color(0x0c0705), c = new THREE.Color();
         for (var i = 0; i < p.count; i++) { c.copy(bot).lerp(top, (p.getY(i) / 20 + 1) / 2); cols.push(c.r, c.g, c.b); }
         dome.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
         env.add(new THREE.Mesh(dome, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
-        [[0xfff1dc, -4, 15, 4, 12, 8], [0xff4f8b, -13, 5, -9, 7, 3], [0x4cc9f0, 13, 4, -7, 7, 3]].forEach(function (b) {
+        [[0xfff4e2, -4, 15, 4, 12, 8], [0xffc98a, -13, 5, -9, 7, 3], [0xffe3b8, 13, 4, -7, 7, 3]].forEach(function (b) {
           var m = new THREE.Mesh(new THREE.PlaneGeometry(b[4], b[5]), new THREE.MeshBasicMaterial({ color: b[0], side: THREE.DoubleSide }));
           m.position.set(b[1], b[2], b[3]); m.lookAt(0, 0, 0); env.add(m);
         });
@@ -2824,8 +2995,8 @@ function BOARD2D_FACTORY() {
       var c = document.createElement('canvas'); c.width = c.height = 128;
       var x = c.getContext('2d');
       x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2);
-      x.fillStyle = color === 'w' ? '#f7efdc' : '#1b1a22'; x.fill();
-      x.lineWidth = 6; x.strokeStyle = color === 'w' ? '#ffd23f' : '#ff4f8b'; x.stroke();
+      x.fillStyle = color === 'w' ? '#f4e6c8' : '#1e1611'; x.fill();
+      x.lineWidth = 6; x.strokeStyle = '#c99a3e'; x.stroke();
       x.save(); x.translate(64 - 45 * 1.05, 62 - 45 * 1.05); x.scale(2.1, 2.1);
       x.fillStyle = color === 'w' ? '#1b1a22' : '#f7efdc'; x.strokeStyle = color === 'w' ? '#f7efdc' : '#1b1a22'; x.lineWidth = 1.2; x.lineJoin = 'round';
       [PIECE_PATHS[type], PIECE_BASE].forEach(function (d) { var p = new Path2D(d); x.fill(p, 'evenodd'); x.stroke(p); });
@@ -2840,7 +3011,7 @@ function BOARD2D_FACTORY() {
       if (type === 'n') {
         g.add(part(GEO.nBase, mat));
         var head = part(GEO.nHead, mat);
-        head.rotation.y = color === 'w' ? Math.PI / 2 : -Math.PI / 2;
+        head.rotation.y = color === 'w' ? Math.PI / 2 - 0.7 : -Math.PI / 2 - 0.7; // three-quarter profile toward the player
         g.add(head);
       } else {
         g.add(part(GEO[type], mat));
@@ -2853,6 +3024,7 @@ function BOARD2D_FACTORY() {
       decal.rotation.x = -Math.PI / 2; decal.rotation.z = orient === 'b' ? Math.PI : 0; decal.position.y = TOP[type] + 0.02; decal.renderOrder = 2;
       decal.userData.decal = true; decal.visible = false;
       g.add(decal); g.userData.decalMesh = decal;
+      var felt = new THREE.Mesh(GEO.felt, MAT.felt); felt.position.y = 0.004; g.add(felt);
       g.userData.type = type; g.userData.color = color;
       return g;
     }
@@ -2860,15 +3032,15 @@ function BOARD2D_FACTORY() {
     // ---------- scene ----------
     function labelTexture(ch) {
       var c = document.createElement('canvas'); c.width = c.height = 64;
-      var x = c.getContext('2d'); x.fillStyle = '#ffd23f'; x.font = '600 40px "JetBrains Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, 32, 34);
+      var x = c.getContext('2d'); x.fillStyle = '#e9c98f'; x.font = '700 42px "JetBrains Mono", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, 32, 34);
       var t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
     }
     api.init = function (el, clickCb, hoverCb) {
       container = el; onClick = clickCb; hoverFn = hoverCb;
       buildGeometries(); buildMaterials();
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0b1020);
-      scene.fog = new THREE.Fog(0x0b1020, 22, 46);
+      scene.background = new THREE.Color(0x140c07);
+      scene.fog = new THREE.Fog(0x140c07, 24, 48);
       camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
       camera.position.set(0, 9.2, 9);
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -2877,7 +3049,7 @@ function BOARD2D_FACTORY() {
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.0;
+      renderer.toneMappingExposure = 0.95;
       container.appendChild(renderer.domElement);
       buildEnvironment();
       controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -2890,37 +3062,46 @@ function BOARD2D_FACTORY() {
       controls.addEventListener('start', function () { clearTimeout(springT); camTok++; });
       controls.addEventListener('end', function () { clearTimeout(springT); springT = setTimeout(function () { moveCamera(true); }, 450); });
 
-      scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1a2340, 0.85));
-      var key = new THREE.DirectionalLight(0xfff0dc, 0.75);
+      scene.add(new THREE.HemisphereLight(0xfff3e0, 0x2a1a0e, 0.45));
+      var key = new THREE.DirectionalLight(0xffeedd, 0.95);
       key.position.set(-4, 14, 3); key.castShadow = true;
       key.shadow.mapSize.set(2048, 2048);
       var sc = key.shadow.camera; sc.left = -7; sc.right = 7; sc.top = 7; sc.bottom = -7; sc.near = 1; sc.far = 30;
       key.shadow.bias = -0.0006; key.shadow.radius = 4;
       scene.add(key);
-      var fill = new THREE.DirectionalLight(0x4cc9f0, 0.55); fill.position.set(-7, 5, -5); scene.add(fill);
-      var rim = new THREE.PointLight(0xff4f8b, 1.1, 30); rim.position.set(0, 5, -9); scene.add(rim);
+      var fill = new THREE.DirectionalLight(0xffd9a8, 0.35); fill.position.set(7, 5, -5); scene.add(fill);
+      var rim = new THREE.PointLight(0xffb066, 0.7, 30); rim.position.set(0, 5, -9); scene.add(rim);
+      var lamp = new THREE.SpotLight(0xffe2b8, 0.35, 40, 0.6, 0.7); lamp.position.set(0, 16, 0); scene.add(lamp);
 
-      // board squares
+      // board squares: maple and walnut, every square cut from a different part of the plank
       var board = new THREE.Group();
       for (var f = 0; f < 8; f++) for (var r = 0; r < 8; r++) {
-        var light = (f + r) % 2 === 1;
-        var m = light ? MAT.light.clone() : MAT.dark.clone();
-        var jitter = (Math.sin(f * 12.9898 + r * 78.233) * 43758.5453) % 1;
-        m.color.offsetHSL(0, 0, jitter * 0.025);
+        var light = (f + r) % 2 === 1, h = Math.abs(Math.sin(f * 12.9898 + r * 78.233) * 43758.5453) % 1;
+        var m = (light ? MAT.light : MAT.dark).clone();
+        m.map = woodTex(light ? WOOD.maple : WOOD.walnut, 0.25, 0.25, h, (h * 7.3) % 1, (f + r * 3) % 2 ? Math.PI / 2 : 0);
         var sq = new THREE.Mesh(new THREE.BoxGeometry(1, 0.08, 1), m);
         sq.position.set(f - 3.5, -0.04, 3.5 - r); sq.receiveShadow = true;
         board.add(sq);
       }
-      var frame = new THREE.Mesh(new THREE.BoxGeometry(9.3, 0.42, 9.3), MAT.frame);
-      frame.position.y = -0.25; frame.receiveShadow = true; frame.castShadow = true; board.add(frame);
-      var trimGeo = [new THREE.BoxGeometry(8.16, 0.03, 0.06), new THREE.BoxGeometry(0.06, 0.03, 8.16)];
-      [[0, 4.05, 0], [0, -4.05, 0], [4.05, 0, 1], [-4.05, 0, 1]].forEach(function (t) {
-        var tr = new THREE.Mesh(trimGeo[t[2]], MAT.brass); tr.position.set(t[2] ? t[0] : 0, -0.025, t[2] ? 0 : t[1]); board.add(tr);
+      // raised walnut frame with mitred-look sides, a brass inlay round the squares and a gold outer bead
+      var frameSide = [new THREE.BoxGeometry(9.4, 0.46, 0.7), new THREE.BoxGeometry(0.7, 0.46, 9.4)];
+      [[0, 4.35, 0], [0, -4.35, 0], [4.35, 0, 1], [-4.35, 0, 1]].forEach(function (t) {
+        var fm = new THREE.Mesh(frameSide[t[2]], t[2] ? new THREE.MeshPhysicalMaterial({ map: woodTex(WOOD.frame, 1, 2, 0.3, 0, Math.PI / 2), roughness: 0.45, clearcoat: 0.5, clearcoatRoughness: 0.3, envMapIntensity: 0.6 }) : MAT.frame);
+        fm.position.set(t[2] ? t[0] : 0, -0.21, t[2] ? 0 : t[1]); fm.receiveShadow = true; fm.castShadow = true; board.add(fm);
       });
-      var base = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.8, 0.3, 64), new THREE.MeshStandardMaterial({ color: 0x121933, roughness: 0.8, envMapIntensity: 0.35 }));
-      base.position.y = -0.62; base.receiveShadow = true; board.add(base);
-      var floor = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color: 0x0b1020, roughness: 1, envMapIntensity: 0.15 }));
-      floor.rotation.x = -Math.PI / 2; floor.position.y = -0.78; floor.receiveShadow = true; board.add(floor);
+      var under = new THREE.Mesh(new THREE.BoxGeometry(8.02, 0.36, 8.02), MAT.frame); under.position.y = -0.26; board.add(under);
+      var trimGeo = [new THREE.BoxGeometry(8.12, 0.05, 0.06), new THREE.BoxGeometry(0.06, 0.05, 8.12)];
+      [[0, 4.03, 0], [0, -4.03, 0], [4.03, 0, 1], [-4.03, 0, 1]].forEach(function (t) {
+        var tr = new THREE.Mesh(trimGeo[t[2]], MAT.brass); tr.position.set(t[2] ? t[0] : 0, 0.005, t[2] ? 0 : t[1]); board.add(tr);
+      });
+      var beadGeo = [new THREE.BoxGeometry(9.44, 0.05, 0.05), new THREE.BoxGeometry(0.05, 0.05, 9.44)];
+      [[0, 4.7, 0], [0, -4.7, 0], [4.7, 0, 1], [-4.7, 0, 1]].forEach(function (t) {
+        var bd = new THREE.Mesh(beadGeo[t[2]], MAT.brass); bd.position.set(t[2] ? t[0] : 0, 0.0, t[2] ? 0 : t[1]); board.add(bd);
+      });
+      var base = new THREE.Mesh(new THREE.BoxGeometry(9.7, 0.14, 9.7), MAT.frame);
+      base.position.y = -0.5; base.receiveShadow = true; base.castShadow = true; board.add(base);
+      var floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ map: woodTex(WOOD.table, 5, 5), color: 0x9a8070, roughness: 0.7, envMapIntensity: 0.25 }));
+      floor.rotation.x = -Math.PI / 2; floor.position.y = -0.58; floor.receiveShadow = true; board.add(floor);
       scene.add(board);
 
       // coordinates
@@ -2938,10 +3119,10 @@ function BOARD2D_FACTORY() {
       plane.rotation.x = -Math.PI / 2; scene.add(plane);
 
       // ambient dust
-      var dustGeo = new THREE.BufferGeometry(), N = 220, arr = new Float32Array(N * 3);
+      var dustGeo = new THREE.BufferGeometry(), N = 90, arr = new Float32Array(N * 3);
       for (var d = 0; d < N; d++) { arr[d * 3] = (Math.random() - 0.5) * 26; arr[d * 3 + 1] = Math.random() * 9; arr[d * 3 + 2] = (Math.random() - 0.5) * 26; }
       dustGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-      var dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x4cc9f0, size: 0.04, transparent: true, opacity: 0.45, depthWrite: false }));
+      var dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xffd9a0, size: 0.035, transparent: true, opacity: 0.22, depthWrite: false }));
       dust.name = 'dust'; scene.add(dust);
 
       scene.add(pieceGroup); scene.add(overlay); scene.add(arrowGroup); scene.add(fxGroup); scene.add(starGroup);
@@ -3095,8 +3276,8 @@ function BOARD2D_FACTORY() {
     function placeLabels() {
       labels.forEach(function (l) {
         var i = l.userData.i, s = orient === 'w' ? 1 : -1;
-        if (l.userData.kind === 'file') l.position.set(i - 3.5, -0.032, 4.33 * s);
-        else l.position.set(-4.33 * s, -0.032, 3.5 - i);
+        if (l.userData.kind === 'file') l.position.set(i - 3.5, 0.03, 4.33 * s);
+        else l.position.set(-4.33 * s, 0.03, 3.5 - i);
         l.rotation.z = orient === 'w' ? 0 : Math.PI;
       });
     }
@@ -3108,12 +3289,14 @@ function BOARD2D_FACTORY() {
     };
     api.orientation = function () { return orient; };
     api.toggleView = function () { viewMode = viewMode === '3d' ? 'top' : '3d'; controls.autoRotate = false; moveCamera(true); return viewMode; };
+    var paused = false;
+    api.setActive = function (on) { paused = !on; if (on) { resize(); moveCamera(false); } };
     api.idle = function () { controls.autoRotate = false; };
     api.recenter = function () { moveCamera(true); };
 
     function loop(now) {
       requestAnimationFrame(loop);
-      if (document.hidden) return;
+      if (document.hidden || paused) return;
       for (var i = tweens.length - 1; i >= 0; i--) {
         var t = tweens[i], k = Math.min(1, (now - t.t0) / t.dur);
         if (k < 0) continue;
@@ -3532,7 +3715,7 @@ function BOARD2D_FACTORY() {
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { lesson: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -3546,7 +3729,7 @@ function BOARD2D_FACTORY() {
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1 };
+  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -3610,7 +3793,12 @@ function BOARD2D_FACTORY() {
     label: 'Training path',
     enter: function (rerender) {
       if (!rerender) {
-        setupBoard(Game.START, { drop: true, orient: 'w' });
+        // the board previews the next lesson, so home is never a dead starting position; tap it to dive in
+        var pl = nextLesson(), ps = pl && LESSONS[pl].steps[0];
+        if (ps && ps.t === 'collect') { setupBoard(fenOf(ps.piece, ps.start), { drop: true, orient: 'w' }); B3.stars(ps.stars); }
+        else if (ps && ps.fen) { setupBoard(ps.fen, { drop: true, orient: new Game(ps.fen).turn() }); if (ps.arrows) B3.arrows(ps.arrows); if (ps.marks) B3.markers('mark', ps.marks); }
+        else setupBoard(Game.START, { drop: true, orient: 'w' });
+        if (pl) IX.tap = function () { ACT.startNext(); };
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
@@ -3661,7 +3849,8 @@ function BOARD2D_FACTORY() {
               if (k === st.lessons.length - 1) stops.slice(Math.floor(st.lessons.length / 2)).forEach(function (sid) { stop += stopHtml(sid); }); // stops left over in short stages
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : lessonMins(L2) + ' min') + '</span></button>' + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : lessonMins(L2) + ' min') + '</span></button>' +
+                (rec && rec.done && MISSIONS[id] ? (function () { var n = coachMissionsDone(id), all = MISSIONS[id].length; return '<button class="jmission' + (n >= all ? ' done' : '') + '" data-act="mission" data-l="' + id + '" data-i="' + Math.min(n, all - 1) + '"><span class="jm-ico" aria-hidden="true">' + (n >= all ? '✓' : '⚑') + '</span><span class="jm-t">Coach missions</span><span class="jm-pips">' + MISSIONS[id].map(function (m) { return '<i class="' + (S.missions && S.missions[m.id] ? 'on' : '') + '"></i>'; }).join('') + '</span></button>'; })() : '') + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
@@ -3786,9 +3975,12 @@ function BOARD2D_FACTORY() {
     render: function () {
       var L = LS.L, st = STAGES[stageOf(LS.id)], step = L.steps[LS.i];
       var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
-      var kind = step.t === 'read' ? 'Concept' : step.t === 'collect' ? 'Mini-game' : 'Your move';
+      if (LS.quizI !== LS.i) { LS.quizI = LS.i; LS.quiz = QUIZ_OF(step); if (LS.quiz) { LS.quiz.found = []; LS.stepDone = false; } }
+      var Q = LS.quiz;
+      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : 'Your move';
       var actions = '';
-      if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
+      if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
+      else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       else actions = '<button class="btn ghost" data-act="hint">Hint</button><button class="btn ghost" data-act="resetStep">Reset</button><button class="btn primary" data-act="nextStep" ' + (LS.stepDone ? '' : 'disabled') + '>' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       setPanel('<button class="back" data-act="goPath">← Path</button>' +
         '<div class="eyebrow">' + esc(st.name) + ' · ' + st.band + '</div>' +
@@ -3797,6 +3989,7 @@ function BOARD2D_FACTORY() {
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
         '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div><p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
+        (Q ? '<div class="quiz' + (Q.done ? ' done' : '') + '"><span class="quiz-tag">' + (Q.done ? '✓ Nailed it' : 'Your turn') + '</span><span class="quiz-q">' + esc(Q.text.replace(/^Your turn\. /, '')) + '</span><span class="quiz-pips">' + Array.apply(null, Array(Q.need)).map(function (x, k) { return '<i class="' + (k < Q.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
         '</div>' +
         '<div id="status" class="status"></div>' +
@@ -3819,11 +4012,31 @@ function BOARD2D_FACTORY() {
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: new Game(step.fen).turn() });
       if (step.arrows) B3.arrows(step.arrows);
       if (step.marks) B3.markers('mark', step.marks);
+      var Q = LS.quizI === LS.i && LS.quiz;
+      if (Q && !Q.done) {
+        LS.stepDone = false; IX.tap = MODES.lesson.quizTap;
+        var tok = LS.quizTok = (LS.quizTok || 0) + 1, at = LS.i;
+        // let the explanation sink in, then clear the drawing and hand the board over
+        setTimeout(function () { if (current !== MODES.lesson || !LS || LS.i !== at || LS.quizTok !== tok || Q.done) return; B3.arrows([]); B3.markers('mark', []); B3.markers('sel', [Q.at]); Voice.say([{ id: Q.id, text: Q.text }], true); }, 6000);
+      }
       if (step.t === 'move') {
         IX.enabled = true;
         IX.canMove = function (c) { return c === g.turn(); };
         IX.onMove = MODES.lesson.onMove;
       }
+    },
+    quizTap: function (sq) {
+      var Q = LS && LS.quiz; if (!Q || Q.done) return;
+      if (sq === Q.at) { toast('That is where the ' + PIECE_NAME[Q.type] + ' stands. Tap a square it can move to.'); return; }
+      if (Q.found.indexOf(sq) >= 0) return;
+      if (Q.reach.indexOf(sq) < 0) { B3.flash('bad', [sq], 500); Sound.play('bad'); toast(MOVE_RULE[Q.type]); if (chance(0.5)) Voice.say([V('quiz_wrong')], true); return; }
+      Q.found.push(sq); B3.arrows([]); B3.markers('mark', []); B3.markers('good', Q.found.slice()); Sound.play('star'); xpPop('✓', sq);
+      if (Q.found.length >= Q.need) {
+        Q.done = true; LS.stepDone = true; IX.tap = null; addXP(5);
+        B3.markers('good', []); B3.markers('hint', Q.reach); B3.markers('sel', [Q.at]); Sound.play('good'); Voice.say([V('quiz_done')]);
+        setTimeout(function () { if (LS && LS.quiz === Q) B3.markers('hint', []); }, 2200);
+      } else Voice.say([V('quiz_right')], true);
+      MODES.lesson.render();
     },
     onMove: function (mv, uci) {
       var step = LS.L.steps[LS.i], g = IX.game, fenBefore = g.fen();
@@ -3904,7 +4117,9 @@ function BOARD2D_FACTORY() {
     var nDone = lessonsDone(), lessonsToday = today().lessons || 0;
     var cards = [];
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
-    if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
+    var ms = MISSIONS[id], msDone = coachMissionsDone(id);
+    if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Coach missions (replay)' : 'Coach missions: ' + ms.map(function (m) { return m.title; }).slice(0, 2).join(', ') + '…', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
+    if ((!ms || playNew) && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
     if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against the engine.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
@@ -3918,6 +4133,7 @@ function BOARD2D_FACTORY() {
     var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
     if (playNew) pref = 'play'; else if (opNew) pref = 'opening';
     if (cards.some(function (c) { return c.k === 'boss'; })) pref = 'boss'; else if (cards.some(function (c) { return c.k === 'challenge'; }) && lessonsToday >= 1) pref = 'challenge';
+    if (ms && msDone < ms.length) pref = 'mission';
     if (!cards.some(function (c) { return c.k === pref; })) pref = cards[0].k;
     cards.sort(function (a, b) { return (b.k === pref) - (a.k === pref); });
     return '<div class="sect-head"><h2>What next?</h2><span class="muted small">pick any, switch anytime</span></div><div class="wn-grid">' + cards.map(function (c) {
@@ -3928,6 +4144,8 @@ function BOARD2D_FACTORY() {
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
+  ACT.quizShow = function () { var step = LS && LS.L.steps[LS.i]; if (!step) return; if (step.arrows) B3.arrows(step.arrows); if (step.marks) B3.markers('mark', step.marks); setTimeout(function () { if (LS && LS.quiz && !LS.quiz.done) { B3.arrows([]); B3.markers('mark', []); } }, 1800); };
+  ACT.quizSkip = function () { var Q = LS && LS.quiz; if (!Q) return; Q.done = true; Q.skipped = true; LS.stepDone = true; IX.tap = null; B3.markers('hint', Q.reach); ACT.nextStep(); };
   ACT.resetStep = function () { if (LS) { LS.lineTok = (LS.lineTok || 0) + 1; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
   function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
@@ -4608,7 +4826,7 @@ function BOARD2D_FACTORY() {
         IX.enabled = false; PL.thinking = true; MODES.play.render();
         var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
         var job = slip ? Eng.call('mistake', fen, g.history().length >= PL.devAt0 + 4).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
-          : bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
+          : bm ? Promise.resolve({ move: bm, score: null, book: true }) : teachSlip(g) ? Promise.resolve({ move: teachSlip(g, true), score: null, teach: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
         job.then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
@@ -4620,6 +4838,7 @@ function BOARD2D_FACTORY() {
               PL.log.push({});
               if (r.slip) { PL.devDone = true; PL.devPly = g.history().length - 1; toast('⚡ The coach slipped. Find the punishment!'); Voice.say([V('battle_slip')], true); }
               if (r.book && !PL.spec) MODES.play.bookNote(g);
+              if (!PL.spec && !r.book) MODES.play.onPurpose(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
               else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
               if (r.score != null) setEval(PL.color === 'w' ? -r.score : r.score, true);
@@ -4793,7 +5012,9 @@ function BOARD2D_FACTORY() {
       PL.result = result; PL.acc = acc;
       if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); confetti(); }
       var endLine = result === 'win' ? 'win' : result === 'draw' ? 'draw' : /Checkmate/.test(msg) ? 'loss' : null;
-      if (endLine) Voice.say([V(endLine, endLine)]);
+      var easyWin = result === 'win' && !PL.spec && (PL.level.id === 'novice' || PL.level.id === 'club');
+      if (easyWin) { Voice.say([V('coach_lost_easy', 'win')]); MODES.play.say('Coach Leo', 'You beat me! At ' + PL.level.name + ' level I play like a ~' + PL.level.elo + ' player on purpose: I leave pieces loose and miss threats so you can practise punishing them. ' + (nextLevel(PL.level) ? 'When this feels easy, try ' + nextLevel(PL.level).name + '.' : ''), 'good'); }
+      else if (endLine) Voice.say([V(endLine, endLine)]);
       else Voice.say([V('resign')]);
       if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
       Celebrate.flush();
@@ -4801,6 +5022,37 @@ function BOARD2D_FACTORY() {
       MODES.play.render();
     },
     leave: function () { PL = null; }
+  };
+  // Novice coach in teaching mode: now and then leave a minor piece or rook loose on purpose, so a beginner
+  // gets real chances to practise winning material (announced by onPurpose right after).
+  function freeTakes(g) {
+    var foe = g.side ^ 8, VALS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    return g.moves().filter(function (m) { return m.captured && m.captured !== 'p' && m.captured !== 'q' && (!g.attacked(Game.sqIdx(m.to), foe) || VALS[m.captured] > VALS[m.piece]); });
+  }
+  function teachSlip(g, pick) {
+    if (!pick) {
+      if (!PL || PL.spec || PL.level.id !== 'novice' || PL.style !== 'teach' || g.history().length < 8 || (PL.slips || 0) >= 3) return false;
+      if (g.history().length - (PL.lastSlip || 0) < 10 || !chance(0.3)) return false;
+    }
+    var cands = g.moves().filter(function (m) {
+      if (m.piece === 'k' || m.piece === 'q' || m.captured) return false;
+      g.move({ from: m.from, to: m.to, promotion: m.promotion }); var ok = !g.inCheck() && !g.gameOver() && freeTakes(g).length === 1 && freeTakes(g)[0].to === m.to; g.undo(); return ok;
+    });
+    if (!pick) { PL.slipPick = cands.length ? cands[Math.floor(Math.random() * cands.length)] : null; return !!PL.slipPick; }
+    var m = PL.slipPick; PL.slipPick = null; PL.slips = (PL.slips || 0) + 1; PL.lastSlip = g.history().length;
+    return { from: m.from, to: m.to, promotion: m.promotion };
+  }
+  // At the easy levels the coach blunders by design. Say so, so it reads as training instead of a broken bot.
+  MODES.play.onPurpose = function (g) {
+    if (!PL || (PL.level.id !== 'novice' && PL.level.id !== 'club') || PL.style === 'quiet' || (PL.purposeN || 0) >= 3) return;
+    var VALS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    var free = freeTakes(g).sort(function (a, b) { return VALS[b.captured] - VALS[a.captured]; })[0];
+    if (!free) return;
+    PL.purposeN = (PL.purposeN || 0) + 1;
+    var where = PL.level.id === 'novice' ? 'my ' + PIECE_NAME[free.captured] + ' on ' + free.to : 'something';
+    PL.feed = PL.feed.filter(function (f) { return f.tag !== 'On purpose'; });
+    MODES.play.say('On purpose', 'I left ' + where + ' loose on purpose. At ' + PL.level.name + ' level I make beginner mistakes so you can practise winning material. ' + (PL.level.id === 'novice' ? 'Can you take it safely?' : 'Can you find it?'), 'warn', true);
+    if (PL.purposeN === 1) Voice.say([V('coach_onpurpose')], true);
   };
   function setEval(cpWhite, show) {
     var bar = $('#evalbar i'), lab = $('#evalbar span');
@@ -4998,6 +5250,115 @@ function BOARD2D_FACTORY() {
   ACT.practiceHint = function () { var it = PR.list[PR.i]; B3.arrows([[it.best.from, it.best.to, 'g']]); Voice.say([pickPool('better_was')].concat(moveParts(it.bestSan, it.best.from, it.best.to, it.best.piece, it.best.captured))); PR.done = true; MODES.practice.render('The move was <strong>' + esc(it.bestSan) + '</strong>.'); };
   ACT.practiceNext = function () { PR.done = false; if (PR.i < PR.list.length - 1) { PR.i++; MODES.practice.load(); } else if (PR.back && PR.back.moves) { go('review', PR.back); } else go('path'); };
   ACT.practiceBack = function () { if (PR.back && PR.back.moves) go('review', PR.back); else go('path'); };
+
+  // ================= Coach missions: short hands-on scenarios right after a lesson =================
+  var MS = null;
+  var GOAL_TXT = { check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
+  function missionStars(m, n) { return n <= m.par ? 3 : n <= m.par + Math.ceil((m.limit - m.par) / 2) ? 2 : 1; }
+  function coachMissionsDone(id) { return (MISSIONS[id] || []).filter(function (m) { return S.missions && S.missions[m.id]; }).length; }
+  function missionGoalCount(m, g) { return m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
+  MODES.mission = {
+    label: 'Coach mission',
+    enter: function (arg) {
+      var list = MISSIONS[arg.lesson] || [], m = list[arg.i || 0];
+      if (!m) { go('path'); return; }
+      MS = { lesson: arg.lesson, i: arg.i || 0, m: m, n: 0, st: { caps: 0 }, over: null, hint: 0 };
+      MODES.mission.load();
+      Voice.say([V('cm_start'), { id: 'N-' + m.id, text: m.text }]);
+    },
+    load: function () {
+      var m = MS.m, side = m.side || 'w', g = setupBoard(m.fen, { drop: true, orient: side });
+      MS.g = g; MS.n = 0; MS.st = { caps: 0 }; MS.over = null; MS.hint = 0; MS.total = missionGoalCount(m, g); MS.busy = false;
+      IX.canMove = function (c) { return c === side && !MS.over && !MS.busy; }; IX.onMove = MODES.mission.onMove;
+      IX.enabled = !m.pre;
+      MODES.mission.render();
+      if (m.pre) setTimeout(function () {
+        if (!MS || MS.g !== g) return;
+        applyMove(g, uciObj(m.pre)).then(function (r) { if (!MS || MS.g !== g) return; B3.flash('mark', [r.to], 1600); IX.enabled = true; MODES.mission.render(); });
+      }, 1100);
+    },
+    onMove: function (mv) {
+      var g = MS.g, m = MS.m;
+      return applyMove(g, mv).then(function (r) {
+        if (!r || !MS || MS.g !== g) return;
+        MS.n++;
+        if (r.captured) { B3.burst(r.to); xpPop('+5', r.to); }
+        var res = missionCheck(m, g, r, MS.st);
+        if (res === 'win') return MODES.mission.finish(true);
+        if (res === 'stalemate') return MODES.mission.finish(false, 'Stalemate! My king has no legal move but is not in check, so it is a draw. Always leave me a move.');
+        if (MS.n >= m.limit) return MODES.mission.finish(false, m.limit === 1 ? 'That move does not do it.' : 'Out of moves. ' + (m.goal === 'mate' ? 'Box my king in faster.' : 'Look for a shorter route.'));
+        MS.busy = true; MODES.mission.render();
+        var fen = g.fen(), t0 = Date.now();
+        var job = m.coach === 'defend' ? Eng.call('pickMove', fen, levelById('master'), []).then(function (x) { return x && x.move; }) : Promise.resolve(missionWander(g));
+        return job.then(function (cm) {
+          setTimeout(function () {
+            if (!MS || MS.g !== g || MS.over) return;
+            if (!cm) { MS.busy = false; return MODES.mission.finish(false, 'The game is over.'); }
+            applyMove(g, { from: cm.from, to: cm.to, promotion: cm.promotion || undefined }).then(function () {
+              if (!MS || MS.g !== g) return;
+              MS.busy = false; IX.enabled = true;
+              if (g.gameOver()) return MODES.mission.finish(false, 'The game ended before the goal.');
+              MODES.mission.render();
+            });
+          }, Math.max(0, 550 - (Date.now() - t0)));
+        });
+      });
+    },
+    finish: function (win, why) {
+      var m = MS.m; MS.over = win ? 'win' : 'fail'; IX.enabled = false; MS.busy = false;
+      if (win) {
+        var stars = missionStars(m, MS.n), prev = S.missions && S.missions[m.id] || 0;
+        S.missions = S.missions || {}; S.missions[m.id] = Math.max(prev, stars); MS.stars = stars;
+        Sound.play('win'); confetti(); addXP(prev ? 5 : 20);
+        Voice.say([V(stars === 3 ? 'cm_star3' : 'cm_done')]);
+      } else {
+        MS.why = why; Sound.play('bad'); Voice.say([V('cm_fail')]);
+      }
+      save(); MODES.mission.render();
+    },
+    render: function () {
+      var m = MS.m, list = MISSIONS[MS.lesson], L = LESSONS[MS.lesson], left = m.limit - MS.n;
+      var got = m.goal === 'captureAll' ? MS.total - missionMaterial(MS.g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? MS.st.caps : MS.over === 'win' ? 1 : 0;
+      var steps = list.map(function (x, k) { var s = S.missions && S.missions[x.id]; return '<span class="ms-step' + (k === MS.i ? ' on' : '') + (s ? ' done' : '') + '">' + (s ? '★' : k + 1) + '</span>'; }).join('<i class="ms-link"></i>');
+      var moves = ''; for (var k = 0; k < m.limit; k++) moves += '<i class="ms-mv' + (k < MS.n ? ' used' : '') + (k === m.par - 1 ? ' par' : '') + '"></i>';
+      var body;
+      if (MS.over === 'win') {
+        var nx = list[MS.i + 1];
+        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>Mission complete!</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? '. ' + m.par + ' gets you 3 stars.' : '. Perfect.') + '</p></div>' +
+          '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next mission: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All missions done →</button>') +
+          (MS.stars < 3 ? '<button class="btn" data-act="missionRetry">↻ Go for 3 stars</button>' : '') + '</div>';
+      } else if (MS.over === 'fail') {
+        body = '<div class="ms-result fail"><h2>Not this time</h2><p>' + esc(MS.why || '') + '</p></div><div class="actions"><button class="btn primary wide" data-act="missionRetry">↻ Try again</button><button class="btn ghost" data-act="missionHint">Show me a hint</button></div>';
+      } else {
+        body = '<div class="ms-track"><div class="ms-goal"><span class="ms-goal-ico">◎</span><b>' + esc(GOAL_TXT[m.goal]) + '</b>' + (MS.total > 1 ? '<span class="ms-count">' + got + ' / ' + MS.total + '</span>' : '') + '</div>' +
+          '<div class="ms-moves"><span>' + (MS.busy ? 'Coach is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
+          (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') + '</div>' +
+          (MS.hint ? '<p class="ms-tip">💡 ' + esc(m.tip) + '</p>' : '') +
+          '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
+      }
+      setPanel('<button class="back" data-act="lesson" data-id="' + MS.lesson + '">← ' + esc(L.title) + '</button>' +
+        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Coach mission ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I defend for real' : ' · I only move my king') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
+        '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p>' + esc(m.text) + '</p></div>' + body);
+    },
+    leave: function () { MS = null; }
+  };
+  function xpPop(txt, sq) {
+    var el = document.createElement('div'); el.className = 'xp-pop'; el.textContent = txt;
+    $('.stage').appendChild(el); setTimeout(function () { el.remove(); }, 1300);
+  }
+  ACT.mission = function (d) { go('mission', { lesson: d.l, i: +d.i || 0 }); };
+  ACT.missionRetry = function () { if (!MS) return; MODES.mission.load(); };
+  ACT.missionHint = function () {
+    if (!MS) return; MS.hint++;
+    if (MS.over === 'fail') MODES.mission.load(), MS.hint = 1;
+    var g = MS.g, m = MS.m, win = g.moves().filter(function (mv) { var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }); var ok = missionCheck(m, g, r, { caps: (MS.st.caps || 0) + 0 }) === 'win' || (m.goal === 'capture' || m.goal === 'captureAll') && !!r.captured; g.undo(); return ok; });
+    if (win.length) B3.flash('hint', [win[0].from], 1800);
+    MODES.mission.render();
+  };
+  ACT.missionsDone = function () {
+    var id = MS && MS.lesson, nl = nextLesson();
+    if (nl && nl !== id) go('lesson', nl); else go('path');
+  };
 
   // ================= Show me: replay what happens on the board =================
   function material(g, color) { var v = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p) v += (p.color === color ? 1 : -1) * VAL[p.type]; }); }); return v; }
@@ -5443,7 +5804,7 @@ function BOARD2D_FACTORY() {
       '<div class="field"><span>Coach style in games</span><div class="seg">' + COACH_STYLES.map(function (cs) { return '<button class="' + (coachStyle() === cs.id ? 'on' : '') + '" data-style="' + cs.id + '">' + cs.name + '</button>'; }).join('') + '</div></div>' +
       '<label class="toggle"><input type="checkbox" id="set-snd" ' + (S.sound ? 'checked' : '') + '> <span>Sound effects</span></label>' +
       '<label class="toggle"><input type="checkbox" id="set-sub" ' + (s.subtitles ? 'checked' : '') + '> <span>Show what the coach says on the board</span></label>' +
-      '<label class="toggle"><input type="checkbox" id="set-2d" ' + (s.board2d ? 'checked' : '') + '> <span>Use a flat 2D board (lighter, faster on old phones)</span></label>' +
+      '<label class="toggle"><input type="checkbox" id="set-2d" ' + (s.board2d !== false ? 'checked' : '') + '> <span>Flat 2D board (switch to the classic 3D board any time from the board)</span></label>' +
       '<label class="toggle"><input type="checkbox" id="set-cam" ' + (s.cameraFixed ? 'checked' : '') + '> <span>Keep the 3D camera fixed (no rotating)</span></label>' +
       '<label class="toggle"><input type="checkbox" id="set-eval" ' + (showEvalBar() ? 'checked' : '') + '> <span>Show the "who\'s winning" bar in games</span></label>' +
       '<div class="actions"><button class="btn ghost" data-set="test">▶ Test voice</button><button class="btn primary" data-set="close">Done</button></div></div>';
@@ -5452,7 +5813,7 @@ function BOARD2D_FACTORY() {
     $('#set-vol').oninput = function (e) { s.volume = +e.target.value; $('#vol-v').textContent = Math.round(s.volume * 100) + '%'; save(); };
     $('#set-sub').onchange = function (e) { s.subtitles = e.target.checked; save(); };
     $('#set-snd').onchange = function (e) { S.sound = e.target.checked; save(); renderTop(); if (S.sound) Sound.play('move'); };
-    $('#set-2d').onchange = function (e) { s.board2d = e.target.checked; save(); try { location.reload(); } catch (x) { } };
+    $('#set-2d').onchange = function (e) { if (e.target.checked !== Board.is2D()) Board.toggle(); };
     $('#set-cam').onchange = function (e) { s.cameraFixed = e.target.checked; save(); B3.setCameraFixed(s.cameraFixed); };
     $('#set-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); if (current === MODES.play && PL && PL.g) $('#evalbar').hidden = !e.target.checked; };
     m.onclick = function (e) {
@@ -5734,6 +6095,84 @@ function BOARD2D_FACTORY() {
   })();
   ACT.tour = function () { Tour.start(); };
 
+  // The 2D and the 3D board share one API. B3 becomes a thin front that remembers what is on the board
+  // (position, markers, arrows, stars, orientation) so the player can switch between them mid-game.
+  var Board = (function () {
+    var impl3 = Object.assign({}, B3), impl2 = null, cur = null, ready3 = false, host2, host3;
+    var BS = { fen: null, cats: {}, arrows: [], stars: [], orient: 'w', drag: null, camFixed: false, lift: null };
+    function can3() { return typeof THREE !== 'undefined' && !!THREE.OrbitControls && !!impl3.init && webglOK(); }
+    function moveFen(fen, mv) {
+      if (!fen) return fen;
+      var rows = fen.split(' ')[0].split('/').map(function (r) { return r.replace(/\d/g, function (d) { return '1'.repeat(+d); }).split(''); });
+      function at(sq) { return [8 - +sq[1], sq.charCodeAt(0) - 97]; }
+      var a = at(mv.from), b = at(mv.to), pc = rows[a[0]][a[1]];
+      rows[a[0]][a[1]] = '1'; rows[b[0]][b[1]] = mv.promotion ? (mv.color === 'w' ? mv.promotion.toUpperCase() : mv.promotion) : pc;
+      return rows.map(function (r) { return r.join('').replace(/1+/g, function (m) { return m.length; }); }).join('/') + fen.slice(fen.indexOf(' ') < 0 ? fen.length : fen.indexOf(' '));
+    }
+    var REC = {
+      setPosition: function (a) { BS.fen = a[0]; },
+      sync: function (a) { if (a[0]) BS.fen = a[0]; }, settle: function (a) { if (a[0]) BS.fen = a[0]; },
+      animateMove: function (a) { BS.fen = a[1] || moveFen(BS.fen, a[0]); },
+      markers: function (a) { BS.cats[a[0]] = a[1] || []; },
+      arrows: function (a) { BS.arrows = (a[0] || []).slice(); },
+      stars: function (a) { BS.stars = (a[0] || []).slice(); },
+      takeStar: function (a) { BS.stars = BS.stars.filter(function (s) { return s !== a[0]; }); },
+      clearAll: function () { BS.cats = {}; BS.arrows = []; BS.stars = []; },
+      setOrientation: function (a) { BS.orient = a[0]; },
+      setDrag: function (a) { BS.drag = a[0]; }, setCameraFixed: function (a) { BS.camFixed = a[0]; }, lift: function (a) { BS.lift = a[0] || null; }
+    };
+    function front() {
+      var keys = {}; Object.keys(impl3).forEach(function (k) { keys[k] = 1; });
+      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait'].forEach(function (k) { keys[k] = 1; });
+      Object.keys(B3).forEach(function (k) { delete B3[k]; });
+      Object.keys(keys).forEach(function (k) {
+        if (k === 'init' || k === 'setActive') return;
+        B3[k] = function () { if (REC[k]) REC[k](arguments); var f = cur && cur[k]; return f ? f.apply(cur, arguments) : undefined; };
+      });
+      B3.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    }
+    function use(two, first) {
+      if (!two && !ready3) {
+        try { impl3.init(host3, onBoardClick, onBoardHover); ready3 = true; }
+        catch (e) { console.error(e); two = true; }
+      }
+      if (two && !impl2) { impl2 = BOARD2D_FACTORY(); impl2.init(host2, onBoardClick, onBoardHover); }
+      if (cur && cur.setActive) cur.setActive(false);
+      host2.style.display = two ? '' : 'none'; host3.style.display = two ? 'none' : '';
+      cur = two ? impl2 : impl3;
+      if (cur.setActive) cur.setActive(true);
+      document.body.classList.toggle('board-2d', two);
+      var bt = $('#dim-btn'); if (bt) bt.setAttribute('aria-label', two ? 'Switch to the 3D board' : 'Switch to the flat 2D board');
+      if (first) return;
+      if (BS.drag) cur.setDrag(BS.drag);
+      cur.setCameraFixed(BS.camFixed);
+      cur.setOrientation(BS.orient, false);
+      if (BS.fen) cur.setPosition(BS.fen);
+      cur.clearAll();
+      Object.keys(BS.cats).forEach(function (c) { cur.markers(c, BS.cats[c]); });
+      cur.arrows(BS.arrows); cur.stars(BS.stars);
+      if (cur.lift) cur.lift(BS.lift);
+      if (IX.game && !BS.fen) cur.sync(IX.game.fen());
+    }
+    return {
+      setup: function () {
+        var el = $('#three'); el.innerHTML = '';
+        host3 = document.createElement('div'); host2 = document.createElement('div');
+        host3.className = 'board-host'; host2.className = 'board-host'; el.appendChild(host3); el.appendChild(host2);
+        front();
+        var want2 = S.settings.board2d !== false || !can3();
+        use(want2, true);
+        if (!can3()) document.body.classList.add('no-3d');
+      },
+      is2D: function () { return cur === impl2; },
+      can3: can3,
+      toggle: function () {
+        var two = !(cur === impl2);
+        if (!two && !can3()) return toast('3D needs WebGL, which this browser has turned off.');
+        S.settings.board2d = two; save(); use(two, false); Sound.play('move');
+      }
+    };
+  })();
   function webglOK() { try { var c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } }
 
   // ================= Boot =================
@@ -5750,6 +6189,7 @@ function BOARD2D_FACTORY() {
     $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
     $('#replay-btn').onclick = function () { Voice.replay(); };
     $('#sound-btn').onclick = function () { S.sound = !S.sound; save(); renderTop(); if (S.sound) Sound.play('move'); };
+    $('#dim-btn').onclick = function () { Board.toggle(); };
     $('#view-btn').onclick = function () { var v = B3.toggleView(); $('#view-btn').textContent = v === '3d' ? 'Top view' : '3D view'; };
     $('#flip-btn').onclick = function () { B3.setOrientation(B3.orientation() === 'w' ? 'b' : 'w'); };
     $('#center-btn').onclick = function () { B3.recenter(); };
@@ -5781,19 +6221,7 @@ function BOARD2D_FACTORY() {
     });
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', applyMob); else if (MQ.addListener) MQ.addListener(applyMob); }
     $('#coach-bubble .cb-avatar').innerHTML = coachAvatar();
-    var use2d = !!S.settings.board2d || typeof THREE === 'undefined' || !THREE.OrbitControls || !webglOK();
-    if (!use2d) {
-      try { B3.init($('#three'), onBoardClick, onBoardHover); }
-      catch (e) { console.error(e); use2d = true; }
-    }
-    if (use2d) {
-      var B2 = BOARD2D_FACTORY();
-      Object.keys(B3).forEach(function (k) { delete B3[k]; });
-      Object.assign(B3, B2);
-      $('#three').innerHTML = '';
-      B3.init($('#three'), onBoardClick, onBoardHover);
-      document.body.classList.add('board-2d');
-    }
+    Board.setup();
     B3.setDrag({ can: dragCan, start: dragStart, drop: dragDrop, fen: function () { if (IX.collect) return fenOf(IX.collect.piece, IX.collect.at); return IX.game ? IX.game.fen() : null; } });
     B3.setCameraFixed(S.settings.cameraFixed);
     renderTop();
@@ -5809,7 +6237,7 @@ function BOARD2D_FACTORY() {
     if (SP && $('#splash')) {
       SP.pieces(['p', 'n', 'b', 'r', 'q', 'k'].map(function (t) { return '<span>' + pieceSVG(t, 'w', 28) + '</span>'; }).join(''));
       var first = !S.voiceReady && Voice.hasClips(), mb = function (b) { return (b / 1048576).toFixed(1); }, finished = false;
-      SP.set(14, '3D board ready');
+      SP.set(14, 'Board ready');
       if (first) {
         var t0 = Date.now();
         setTimeout(function () { if (!finished) SP.skip(function () { finished = true; SP.done(false); }); }, 6000);
@@ -6055,10 +6483,74 @@ body.speaking .coach-bubble .cb-avatar { animation: talk .45s ease-in-out infini
 /* 2D board */
 body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 .b2-wrap { display: grid; place-items: center; padding-top: 34px; }
-.b2-board { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 6px #161d38, 0 0 0 8px var(--pink), 0 24px 60px rgba(0,0,0,.5); touch-action: none; user-select: none; }
+.b2-board { position: relative; border-radius: 4px; overflow: visible; box-shadow: 0 0 0 2px #c9963f, 0 0 0 12px #4a2b17, 0 0 0 13px #2a170b, 0 0 0 14px rgba(233,201,143,.45), 0 26px 60px rgba(0,0,0,.6); touch-action: none; user-select: none; }
 .b2-squares, .b2-layer, .b2-labels { position: absolute; inset: 0; pointer-events: none; }
 .b2-sq { position: absolute; width: 12.5%; height: 12.5%; }
-.b2-sq.light { background: #f2e8d8; } .b2-sq.dark { background: #2c7c8f; }
+.b2-sq.light { background: #eed8b4 linear-gradient(115deg, rgba(255,255,255,.10), rgba(160,110,60,.06) 60%, rgba(255,255,255,.05)); }
+.b2-sq.dark { background: #b07c52 linear-gradient(115deg, rgba(255,230,190,.08), rgba(70,35,10,.10) 55%, rgba(255,230,190,.04)); }
+.board-host { position: absolute; inset: 0; }
+.dim-seg { display: inline-flex; align-items: center; padding: 3px; gap: 2px; border-radius: 999px; border: 1px solid rgba(233,201,143,.35); background: rgba(20,13,8,.78); backdrop-filter: blur(6px); pointer-events: auto; cursor: pointer; position: relative; z-index: 6; }
+.dim-seg span { padding: 5px 11px; border-radius: 999px; font: 800 12px var(--f-mono); letter-spacing: .04em; color: #cdb48c; transition: background .25s, color .25s; }
+body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-d="3"] { background: linear-gradient(180deg, #f2d48d, #c9963f); color: #2a1a0c; box-shadow: 0 2px 8px rgba(201,150,63,.4); }
+body.no-3d .dim-seg { display: none; }
+.stage-top .dim-seg { margin-left: auto; }
+.b2-lab.on-dark { color: #f3dfba; }
+/* coach missions */
+.jmission { display: flex; align-items: center; gap: 10px; width: calc(100% - 28px); margin: -2px 0 6px 28px; padding: 7px 12px; border-radius: 10px; border: 1px dashed rgba(255,210,63,.45); background: rgba(255,210,63,.06); color: var(--fg); font-size: 13.5px; text-align: left; }
+.jmission:hover { border-style: solid; }
+.jmission.done { border-color: rgba(61,220,151,.4); background: rgba(61,220,151,.06); }
+.jm-ico { color: var(--brass-hi); } .jmission.done .jm-ico { color: #3ddc97; }
+.jm-t { flex: 1; font-weight: 600; }
+.jm-pips { display: inline-flex; gap: 4px; } .jm-pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--brass-hi); } .jm-pips i.on { background: var(--brass-hi); }
+.b2-board.tiny .b2-lab { font-size: 8px; opacity: .8; }
+.ms-head { margin-top: 4px; }
+.ms-steps { display: flex; align-items: center; gap: 0; margin: 4px 0 12px; }
+.ms-step { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; font: 800 12px var(--f-mono); color: var(--muted); background: var(--card); border: 1px solid var(--line); }
+.ms-step.done { color: #2a1a0c; background: linear-gradient(180deg, var(--brass-hi), var(--brass)); border-color: transparent; font-size: 14px; }
+.ms-step.on { border-color: var(--brass-hi); box-shadow: 0 0 0 3px rgba(255,210,63,.18); color: var(--fg); }
+.ms-link { width: 18px; height: 2px; background: var(--line); }
+.ms-coach { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; }
+.ms-ava { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,210,63,.5); animation: msBob 3s ease-in-out infinite; }
+.ms-ava svg { width: 100%; height: 100%; display: block; }
+.ms-coach p { margin: 0; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 10px 13px; font-size: 15px; line-height: 1.45; }
+@keyframes msBob { 50% { transform: translateY(-2px) rotate(-2deg); } }
+.ms-track { background: linear-gradient(135deg, rgba(255,210,63,.12), rgba(76,201,240,.06)), var(--card); border: 1px solid rgba(255,210,63,.35); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; }
+.ms-goal { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.ms-goal-ico { color: var(--brass-hi); font-size: 18px; }
+.ms-count { margin-left: auto; font: 800 18px var(--f-mono); color: var(--brass-hi); }
+.ms-moves { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.ms-mvs { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.ms-mv { width: 10px; height: 10px; border-radius: 50%; background: var(--brass-hi); box-shadow: 0 0 6px rgba(255,210,63,.5); transition: background .3s, box-shadow .3s; }
+.ms-mv.used { background: var(--card-2); box-shadow: none; }
+.ms-mv.par { outline: 2px solid rgba(255,255,255,.25); outline-offset: 1px; }
+.ms-bar { height: 8px; border-radius: 99px; background: var(--card-2); overflow: hidden; }
+.ms-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brass), var(--brass-hi)); border-radius: inherit; transition: width .4s cubic-bezier(.2,1.4,.4,1); }
+.ms-tip { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(61,220,151,.1); border: 1px solid rgba(61,220,151,.35); font-size: 14px; }
+.ms-result { text-align: center; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); animation: msPop .5s cubic-bezier(.2,1.5,.4,1) both; }
+.ms-result.win { border-color: rgba(255,210,63,.6); background: radial-gradient(circle at 50% 0, rgba(255,210,63,.22), transparent 70%), var(--card); }
+.ms-result.fail { border-color: rgba(255,93,108,.45); }
+.ms-result h2 { margin: 4px 0; font-size: 22px; } .ms-result p { margin: 4px 0 0; color: var(--muted); }
+@keyframes msPop { from { transform: scale(.85); opacity: 0; } }
+/* lesson quiz */
+.quiz { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,210,63,.16), rgba(255,79,139,.08)); border: 1px solid rgba(255,210,63,.45); animation: quizIn .5s .3s both; }
+.quiz.done { background: rgba(61,220,151,.12); border-color: rgba(61,220,151,.5); }
+.quiz-tag { font: 800 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: #2a1a0c; background: var(--brass-hi); padding: 3px 8px; border-radius: 99px; }
+.quiz.done .quiz-tag { background: #3ddc97; }
+.quiz-q { font-weight: 600; flex: 1 1 160px; }
+.quiz-pips { display: inline-flex; gap: 5px; } .quiz-pips i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--brass-hi); transition: background .25s, transform .25s; } .quiz-pips i.on { background: var(--brass-hi); transform: scale(1.15); }
+@keyframes quizIn { from { transform: translateY(8px); opacity: 0; } }
+.xp-pop { position: absolute; left: 50%; top: 42%; transform: translate(-50%, 0); font: 900 28px var(--f-mono); color: var(--brass-hi); text-shadow: 0 2px 12px rgba(0,0,0,.6); pointer-events: none; z-index: 9; animation: xpUp 1.2s ease-out forwards; }
+@keyframes xpUp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1); } }
+@media (max-width: 880px) and (orientation: portrait) {
+  .ms-steps { margin: 0 0 6px; } .ms-step { min-width: 24px; height: 24px; font-size: 11px; } .ms-link { width: 12px; }
+  .ms-coach { margin: 8px 0; gap: 10px; } .ms-ava { flex-basis: 34px; width: 34px; height: 34px; } .ms-coach p { font-size: 14px; padding: 8px 11px; }
+  .ms-track { padding: 10px 12px; gap: 8px; } .ms-goal { font-size: 15px; }
+  body[data-mode="mission"] .panel .h1 { font-size: 22px; margin: 2px 0; }
+  .ms-result { padding: 10px; } .ms-result .big-stars { font-size: 34px; margin: 0; } .ms-result h2 { font-size: 19px; }
+  .quiz { margin-top: 8px; padding: 8px 10px; }
+  .quiz-q { font-size: 14px; }
+  body[data-mode="lesson"] .coach-card .coach-text { font-size: 14.5px; }
+}
 .b2-piece { position: absolute; width: 12.5%; height: 12.5%; display: grid; place-items: center; transition: left .24s ease, top .24s ease, transform .2s; z-index: 2; }
 .b2-piece svg { width: 86%; height: 86%; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
 .b2-piece.dragging { transition: none; z-index: 5; transform: scale(1.15); }
@@ -6074,7 +6566,7 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 @keyframes b2float { to { transform: translateY(-6%) rotate(8deg); } }
 .b2-burst { position: absolute; width: 12.5%; height: 12.5%; border-radius: 50%; box-shadow: 0 0 0 0 rgba(255,210,63,.8); animation: b2burst .7s ease-out forwards; z-index: 6; }
 @keyframes b2burst { to { box-shadow: 0 0 0 40px rgba(255,210,63,0); } }
-.b2-lab { position: absolute; font: 600 10px var(--f-mono); color: rgba(16,22,30,.55); }
+.b2-lab { position: absolute; font: 800 11px var(--f-mono); color: #8a5a34; z-index: 3; }
 .b2-lab.file { bottom: 1px; } .b2-lab.rank { left: 3px; }
 /* tour polish */
 .tour-spot { outline-color: var(--pink); border-radius: 14px; }

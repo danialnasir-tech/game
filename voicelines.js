@@ -262,3 +262,40 @@ Object.assign(MORE_POOLS, {
   battle_missed: ["You missed my mistake. Watch the replay to see the punishment.", "I got away with it. Let me show you what you could have played.", "Not quite. There was a much stronger move.", "My slip went unpunished. Here's what wins."],
   replay_intro: ["Watch what happens.", "Here's how it plays out.", "Let me show you on the board.", "Follow the moves."]
 });
+
+// ===== Batch 7: coach missions, the coach playing at your level on purpose, hands-on lesson quizzes =====
+Object.assign(MORE_POOLS, {
+  cm_start: ["Mission time. Here's your goal.", "Let's put that lesson to work.", "Quick mission for you. Ready?", "Your turn to use it. Here's the setup.", "Small mission, big skill. Let's go."],
+  cm_done: ["Mission complete. Nicely done.", "Goal reached. You've got it.", "That's the idea exactly. Mission done.", "You made that look easy.", "Done! That piece is starting to obey you."],
+  cm_star3: ["Three stars. Not a single wasted move.", "Perfect route. Full marks.", "Flawless. That's the fastest way.", "Three stars! You planned that perfectly."],
+  cm_fail: ["Not quite. Let's set it up again.", "Close one. Try a different route.", "No problem. Reset and have another go.", "That didn't work this time. You'll get it.", "Almost. Think one move further ahead."],
+  coach_onpurpose: ["At this level I leave pieces loose on purpose. Can you spot them?", "I'm playing like a beginner on purpose. Punish my mistakes.", "I just left something unguarded. That's your training. Find it.", "I make slips at this level so you can practise winning material."],
+  coach_lost_easy: ["You beat me! At this level I play like a beginner on purpose, so you can practise winning. Try the next level when you're ready.", "Well played. I was playing gently, but you took your chances. That's exactly the skill.", "You won! I let a few things slip on purpose, and you punished them. Ready for a tougher me?"],
+  quiz_right: ["Yes, that's one!", "It can go there.", "Right square.", "Good eye.", "That's it.", "Yep, reachable."],
+  quiz_wrong: ["That piece can't reach there.", "Not that square. Think about how it moves.", "Nope, try another square."],
+  quiz_done: ["You found them all!", "Every square. You really know this piece now.", "All found. Brilliant.", "Complete! Let's keep going."]
+});
+
+// Hands-on check after a "Concept" step that shows one lone piece: tap squares it can reach.
+var QUIZ_NEED = { r: 4, b: 3, q: 5, n: 3, k: 3 }, QUIZ_WORD = ['zero', 'one', 'two', 'three', 'four', 'five'], QUIZ_NAME = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
+function QUIZ_OF(step) {
+  if (!step || step.t !== 'read' || !step.fen) return null;
+  var rows = step.fen.split(' ')[0].split('/'), found = [];
+  rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } found.push({ ch: ch, sq: 'abcdefgh'[f] + (8 - ri) }); f++; } });
+  if (found.length !== 1 || !QUIZ_NEED[found[0].ch.toLowerCase()] || found[0].ch !== found[0].ch.toUpperCase()) return null;
+  var type = found[0].ch.toLowerCase(), at = found[0].sq, fi = at.charCodeAt(0) - 97, r = +at[1] - 1, reach = [];
+  function add(ff, rr) { if (ff >= 0 && ff < 8 && rr >= 0 && rr < 8) reach.push('abcdefgh'[ff] + (rr + 1)); }
+  var D = { r: [[1, 0], [-1, 0], [0, 1], [0, -1]], b: [[1, 1], [1, -1], [-1, 1], [-1, -1]] }; D.q = D.r.concat(D.b);
+  if (type === 'n') [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(function (d) { add(fi + d[0], r + d[1]); });
+  else if (type === 'k') D.q.forEach(function (d) { add(fi + d[0], r + d[1]); });
+  else D[type].forEach(function (d) { for (var i = 1; i < 8; i++) add(fi + d[0] * i, r + d[1] * i); });
+  var need = Math.min(QUIZ_NEED[type], reach.length), all = need === reach.length;
+  return { type: type, at: at, reach: reach, need: need, id: 'Q-' + type + '-' + need + (all ? 'a' : ''),
+    text: 'Your turn. Tap ' + (all ? (need === 2 ? 'both' : 'all ' + QUIZ_WORD[need]) : QUIZ_WORD[need]) + ' squares the ' + QUIZ_NAME[type] + ' can reach.' };
+}
+function QUIZ_LINES(data) {
+  var seen = {}, out = [];
+  Object.keys(data.LESSONS).forEach(function (id) { data.LESSONS[id].steps.forEach(function (s) { var q = QUIZ_OF(s); if (q && !seen[q.id]) { seen[q.id] = 1; out.push({ id: q.id, text: q.text, group: 'more' }); } }); });
+  return out;
+}
+if (typeof module !== 'undefined') { module.exports.QUIZ_OF = QUIZ_OF; module.exports.QUIZ_LINES = QUIZ_LINES; }
