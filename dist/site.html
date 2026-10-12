@@ -2216,7 +2216,7 @@ var MISSIONS = {
   ],
   'l-rook': [
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Attack my king with your rook. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
+      text: 'Attacking the king is called check. Put your rook on a line with my king to give check. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
     { id: 'rook-snack', title: 'Pawn Snack', fen: '7k/8/1p6/8/5p2/8/8/R5K1 w - - 0 1', goal: 'capture', count: 2, limit: 6, par: 4, coach: 'wander',
       text: 'Two of my pawns are loose. Win both of them. I will only move my king.', tip: 'Get on the same line as a pawn first, then take it.' },
     { id: 'rook-sweep', title: 'Rook Sweep', fen: '7k/1p6/8/4p3/8/2p3p1/8/R5K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
@@ -2224,7 +2224,7 @@ var MISSIONS = {
   ],
   'l-bishop-queen': [
     { id: 'bishop-check', title: 'Diagonal Check', fen: '4k3/8/8/8/8/8/8/5BK1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Check my king with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
+      text: 'Give check again: attack my king, this time with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
     { id: 'queen-double', title: 'Queen Grab', fen: '7k/8/2n5/8/8/5r2/8/3Q2K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
       text: 'My knight and my rook are unguarded. Win both with your queen.', tip: 'Your queen reaches f3 on a diagonal. From f3, look at c6.' },
     { id: 'queen-clean', title: 'Clean Sweep', fen: '6k1/p7/4r3/8/2b5/1n6/8/3Q2K1 w - - 0 1', goal: 'captureAll', limit: 8, par: 5, coach: 'wander',
@@ -2232,7 +2232,7 @@ var MISSIONS = {
   ],
   'l-knight': [
     { id: 'knight-check', title: 'Knight Check', fen: '4k3/8/8/8/4N3/8/8/6K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Check my king with a knight jump. Remember the L shape.', tip: 'From e4 the knight reaches d6 and f6. Both touch e8.' },
+      text: 'Give check with a knight jump: land on a square that attacks my king. Remember the L shape.', tip: 'From e4 the knight reaches d6 and f6. Both touch e8.' },
     { id: 'knight-hop', title: 'Hop and Grab', fen: '7k/8/8/3p4/8/2p5/8/1N4K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
       text: 'Two pawns, two jumps. Win them both.', tip: 'b1 jumps to c3. From c3, where can it land next?' },
     { id: 'knight-hunt', title: 'Knight Hunt', fen: '2r4k/8/8/5b2/7p/8/8/1N4K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
@@ -3979,7 +3979,7 @@ function BOARD2D_FACTORY() {
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -3994,7 +3994,7 @@ function BOARD2D_FACTORY() {
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
+  var BOARD_MODES = { warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -4138,6 +4138,7 @@ function BOARD2D_FACTORY() {
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
+        warmupCard() +
         (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
@@ -6080,6 +6081,124 @@ function BOARD2D_FACTORY() {
   }
 
 
+  // ================= Daily warm-up: spaced review of finished lessons =================
+  // Every lesson leaves small review items behind. Each one comes back after 1, 2, 4, 8, 16 days while you keep
+  // getting it right, and the next day again when you miss it.
+  var SRS_GAP = [1, 2, 4, 8, 16, 32];
+  function dayPlus(n) { var d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); }
+  function srsItemsFor(lid) {
+    var L = LESSONS[lid], out = [];
+    L.steps.forEach(function (st, i) {
+      var q = QUIZ_OF(st);
+      if (q) out.push({ id: lid + ':' + i, lid: lid, kind: 'reach', type: q.type });
+      else if (st.t === 'squares') out.push({ id: lid + ':' + i, lid: lid, kind: 'square' });
+      else if (st.t === 'move' && st.sol && st.sol.length === 1) out.push({ id: lid + ':' + i, lid: lid, kind: 'move', step: st });
+    });
+    return out;
+  }
+  function srsAll() { var out = []; Object.keys(LESSONS).forEach(function (id) { if (lessonDone(id)) out = out.concat(srsItemsFor(id)); }); return out; }
+  function srsDue() {
+    S.srs = S.srs || {}; var today = dayKey();
+    return srsAll().filter(function (it) { var r = S.srs[it.id]; if (!r) { S.srs[it.id] = { b: 0, due: dayPlus(1) }; return false; } return r.due <= today; });
+  }
+  function warmupCard() {
+    if (lessonsDone() < 1 || (today().warm && today().warm >= 1)) return '';
+    var due = srsDue(); save();
+    if (!due.length) return '';
+    var n = Math.min(5, due.length);
+    return '<button class="warm-card" data-act="warmup"><span class="warm-ico" aria-hidden="true">🧠</span><span class="warm-t"><b>Daily warm-up</b><span>' + n + ' quick question' + (n > 1 ? 's' : '') + ' from your lessons · 1 minute · keeps them in your memory</span></span><span class="an-go" aria-hidden="true">→</span></button>';
+  }
+  var WU = null;
+  MODES.warmup = {
+    label: 'Daily warm-up',
+    enter: function () {
+      var due = srsDue();
+      for (var k = due.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)), t = due[k]; due[k] = due[j]; due[j] = t; }
+      WU = { list: due.slice(0, 5), i: 0, ok: 0, res: [] };
+      if (!WU.list.length) { go('path'); return; }
+      Voice.say([V('cm_start')]);
+      MODES.warmup.load();
+    },
+    load: function () {
+      var it = WU.list[WU.i]; WU.done = false; WU.miss = 0; IX.tap = null; IX.onMove = null; IX.enabled = false;
+      var PCN = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
+      if (it.kind === 'reach') {
+        var at = ['c3', 'd4', 'e5', 'f4', 'c6', 'e3', 'f5', 'd3'][Math.floor(Math.random() * 8)];
+        var fen = fenOf(it.type, at); setupBoard(fen, { orient: 'w' });
+        WU.reach = Collect.reach(it.type, at); WU.found = []; WU.need = Math.min(3, WU.reach.length); WU.at = at;
+        WU.prompt = 'Tap ' + ['', 'one square', 'two squares', 'three squares'][WU.need] + ' the ' + PCN[it.type] + ' on ' + at + ' can move to.';
+        IX.tap = MODES.warmup.tapReach;
+      } else if (it.kind === 'square') {
+        setupBoard('8/8/8/8/8/8/8/8 w - - 0 1', { orient: 'w' });
+        var all = []; 'abcdefgh'.split('').forEach(function (f) { for (var r = 1; r <= 8; r++) all.push(f + r); });
+        WU.target = all[Math.floor(Math.random() * 64)]; WU.prompt = 'Tap the square ' + WU.target + '.';
+        IX.tap = MODES.warmup.tapSquare; Voice.say([M('sq_' + WU.target)], true);
+      } else {
+        var st = it.step, g = setupBoard(st.fen, { orient: new Game(st.fen).turn() });
+        WU.prompt = st.text; WU.g = g;
+        IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !WU.done; }; IX.onMove = MODES.warmup.onMove;
+      }
+      MODES.warmup.render();
+    },
+    render: function (msg, cls) {
+      var it = WU.list[WU.i], L = LESSONS[it.lid];
+      var pips = WU.list.map(function (x, k) { return '<i class="' + (k < WU.res.length ? (WU.res[k] ? 'on' : 'miss') : k === WU.i ? 'cur' : '') + '"></i>'; }).join('');
+      setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up · ' + (WU.i + 1) + ' of ' + WU.list.length + '</div><h1 class="h1">Do you remember?</h1>' +
+        '<div class="wu-pips">' + pips + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">From: ' + esc(L.title) + '</div><p class="coach-text">' + esc(WU.prompt) + '</p>' +
+        (it.kind === 'reach' ? '<span class="quiz-pips">' + Array.apply(null, Array(WU.need)).map(function (x, k) { return '<i class="' + (k < WU.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span>' : '') + '</div>' +
+        '<div id="status" class="status ' + (cls || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions">' + (WU.done ? '<button class="btn primary wide" data-act="wuNext">' + (WU.i < WU.list.length - 1 ? 'Next question →' : 'See my result') + '</button>' : '<button class="btn ghost" data-act="wuShow">I forgot, show me</button>') + '</div>');
+    },
+    answer: function (ok, msg) {
+      var it = WU.list[WU.i], r = S.srs[it.id] || { b: 0 };
+      if (ok) { r.b = Math.min(SRS_GAP.length - 1, (r.b || 0) + 1); r.due = dayPlus(SRS_GAP[r.b]); WU.ok++; Sound.play('good'); Voice.say([V('quiz_right')], true); }
+      else { r.b = 0; r.due = dayPlus(1); Sound.play('bad'); }
+      S.srs[it.id] = r; WU.res.push(ok); WU.done = true; IX.tap = null; IX.enabled = false; save();
+      MODES.warmup.render((ok ? '<strong>Remembered.</strong> ' : '<strong>Here it is.</strong> ') + msg + (ok ? ' You will see this again in ' + SRS_GAP[r.b] + ' day' + (SRS_GAP[r.b] > 1 ? 's' : '') + '.' : ' It comes back tomorrow so it sticks.'), ok ? 'good' : 'bad');
+    },
+    tapReach: function (sq) {
+      if (WU.done || sq === WU.at || WU.found.indexOf(sq) >= 0) return;
+      if (WU.reach.indexOf(sq) < 0) { WU.miss++; B3.flash('bad', [sq], 500); if (WU.miss >= 2) { B3.markers('hint', WU.reach); return MODES.warmup.answer(false, MOVE_RULE[WU.list[WU.i].type] + ' The green squares are all of its moves.'); } toast(MOVE_RULE[WU.list[WU.i].type]); return; }
+      WU.found.push(sq); B3.markers('good', WU.found.slice()); Sound.play('star');
+      if (WU.found.length >= WU.need) { B3.markers('hint', WU.reach); return MODES.warmup.answer(WU.miss === 0, 'Every green square is a legal move for it.'); }
+      MODES.warmup.render();
+    },
+    tapSquare: function (sq) {
+      if (WU.done) return;
+      if (sq === WU.target) { B3.flash('good', [sq], 900); return MODES.warmup.answer(WU.miss === 0, 'File ' + sq[0] + ', rank ' + sq[1] + '.'); }
+      WU.miss++; B3.flash('bad', [sq], 500); toast('That is ' + sq + '.');
+      if (WU.miss >= 2) { B3.flash('hint', [WU.target], 1600); MODES.warmup.answer(false, WU.target + ' is file ' + WU.target[0] + ' (the letter along the bottom), rank ' + WU.target[1] + ' (the number up the side).'); }
+    },
+    onMove: function (mv, uci) {
+      var it = WU.list[WU.i], st = it.step, g = WU.g, test = new Game(g.fen()); test.move(mv);
+      var ok = uci === st.sol[0] || (st.accept && st.accept.indexOf(uci) >= 0) || (st.anyMate && test.inCheckmate());
+      return applyMove(g, mv).then(function () {
+        if (ok) { B3.burst(mv.to); return MODES.warmup.answer(WU.miss === 0, esc(st.done || 'That is the move.')); }
+        WU.miss++;
+        if (WU.miss >= 2) { var s0 = st.sol[0]; B3.sync(st.fen); WU.g = setupBoard(st.fen, { orient: g.turn() }); B3.arrows([[s0.slice(0, 2), s0.slice(2, 4), 'g']]); return MODES.warmup.answer(false, esc(st.hint || '') + ' The arrow shows the move.'); }
+        setTimeout(function () { if (!WU || WU.g !== g) return; g.undo(); B3.sync(g.fen()); IX.enabled = true; MODES.warmup.render('Not that one. ' + esc(st.hint || 'Look again.'), 'warn'); }, 700);
+      });
+    },
+    finish: function () {
+      var n = WU.list.length; today().warm = (today().warm || 0) + 1; addXP(10 + WU.ok * 3); save();
+      if (WU.ok === n) { confetti(); Sound.play('win'); }
+      document.body.dataset.layout = 'browse';
+      setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up done · +' + (10 + WU.ok * 3) + ' XP</div><h1 class="h1">' + WU.ok + ' of ' + n + ' remembered</h1>' +
+        '<p class="lede">' + (WU.ok === n ? 'Perfect memory. These come back later and later as they stick.' : 'The ones you missed come back tomorrow. That is how memory works: a little, often.') + '</p>' +
+        '<div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>');
+    },
+    leave: function () { WU = null; }
+  };
+  ACT.warmup = function () { go('warmup'); };
+  ACT.wuNext = function () { if (!WU) return; if (WU.i < WU.list.length - 1) { WU.i++; MODES.warmup.load(); } else MODES.warmup.finish(); };
+  ACT.wuShow = function () {
+    if (!WU || WU.done) return; var it = WU.list[WU.i];
+    if (it.kind === 'reach') { B3.markers('hint', WU.reach); return MODES.warmup.answer(false, MOVE_RULE[it.type] + ' The green squares are all of its moves.'); }
+    if (it.kind === 'square') { B3.flash('hint', [WU.target], 1800); return MODES.warmup.answer(false, WU.target + ' is file ' + WU.target[0] + ', rank ' + WU.target[1] + '.'); }
+    var s0 = it.step.sol[0]; B3.arrows([[s0.slice(0, 2), s0.slice(2, 4), 'g']]); MODES.warmup.answer(false, esc(it.step.hint || '') + ' The arrow shows the move.');
+  };
+
   // ================= Show me: replay what happens on the board =================
   function material(g, color) { var v = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p) v += (p.color === color ? 1 : -1) * VAL[p.type]; }); }); return v; }
   var Replay = (function () {
@@ -7628,6 +7747,12 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .sq-ask { font: 700 18px var(--f-display); } .sq-ask b { font-size: 30px; color: var(--brass); text-shadow: 0 0 18px rgba(198,255,61,.5); margin-left: 6px; }
 .ms-seq { display: flex; gap: 6px; flex-wrap: wrap; } .ms-seq span { padding: 5px 11px; border-radius: 10px; background: rgba(255,255,255,.06); font-weight: 700; font-size: 15px; color: var(--muted); }
 .ms-seq span.now { background: var(--brass); color: var(--brass-ink); box-shadow: 0 0 14px rgba(198,255,61,.45); } .ms-seq span.done { color: var(--good); text-decoration: line-through; }
+.warm-card { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 4px; padding: 13px 14px; text-align: left; color: var(--fg); border-radius: 20px; border: 0; background: linear-gradient(120deg, rgba(255,181,71,.25), rgba(255,61,139,.18)), var(--card); box-shadow: inset 0 0 0 1px rgba(255,181,71,.5), 0 10px 28px rgba(255,61,139,.15); animation: warmIn .5s cubic-bezier(.2,1.4,.4,1) both; }
+.warm-card:hover { box-shadow: inset 0 0 0 1px #ffb547, 0 14px 34px rgba(255,61,139,.25); }
+.warm-ico { flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: linear-gradient(150deg, #ffb547, #ff3d8b); }
+.warm-t { display: grid; gap: 2px; flex: 1; min-width: 0; } .warm-t span { font-size: 12.5px; color: var(--muted); }
+@keyframes warmIn { from { opacity: 0; transform: translateY(8px); } }
+.wu-pips { display: flex; gap: 6px; margin: 2px 0 12px; } .wu-pips i { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); } .wu-pips i.cur { background: var(--grad-hot); } .wu-pips i.on { background: var(--good); } .wu-pips i.miss { background: var(--bad); }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }

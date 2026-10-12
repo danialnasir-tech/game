@@ -14,7 +14,7 @@ var MISSIONS = {
   ],
   'l-rook': [
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Attack my king with your rook. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
+      text: 'Attacking the king is called check. Put your rook on a line with my king to give check. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
     { id: 'rook-snack', title: 'Pawn Snack', fen: '7k/8/1p6/8/5p2/8/8/R5K1 w - - 0 1', goal: 'capture', count: 2, limit: 6, par: 4, coach: 'wander',
       text: 'Two of my pawns are loose. Win both of them. I will only move my king.', tip: 'Get on the same line as a pawn first, then take it.' },
     { id: 'rook-sweep', title: 'Rook Sweep', fen: '7k/1p6/8/4p3/8/2p3p1/8/R5K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
@@ -22,7 +22,7 @@ var MISSIONS = {
   ],
   'l-bishop-queen': [
     { id: 'bishop-check', title: 'Diagonal Check', fen: '4k3/8/8/8/8/8/8/5BK1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Check my king with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
+      text: 'Give check again: attack my king, this time with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
     { id: 'queen-double', title: 'Queen Grab', fen: '7k/8/2n5/8/8/5r2/8/3Q2K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
       text: 'My knight and my rook are unguarded. Win both with your queen.', tip: 'Your queen reaches f3 on a diagonal. From f3, look at c6.' },
     { id: 'queen-clean', title: 'Clean Sweep', fen: '6k1/p7/4r3/8/2b5/1n6/8/3Q2K1 w - - 0 1', goal: 'captureAll', limit: 8, par: 5, coach: 'wander',
@@ -30,7 +30,7 @@ var MISSIONS = {
   ],
   'l-knight': [
     { id: 'knight-check', title: 'Knight Check', fen: '4k3/8/8/8/4N3/8/8/6K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
-      text: 'Check my king with a knight jump. Remember the L shape.', tip: 'From e4 the knight reaches d6 and f6. Both touch e8.' },
+      text: 'Give check with a knight jump: land on a square that attacks my king. Remember the L shape.', tip: 'From e4 the knight reaches d6 and f6. Both touch e8.' },
     { id: 'knight-hop', title: 'Hop and Grab', fen: '7k/8/8/3p4/8/2p5/8/1N4K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
       text: 'Two pawns, two jumps. Win them both.', tip: 'b1 jumps to c3. From c3, where can it land next?' },
     { id: 'knight-hunt', title: 'Knight Hunt', fen: '2r4k/8/8/5b2/7p/8/8/1N4K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',

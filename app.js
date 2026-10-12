@@ -1158,7 +1158,7 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -1173,7 +1173,7 @@
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
+  var BOARD_MODES = { warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -1317,6 +1317,7 @@
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
+        warmupCard() +
         (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
@@ -3258,6 +3259,124 @@
     return html + '<div class="sect-head"><h2>Accuracy by phase</h2></div><div class="an-phases">' + bar('Opening', ph.open) + bar('Middlegame', ph.mid) + bar('Endgame', ph.end) + '</div>';
   }
 
+
+  // ================= Daily warm-up: spaced review of finished lessons =================
+  // Every lesson leaves small review items behind. Each one comes back after 1, 2, 4, 8, 16 days while you keep
+  // getting it right, and the next day again when you miss it.
+  var SRS_GAP = [1, 2, 4, 8, 16, 32];
+  function dayPlus(n) { var d = new Date(); d.setDate(d.getDate() + n); return dayKey(d); }
+  function srsItemsFor(lid) {
+    var L = LESSONS[lid], out = [];
+    L.steps.forEach(function (st, i) {
+      var q = QUIZ_OF(st);
+      if (q) out.push({ id: lid + ':' + i, lid: lid, kind: 'reach', type: q.type });
+      else if (st.t === 'squares') out.push({ id: lid + ':' + i, lid: lid, kind: 'square' });
+      else if (st.t === 'move' && st.sol && st.sol.length === 1) out.push({ id: lid + ':' + i, lid: lid, kind: 'move', step: st });
+    });
+    return out;
+  }
+  function srsAll() { var out = []; Object.keys(LESSONS).forEach(function (id) { if (lessonDone(id)) out = out.concat(srsItemsFor(id)); }); return out; }
+  function srsDue() {
+    S.srs = S.srs || {}; var today = dayKey();
+    return srsAll().filter(function (it) { var r = S.srs[it.id]; if (!r) { S.srs[it.id] = { b: 0, due: dayPlus(1) }; return false; } return r.due <= today; });
+  }
+  function warmupCard() {
+    if (lessonsDone() < 1 || (today().warm && today().warm >= 1)) return '';
+    var due = srsDue(); save();
+    if (!due.length) return '';
+    var n = Math.min(5, due.length);
+    return '<button class="warm-card" data-act="warmup"><span class="warm-ico" aria-hidden="true">🧠</span><span class="warm-t"><b>Daily warm-up</b><span>' + n + ' quick question' + (n > 1 ? 's' : '') + ' from your lessons · 1 minute · keeps them in your memory</span></span><span class="an-go" aria-hidden="true">→</span></button>';
+  }
+  var WU = null;
+  MODES.warmup = {
+    label: 'Daily warm-up',
+    enter: function () {
+      var due = srsDue();
+      for (var k = due.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)), t = due[k]; due[k] = due[j]; due[j] = t; }
+      WU = { list: due.slice(0, 5), i: 0, ok: 0, res: [] };
+      if (!WU.list.length) { go('path'); return; }
+      Voice.say([V('cm_start')]);
+      MODES.warmup.load();
+    },
+    load: function () {
+      var it = WU.list[WU.i]; WU.done = false; WU.miss = 0; IX.tap = null; IX.onMove = null; IX.enabled = false;
+      var PCN = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
+      if (it.kind === 'reach') {
+        var at = ['c3', 'd4', 'e5', 'f4', 'c6', 'e3', 'f5', 'd3'][Math.floor(Math.random() * 8)];
+        var fen = fenOf(it.type, at); setupBoard(fen, { orient: 'w' });
+        WU.reach = Collect.reach(it.type, at); WU.found = []; WU.need = Math.min(3, WU.reach.length); WU.at = at;
+        WU.prompt = 'Tap ' + ['', 'one square', 'two squares', 'three squares'][WU.need] + ' the ' + PCN[it.type] + ' on ' + at + ' can move to.';
+        IX.tap = MODES.warmup.tapReach;
+      } else if (it.kind === 'square') {
+        setupBoard('8/8/8/8/8/8/8/8 w - - 0 1', { orient: 'w' });
+        var all = []; 'abcdefgh'.split('').forEach(function (f) { for (var r = 1; r <= 8; r++) all.push(f + r); });
+        WU.target = all[Math.floor(Math.random() * 64)]; WU.prompt = 'Tap the square ' + WU.target + '.';
+        IX.tap = MODES.warmup.tapSquare; Voice.say([M('sq_' + WU.target)], true);
+      } else {
+        var st = it.step, g = setupBoard(st.fen, { orient: new Game(st.fen).turn() });
+        WU.prompt = st.text; WU.g = g;
+        IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !WU.done; }; IX.onMove = MODES.warmup.onMove;
+      }
+      MODES.warmup.render();
+    },
+    render: function (msg, cls) {
+      var it = WU.list[WU.i], L = LESSONS[it.lid];
+      var pips = WU.list.map(function (x, k) { return '<i class="' + (k < WU.res.length ? (WU.res[k] ? 'on' : 'miss') : k === WU.i ? 'cur' : '') + '"></i>'; }).join('');
+      setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up · ' + (WU.i + 1) + ' of ' + WU.list.length + '</div><h1 class="h1">Do you remember?</h1>' +
+        '<div class="wu-pips">' + pips + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">From: ' + esc(L.title) + '</div><p class="coach-text">' + esc(WU.prompt) + '</p>' +
+        (it.kind === 'reach' ? '<span class="quiz-pips">' + Array.apply(null, Array(WU.need)).map(function (x, k) { return '<i class="' + (k < WU.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span>' : '') + '</div>' +
+        '<div id="status" class="status ' + (cls || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions">' + (WU.done ? '<button class="btn primary wide" data-act="wuNext">' + (WU.i < WU.list.length - 1 ? 'Next question →' : 'See my result') + '</button>' : '<button class="btn ghost" data-act="wuShow">I forgot, show me</button>') + '</div>');
+    },
+    answer: function (ok, msg) {
+      var it = WU.list[WU.i], r = S.srs[it.id] || { b: 0 };
+      if (ok) { r.b = Math.min(SRS_GAP.length - 1, (r.b || 0) + 1); r.due = dayPlus(SRS_GAP[r.b]); WU.ok++; Sound.play('good'); Voice.say([V('quiz_right')], true); }
+      else { r.b = 0; r.due = dayPlus(1); Sound.play('bad'); }
+      S.srs[it.id] = r; WU.res.push(ok); WU.done = true; IX.tap = null; IX.enabled = false; save();
+      MODES.warmup.render((ok ? '<strong>Remembered.</strong> ' : '<strong>Here it is.</strong> ') + msg + (ok ? ' You will see this again in ' + SRS_GAP[r.b] + ' day' + (SRS_GAP[r.b] > 1 ? 's' : '') + '.' : ' It comes back tomorrow so it sticks.'), ok ? 'good' : 'bad');
+    },
+    tapReach: function (sq) {
+      if (WU.done || sq === WU.at || WU.found.indexOf(sq) >= 0) return;
+      if (WU.reach.indexOf(sq) < 0) { WU.miss++; B3.flash('bad', [sq], 500); if (WU.miss >= 2) { B3.markers('hint', WU.reach); return MODES.warmup.answer(false, MOVE_RULE[WU.list[WU.i].type] + ' The green squares are all of its moves.'); } toast(MOVE_RULE[WU.list[WU.i].type]); return; }
+      WU.found.push(sq); B3.markers('good', WU.found.slice()); Sound.play('star');
+      if (WU.found.length >= WU.need) { B3.markers('hint', WU.reach); return MODES.warmup.answer(WU.miss === 0, 'Every green square is a legal move for it.'); }
+      MODES.warmup.render();
+    },
+    tapSquare: function (sq) {
+      if (WU.done) return;
+      if (sq === WU.target) { B3.flash('good', [sq], 900); return MODES.warmup.answer(WU.miss === 0, 'File ' + sq[0] + ', rank ' + sq[1] + '.'); }
+      WU.miss++; B3.flash('bad', [sq], 500); toast('That is ' + sq + '.');
+      if (WU.miss >= 2) { B3.flash('hint', [WU.target], 1600); MODES.warmup.answer(false, WU.target + ' is file ' + WU.target[0] + ' (the letter along the bottom), rank ' + WU.target[1] + ' (the number up the side).'); }
+    },
+    onMove: function (mv, uci) {
+      var it = WU.list[WU.i], st = it.step, g = WU.g, test = new Game(g.fen()); test.move(mv);
+      var ok = uci === st.sol[0] || (st.accept && st.accept.indexOf(uci) >= 0) || (st.anyMate && test.inCheckmate());
+      return applyMove(g, mv).then(function () {
+        if (ok) { B3.burst(mv.to); return MODES.warmup.answer(WU.miss === 0, esc(st.done || 'That is the move.')); }
+        WU.miss++;
+        if (WU.miss >= 2) { var s0 = st.sol[0]; B3.sync(st.fen); WU.g = setupBoard(st.fen, { orient: g.turn() }); B3.arrows([[s0.slice(0, 2), s0.slice(2, 4), 'g']]); return MODES.warmup.answer(false, esc(st.hint || '') + ' The arrow shows the move.'); }
+        setTimeout(function () { if (!WU || WU.g !== g) return; g.undo(); B3.sync(g.fen()); IX.enabled = true; MODES.warmup.render('Not that one. ' + esc(st.hint || 'Look again.'), 'warn'); }, 700);
+      });
+    },
+    finish: function () {
+      var n = WU.list.length; today().warm = (today().warm || 0) + 1; addXP(10 + WU.ok * 3); save();
+      if (WU.ok === n) { confetti(); Sound.play('win'); }
+      document.body.dataset.layout = 'browse';
+      setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up done · +' + (10 + WU.ok * 3) + ' XP</div><h1 class="h1">' + WU.ok + ' of ' + n + ' remembered</h1>' +
+        '<p class="lede">' + (WU.ok === n ? 'Perfect memory. These come back later and later as they stick.' : 'The ones you missed come back tomorrow. That is how memory works: a little, often.') + '</p>' +
+        '<div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>');
+    },
+    leave: function () { WU = null; }
+  };
+  ACT.warmup = function () { go('warmup'); };
+  ACT.wuNext = function () { if (!WU) return; if (WU.i < WU.list.length - 1) { WU.i++; MODES.warmup.load(); } else MODES.warmup.finish(); };
+  ACT.wuShow = function () {
+    if (!WU || WU.done) return; var it = WU.list[WU.i];
+    if (it.kind === 'reach') { B3.markers('hint', WU.reach); return MODES.warmup.answer(false, MOVE_RULE[it.type] + ' The green squares are all of its moves.'); }
+    if (it.kind === 'square') { B3.flash('hint', [WU.target], 1800); return MODES.warmup.answer(false, WU.target + ' is file ' + WU.target[0] + ', rank ' + WU.target[1] + '.'); }
+    var s0 = it.step.sol[0]; B3.arrows([[s0.slice(0, 2), s0.slice(2, 4), 'g']]); MODES.warmup.answer(false, esc(it.step.hint || '') + ' The arrow shows the move.');
+  };
 
   // ================= Show me: replay what happens on the board =================
   function material(g, color) { var v = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p) v += (p.color === color ? 1 : -1) * VAL[p.type]; }); }); return v; }

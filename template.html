@@ -1128,6 +1128,12 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .sq-ask { font: 700 18px var(--f-display); } .sq-ask b { font-size: 30px; color: var(--brass); text-shadow: 0 0 18px rgba(198,255,61,.5); margin-left: 6px; }
 .ms-seq { display: flex; gap: 6px; flex-wrap: wrap; } .ms-seq span { padding: 5px 11px; border-radius: 10px; background: rgba(255,255,255,.06); font-weight: 700; font-size: 15px; color: var(--muted); }
 .ms-seq span.now { background: var(--brass); color: var(--brass-ink); box-shadow: 0 0 14px rgba(198,255,61,.45); } .ms-seq span.done { color: var(--good); text-decoration: line-through; }
+.warm-card { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 4px; padding: 13px 14px; text-align: left; color: var(--fg); border-radius: 20px; border: 0; background: linear-gradient(120deg, rgba(255,181,71,.25), rgba(255,61,139,.18)), var(--card); box-shadow: inset 0 0 0 1px rgba(255,181,71,.5), 0 10px 28px rgba(255,61,139,.15); animation: warmIn .5s cubic-bezier(.2,1.4,.4,1) both; }
+.warm-card:hover { box-shadow: inset 0 0 0 1px #ffb547, 0 14px 34px rgba(255,61,139,.25); }
+.warm-ico { flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; background: linear-gradient(150deg, #ffb547, #ff3d8b); }
+.warm-t { display: grid; gap: 2px; flex: 1; min-width: 0; } .warm-t span { font-size: 12.5px; color: var(--muted); }
+@keyframes warmIn { from { opacity: 0; transform: translateY(8px); } }
+.wu-pips { display: flex; gap: 6px; margin: 2px 0 12px; } .wu-pips i { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); } .wu-pips i.cur { background: var(--grad-hot); } .wu-pips i.on { background: var(--good); } .wu-pips i.miss { background: var(--bad); }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }
