@@ -337,7 +337,11 @@
       GEO.square = new THREE.PlaneGeometry(1, 1);
       GEO.dot = new THREE.CircleGeometry(0.15, 28);
       GEO.ring = new THREE.RingGeometry(0.37, 0.47, 36);
-      GEO.star = new THREE.OctahedronGeometry(0.22, 0);
+      var st = new THREE.Shape();
+      for (var si = 0; si < 10; si++) { var ang = Math.PI / 2 + si * Math.PI / 5, rr = si % 2 ? 0.15 : 0.36; if (si) st.lineTo(Math.cos(ang) * rr, Math.sin(ang) * rr); else st.moveTo(Math.cos(ang) * rr, Math.sin(ang) * rr); }
+      GEO.star = new THREE.ExtrudeGeometry(st, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.025, bevelSegments: 2 });
+      GEO.star.translate(0, 0, -0.04);
+      GEO.glow = new THREE.CircleGeometry(0.46, 32);
       GEO.spark = new THREE.BoxGeometry(0.07, 0.07, 0.07);
       GEO.decal = new THREE.CircleGeometry(0.3, 32);
     }
@@ -348,7 +352,8 @@
       MAT.dark = new THREE.MeshStandardMaterial({ color: col(0x2c7c8f), roughness: 0.95, metalness: 0 });
       MAT.frame = new THREE.MeshStandardMaterial({ color: col(0x161d38), roughness: 0.85, metalness: 0 });
       MAT.brass = new THREE.MeshStandardMaterial({ color: col(0xff4f8b), emissive: col(0xff4f8b), emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.2 });
-      MAT.star = new THREE.MeshStandardMaterial({ color: col(0xf1c873), emissive: col(0x9a6a14), emissiveIntensity: 0.9, roughness: 0.25, metalness: 0.6 });
+      MAT.star = new THREE.MeshStandardMaterial({ color: col(0xffd23f), emissive: col(0xffb000), emissiveIntensity: 0.75, roughness: 0.3, metalness: 0.3 });
+      MAT.glow = new THREE.MeshBasicMaterial({ color: col(0xffd23f), transparent: true, opacity: 0.38, depthWrite: false });
       // how strongly each surface picks up the studio reflections from buildEnvironment()
       MAT.w.envMapIntensity = 0.5; MAT.b.envMapIntensity = 0.95; MAT.light.envMapIntensity = 0.22; MAT.dark.envMapIntensity = 0.3; MAT.frame.envMapIntensity = 0.45; MAT.star.envMapIntensity = 0.8;
     }
@@ -609,14 +614,20 @@
     function fitDist() {
       var w = container.clientWidth || 1, h = container.clientHeight || 1, aspect = w / h;
       var base = viewMode === 'top' ? 13.5 : 12.6;
-      return base * Math.max(1, Math.pow(1.15 / aspect, 0.85));
+      // narrow / square boards (phones): pull back so all eight files, both rooks and the labels stay in view
+      return base * Math.max(1, Math.pow(1.15 / aspect, 0.85)) * (aspect < 1.3 ? 1.14 : 1);
     }
+    var lastFit = 0, refitT = null;
     function resize() {
       var w = container.clientWidth, h = container.clientHeight;
       if (!w || !h) return;
       renderer.setSize(w, h, false);
       renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%';
       camera.aspect = w / h; camera.updateProjectionMatrix();
+      // the board area changed shape (phone layout switch): frame the whole board again once it settles
+      var f = fitDist();
+      if (lastFit && Math.abs(f - lastFit) / f > 0.03 && !drag) { clearTimeout(refitT); refitT = setTimeout(function () { if (performance.now() > introUntil) moveCamera(true, 500); }, 160); }
+      lastFit = f;
     }
     function camTarget() {
       var d = fitDist(), s = orient === 'w' ? 1 : -1;
@@ -805,18 +816,21 @@
     };
 
     // ---------- stars and effects ----------
+    var glows = {};
     api.stars = function (list) {
       Object.keys(stars).forEach(function (k) { starGroup.remove(stars[k]); });
-      stars = {};
+      Object.keys(glows).forEach(function (k) { overlay.remove(glows[k]); });
+      stars = {}; glows = {};
       (list || []).forEach(function (sq) {
         var m = new THREE.Mesh(GEO.star, MAT.star); m.castShadow = true;
         m.position.copy(pos(sq, 0.45)); m.userData = { sq: sq };
         starGroup.add(m); stars[sq] = m;
+        var gl = new THREE.Mesh(GEO.glow, MAT.glow); gl.rotation.x = -Math.PI / 2; gl.position.copy(pos(sq, 0.012)); overlay.add(gl); glows[sq] = gl;
       });
     };
     api.takeStar = function (sq) {
       var m = stars[sq]; if (!m) return false;
-      delete stars[sq];
+      delete stars[sq]; if (glows[sq]) { overlay.remove(glows[sq]); delete glows[sq]; }
       burst(sq, [0xf1c873, 0xffe9b0, 0xffffff], 26);
       tween(260, function (k) { m.scale.setScalar(1 + k); m.position.y = 0.45 + k * 0.8; }).then(function () { starGroup.remove(m); });
       return true;
@@ -871,7 +885,7 @@
   function showCheck(g) { B3.markers('check', g && g.inCheck() ? [kingSq(g)] : []); }
   function deselect() { IX.selected = null; B3.markers('sel', []); B3.markers('moves', []); if (B3.lift) B3.lift(null); }
   function selectSq(sq) {
-    IX.selected = sq;
+    IX.selected = sq; IX.lastSel = sq;
     if (B3.lift) B3.lift(sq);
     var ms = IX.game.moves({ square: sq });
     B3.markers('sel', [sq]);
@@ -902,10 +916,18 @@
         return;
       }
       if (p && p.color === g.turn() && IX.canMove(p.color)) { selectSq(sq); return; }
-      deselect();
+      var mover = g.get(IX.selected); deselect();
+      if (mover) { B3.flash('bad', [sq], 350); Sound.play('bad'); toast(illegalWhy(g, mover, IX.lastSel, sq)); }
       return;
     }
     if (p && p.color === g.turn() && IX.canMove(p.color)) selectSq(sq);
+    else if (p && p.color !== g.turn() && IX.enabled) toast('That is your opponent\'s piece. Tap one of yours.');
+  }
+  var MOVE_RULE = { r: 'Rooks move in straight lines: up, down, left or right.', b: 'Bishops move only diagonally.', q: 'The queen moves in straight lines or diagonally, without jumping.', n: 'Knights jump in an L: two squares one way, then one to the side.', k: 'The king moves one square at a time.', p: 'Pawns move straight forward and capture one square diagonally.' };
+  function illegalWhy(g, piece, from, to) {
+    var pseudo = new Game(g.fen())._pseudo(false).some(function (m) { return Game.sqName(m.f) === from && Game.sqName(m.t) === to; });
+    if (pseudo) return g.inCheck() ? 'You are in check: that move does not get your king out of it.' : 'That move would leave your king in check.';
+    return MOVE_RULE[piece.type] || 'That move is not allowed.';
   }
   function onBoardHover(sq) {
     if (IX.tap) return true;
@@ -984,7 +1006,7 @@
       Collect.reach(c.piece, c.at).forEach(function (s) { c.targets[s] = true; });
       if (c.selected) { B3.markers('sel', [c.at]); B3.markers('moves', Object.keys(c.targets).map(function (s) { return { sq: s, cap: c.left.indexOf(s) >= 0 }; })); }
       else { B3.markers('sel', []); B3.markers('moves', []); }
-      var el = $('#collect-count'); if (el) el.textContent = c.moves + ' moves · ' + (c.step.stars.length - c.left.length) + '/' + c.step.stars.length + ' stars';
+      var el = $('#collect-count'); if (el) el.textContent = c.moves + (c.moves === 1 ? ' move · ' : ' moves · ') + (c.step.stars.length - c.left.length) + '/' + c.step.stars.length + ' stars';
     },
     reach: function (piece, at) {
       var f = at.charCodeAt(0) - 97, r = +at[1] - 1, out = [];
@@ -999,7 +1021,7 @@
     click: function (sq) {
       var c = IX.collect; if (!c || c.busy) return;
       if (sq === c.at) { c.selected = !c.selected; Collect.refresh(); return; }
-      if (!c.targets[sq]) { if (c.selected) { c.selected = false; Collect.refresh(); } return; }
+      if (!c.targets[sq]) { if (c.selected) { c.selected = false; Collect.refresh(); B3.flash('bad', [sq], 350); Sound.play('bad'); toast(MOVE_RULE[c.piece]); } return; }
       c.busy = true; c.selected = false; B3.markers('sel', []); B3.markers('moves', []);
       var from = c.at; c.at = sq; c.moves++;
       Sound.play('move');
@@ -1043,7 +1065,7 @@
     setupBoard(Game.START, { orient: 'w' });
     setPanel('<div class="locked-screen"><div class="lock-orb" aria-hidden="true">' + pieceSVG(mode === 'play' ? 'k' : 'b', 'w', 54) + '</div>' +
       '<div class="eyebrow">Unlocks after ' + UNLOCK_AT[mode] + ' lesson' + (UNLOCK_AT[mode] > 1 ? 's' : '') + '</div><h1 class="h1">' + LOCKABLE[mode] + ' are almost ready</h1>' +
-      '<p class="lede">' + (mode === 'play' ? 'Once you know how every piece moves, you will play full games against me, with tips on every move.' : 'Once you know the basics, you will learn real openings, gambits and traps, one move at a time.') + '</p>' +
+      '<p class="lede">' + (mode === 'play' ? 'After your first lesson you will play full games against me, with tips on every move.' : 'After ' + UNLOCK_AT.openings + ' lessons you will learn real openings and traps, one move at a time.') + '</p>' +
       '<div class="lock-progress"><i style="width:' + Math.round(done / UNLOCK_AT[mode] * 100) + '%"></i></div><p class="muted small">' + done + ' of ' + UNLOCK_AT[mode] + ' lessons done</p>' +
       '<div class="actions"><button class="btn primary big" data-act="startNext">Continue learning</button></div>' +
       '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button></div>');
@@ -1512,8 +1534,8 @@
   }
   function bossNode(i) {
     var b = bossFor(i); if (!b) return '';
-    var beat = S.bosses[b.id];
-    return '<button class="jlesson jboss' + (beat ? ' done' : '') + '" data-act="boss" data-id="' + b.id + '">' + bossAvatar(b, 30) + '<span class="jl-title"><em class="op-kind boss">Boss</em> ' + esc(b.name) + '</span><span class="jl-meta">' + (beat ? '✓ Beaten' : 'Beat to clear') + '</span></button>';
+    var beat = S.bosses[b.id], open = bossOpen(i), need = bossNeed(i);
+    return '<button class="jlesson jboss' + (beat ? ' done' : '') + (open ? '' : ' locked') + '" data-act="boss" data-id="' + b.id + '" ' + (open || beat ? '' : 'disabled') + '>' + bossAvatar(b, 30) + '<span class="jl-title"><em class="op-kind boss">Boss</em> ' + esc(b.name) + '</span><span class="jl-meta">' + (beat ? '✓ Beaten' : open ? 'Beat to clear' : '🔒 after ' + need + ' more') + '</span></button>';
   }
   ACT.nextOpening = function () { var o = nextStop(); if (o) go('opening', { id: o.id, mode: 'learn' }); else go('openings'); };
   MODES.openings = {
@@ -1705,6 +1727,10 @@
   function puzzleFen(p) { if (p.fen) return p.fen; var g = new Game(); p.pre.forEach(function (s) { g.move(s); }); return g.fen(); }
   function pickPuzzle() {
     var pool = PUZZLES.filter(function (p) { return PZ.theme === 'all' || p.theme === PZ.theme; });
+    if (beginnerMode()) { // only ideas already taught: free pieces first, mates after the checkmate lesson
+      var easy = pool.filter(function (p) { return p.r <= 500 && (p.theme !== 'mate' || lessonDone('l-check')) && p.theme !== 'endgame'; });
+      if (easy.length) pool = easy;
+    }
     var unsolved = pool.filter(function (p) { return !S.puzzle.solved[p.id]; });
     var src = unsolved.length ? unsolved : pool.slice().sort(function (a, b) { return (S.puzzle.solved[a.id] || 0) - (S.puzzle.solved[b.id] || 0); }).slice(0, 6);
     var R = S.puzzle.rating;
@@ -1748,6 +1774,7 @@
       var c = PZ.cur; if (c.graded) return; c.graded = true;
       var R = S.puzzle.rating, P = c.p.r, E = 1 / (1 + Math.pow(10, (P - R) / 400)), K = S.puzzle.hist.length < 20 ? 40 : 24;
       var delta = Math.round(K * ((win ? 1 : 0) - E));
+      if (!win && beginnerMode()) delta = 0; // while learning the basics, a miss never costs rating
       S.puzzle.rating = Math.max(100, R + delta);
       S.puzzle.hist.push([dayKey(), S.puzzle.rating]);
       if (S.puzzle.hist.length > 300) S.puzzle.hist.shift();
@@ -2063,7 +2090,7 @@
           var tmp = document.createElement('div'); tmp.innerHTML = f.html; var line = (tmp.textContent || '').split(/(?<=[.!?])\s/)[0];
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
         }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(PL.spec ? (PL.spec.kind === 'boss' ? PL.spec.b.name : 'Goal') : S.settings.coachName) + '</span><p>' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.intro : PL.spec.kind === 'challenge' ? PL.spec.c.text : 'Play your opening. The coach will slip once: find the move that punishes it.') : PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
-        '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted">No moves yet</span>') + '</div>' +
+        '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted" style="grid-column:1/-1">No moves yet</span>') + '</div>' +
         (PL.over && PL.specActions ? '<div class="actions over-actions">' + PL.specActions + '</div>' : PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
       var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
     },
@@ -2208,7 +2235,7 @@
         if (ply <= 10 && res.piece === 'q' && !res.captured) why += ' Moving the queen early lets your opponent develop with tempo.';
         var wb = whyBest(a, a.bestSan, ply, fenBefore);
         PL.log[idx].why = wb[0];
-        html += c.label + '. ' + why + '<span class="better">Best was <strong>' + esc(a.bestSan) + '</strong>. ' + esc(wb[1]) + '</span>' +
+        html += c.label + '. ' + why + '<span class="better">Best was <strong>' + esc(a.bestSan) + '</strong>' + (S.puzzle.rating < 900 ? ' (' + PIECE_NAME[best.piece] + (best.captured ? ' takes on ' : ' to ') + best.to + ')' : '') + '. ' + esc(wb[1]) + '</span>' +
           '<span class="fi-actions"><button class="mini-btn" data-act="pShow" data-i="' + idx + '">▶ Show me what happens</button><button class="mini-btn ghost" data-act="pRetry" data-i="' + idx + '">↶ Retry</button><button class="mini-btn ghost" data-act="pSayBest" data-i="' + idx + '">🔊 Hear it</button></span>';
         if (quiet || (keyOnly && c.key === 'inacc')) { if (!PL.over) MODES.play.render(); return; }
         MODES.play.say(c.label, html, c.cls);
@@ -2583,6 +2610,12 @@
 
   // ================= Practice Arena hub =================
   S.arena = S.arena || {}; S.bosses = S.bosses || {}; S.challenges = S.challenges || {};
+  function bossOpen(i) {
+    if (!stageUnlocked(i)) return false;
+    if (stageCleared(i) || (i > 0 && S.band >= STAGES[i].min)) return true;
+    return STAGES[i].lessons.filter(lessonDone).length >= Math.ceil(STAGES[i].lessons.length / 2);
+  }
+  function bossNeed(i) { return Math.max(0, Math.ceil(STAGES[i].lessons.length / 2) - STAGES[i].lessons.filter(lessonDone).length); }
   function bossFor(i) { return BOSSES.filter(function (b) { return b.stage === i; })[0]; }
   function bossAvatar(b, size) { return '<span class="boss-ava" style="--bc:' + b.color + ';width:' + size + 'px;height:' + size + 'px">' + pieceSVG(b.icon, 'b', Math.round(size * 0.62)) + '</span>'; }
   function stars(n) { return '<span class="st-stars" aria-label="' + n + ' of 3 stars">' + '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span></span>'; }
@@ -2596,21 +2629,21 @@
     render: function () {
       var vis = VISION_GAMES.map(function (v) { var best = S.arena[v.id] || 0; return '<button class="ar-tile" data-act="vision" data-id="' + v.id + '"><span class="ar-ico">' + pieceSVG(v.icon, 'w', 24) + '</span><b>' + esc(v.name) + '</b><span class="ar-sub">' + esc(v.blurb) + '</span><span class="ar-best">' + (best ? 'Best ' + best : v.secs + ' sec') + '</span></button>'; }).join('');
       var ch = CHALLENGES.map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="ch-card' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="ch-top"><b>' + esc(c.title) + '</b>' + stars(st) + '</span><span class="ar-sub">' + esc(c.text) + '</span><span class="ch-goal">' + (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit : 'Survive ' + c.limit + ' moves') + '</span></button>'; }).join('');
-      var bosses = BOSSES.map(function (b) { var open = stageUnlocked(b.stage), beat = S.bosses[b.id]; return '<button class="boss-row' + (beat ? ' beat' : '') + '" data-act="boss" data-id="' + b.id + '" ' + (open ? '' : 'disabled') + '>' + bossAvatar(b, 40) + '<span class="br-txt"><b>' + esc(b.name) + '</b><span>' + esc(STAGES[b.stage].name) + ' · ~' + levelById(b.level).elo + '</span></span><span class="br-state">' + (beat ? '✓ Beaten' : open ? 'Fight →' : '🔒') + '</span></button>'; }).join('');
+      var bosses = BOSSES.map(function (b) { var open = bossOpen(b.stage), beat = S.bosses[b.id], need = bossNeed(b.stage); return '<button class="boss-row' + (beat ? ' beat' : '') + '" data-act="boss" data-id="' + b.id + '" ' + (open ? '' : 'disabled') + '>' + bossAvatar(b, 40) + '<span class="br-txt"><b>' + esc(b.name) + '</b><span>' + esc(STAGES[b.stage].name) + ' · ~' + levelById(b.level).elo + (!open && stageUnlocked(b.stage) && need ? ' · after ' + need + ' more lesson' + (need > 1 ? 's' : '') : '') + '</span></span><span class="br-state">' + (beat ? '✓ Beaten' : open ? 'Fight →' : '🔒') + '</span></button>'; }).join('');
       setPanel('<div class="eyebrow">Practice Arena</div><h1 class="h1">Play it, don\'t read it</h1>' +
         '<p class="lede">Quick board-vision games, endgames to win against perfect defence, opening battles and the five bosses.</p>' +
         '<div class="sect-head"><h2>Quick games</h2><span class="muted small">beat your best</span></div><div class="ar-grid">' + vis + '</div>' +
-        '<div class="sect-head"><h2>Opening battle</h2>' + (S.battleBest ? '<span class="pill-count">best streak ' + S.battleBest + '</span>' : '') + '</div>' +
+        (beginnerMode() ? '<div class="placed-note"><span class="pn-ico">★</span><span><b>More unlocks as you learn.</b> Opening battles and the endgame challenges open once you finish Foundations. The quick games and Rookie Rex are ready now.</span></div>' : '<div class="sect-head"><h2>Opening battle</h2>' + (S.battleBest ? '<span class="pill-count">best streak ' + S.battleBest + '</span>' : '') + '</div>' +
         '<button class="battle-cta" data-act="battle"><span class="bc-ico">⚔</span><span><b>The coach slips once. Punish it.</b><span>A real opening from your repertoire. Somewhere in it the coach makes a mistake: find the move that wins.</span></span><span class="to-go">→</span></button>' +
-        '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against perfect defence</span></div><div class="ch-list">' + ch + '</div>' +
+        '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against perfect defence</span></div><div class="ch-list">' + ch + '</div>') +
         '<div class="sect-head"><h2>Boss battles</h2><span class="muted small">beat one to clear its stage</span></div><div class="boss-list">' + bosses + '</div>');
     },
     leave: function () { B3.idle(false); }
   };
   ACT.arena = function () { go('arena'); };
   ACT.vision = function (d) { go('vision', d.id); };
-  ACT.challenge = function (d) { var c = CHALLENGES.filter(function (x) { return x.id === d.id; })[0]; if (c) go('play', { spec: { kind: 'challenge', c: c } }); };
-  ACT.boss = function (d) { var b = BOSSES.filter(function (x) { return x.id === d.id; })[0]; if (b) go('play', { spec: { kind: 'boss', b: b } }); };
+  ACT.challenge = function (d) { var c = CHALLENGES.filter(function (x) { return x.id === d.id; })[0]; if (c) go('play', { spec: { kind: 'challenge', c: c, back: current === MODES.arena || (current === MODES.play && PL && PL.spec) ? 'arena' : 'goPath' } }); };
+  ACT.boss = function (d) { var b = BOSSES.filter(function (x) { return x.id === d.id; })[0]; if (!b) return; if (!bossOpen(b.stage) && !S.bosses[b.id]) { toast('Finish ' + bossNeed(b.stage) + ' more lesson' + (bossNeed(b.stage) > 1 ? 's' : '') + ' in ' + STAGES[b.stage].name + ' first.'); return; } go('play', { spec: { kind: 'boss', b: b, back: current === MODES.arena ? 'arena' : 'goPath' } }); };
   ACT.battle = function () {
     var R = S.puzzle.rating, tier = openingTier(R), lines = allLines().filter(function (L) { return TIER[L.level] <= tier + 1 && L.moves.length >= 8 && !(L.family === 'Traps' && !L.def); });
     var L = lines[Math.floor(Math.random() * lines.length)];
@@ -2640,7 +2673,7 @@
   function checkMoves(g) { var out = {}; g.moves().forEach(function (m) { if (/[+#]$/.test(m.san)) out[m.from + m.to] = m.san; }); return out; }
   var GAMES = {
     squares: {
-      intro: 'A square name appears. Tap that square on the board. A wrong tap costs 2 seconds.',
+      intro: 'Every square has a name: its letter (a to h, left to right) and its number (1 to 8, from White\'s side). A name appears, you tap that square. A wrong tap costs 2 seconds.',
       setup: function () { setupBoard('8/8/8/8/8/8/8/8 w - - 0 1', { orient: VG.orient }); },
       next: function () { var t; do { t = 'abcdefgh'[Math.floor(Math.random() * 8)] + (1 + Math.floor(Math.random() * 8)); } while (t === VG.target); VG.target = t; MODES.vision.render(); },
       tap: function (sq) { if (sq === VG.target) { VG.score++; B3.flash('good', [sq], 280); Sound.play('move'); GAMES.squares.next(); } else { B3.flash('bad', [sq], 280); Sound.play('bad'); VG.end -= 2000; } },
@@ -2686,13 +2719,13 @@
       prompt: function () { var n = Object.keys(VG.checks).length, f = Object.keys(VG.found).length; return '<p class="vg-line"><b>' + (new Game(VG.fen).turn() === 'w' ? 'White' : 'Black') + ' to move.</b> Find every check.</p><div class="vg-pips">' + Array.apply(null, Array(n)).map(function (x, i) { return '<i class="' + (i < f ? 'on' : '') + '"></i>'; }).join('') + '</div><p class="muted small">' + Object.keys(VG.found).map(function (k) { return VG.checks[k]; }).join(' · ') + '</p>'; }
     },
     knight: {
-      intro: 'Jump the knight to the star. Reaching it in the fewest possible moves scores 3, otherwise 1.',
+      intro: 'The knight jumps in an L: two squares one way, then one square to the side. Jump it to the star. The fewest possible jumps scores 3, otherwise 1. Dots show where it can land.',
       setup: function () { VG.at = 'b1'; },
       dist: function (a, b) { var seen = {}, q = [[a, 0]]; seen[a] = 1; while (q.length) { var c = q.shift(); if (c[0] === b) return c[1]; Collect.reach('n', c[0]).forEach(function (s) { if (!seen[s]) { seen[s] = 1; q.push([s, c[1] + 1]); } }); } return 9; },
       next: function () {
         var t, d; do { t = 'abcdefgh'[Math.floor(Math.random() * 8)] + (1 + Math.floor(Math.random() * 8)); d = GAMES.knight.dist(VG.at, t); } while (d < 2 || d > 4);
         VG.target = t; VG.min = d; VG.jumps = 0;
-        B3.setPosition(fenOf('n', VG.at)); B3.stars([t]); B3.markers('sel', [VG.at]); B3.markers('moves', []);
+        B3.setPosition(fenOf('n', VG.at)); B3.stars([t]); B3.markers('sel', [VG.at]); B3.markers('moves', beginnerMode() ? Collect.reach('n', VG.at).map(function (s) { return { sq: s }; }) : []);
         MODES.vision.render();
       },
       tap: function (sq) {
@@ -2700,7 +2733,7 @@
         if (Collect.reach('n', VG.at).indexOf(sq) < 0) { B3.flash('bad', [sq], 300); Sound.play('bad'); B3.markers('moves', Collect.reach('n', VG.at).map(function (s) { return { sq: s }; })); return; }
         VG.busy = true; VG.jumps++; var from = VG.at; VG.at = sq; B3.markers('moves', []); Sound.play('move');
         B3.animateMove({ from: from, to: sq, flags: 'n', color: 'w' }).then(function () {
-          VG.busy = false; B3.markers('sel', [sq]);
+          VG.busy = false; B3.markers('sel', [sq]); if (beginnerMode()) B3.markers('moves', Collect.reach('n', sq).map(function (s) { return { sq: s }; }));
           if (sq === VG.target) { B3.takeStar(sq); Sound.play('star'); VG.score += VG.jumps === VG.min ? 3 : 1; VG.lastPerfect = VG.jumps === VG.min; GAMES.knight.next(); }
           else MODES.vision.render();
         });
@@ -2776,7 +2809,7 @@
   }
   MODES.play.renderSpecIntro = function () {
     var spec = PL.arg.spec, I = specIntro(spec);
-    setPanel('<button class="back" data-act="arena">← Arena</button><div class="spec-hero">' + (I.ava || '<span class="spec-ico">' + (spec.kind === 'battle' ? '⚔' : '★') + '</span>') + '<div><div class="eyebrow">' + esc(I.eyebrow) + '</div><h1 class="h1">' + esc(I.title) + '</h1><div class="muted small">' + esc(I.meta) + '</div></div></div>' +
+    setPanel('<button class="back" data-act="' + (spec.back || 'arena') + '">← ' + (spec.back === 'goPath' ? 'Path' : 'Arena') + '</button><div class="spec-hero">' + (I.ava || '<span class="spec-ico">' + (spec.kind === 'battle' ? '⚔' : '★') + '</span>') + '<div><div class="eyebrow">' + esc(I.eyebrow) + '</div><h1 class="h1">' + esc(I.title) + '</h1><div class="muted small">' + esc(I.meta) + '</div></div></div>' +
       '<p class="lede">' + esc(I.text) + '</p>' +
       (spec.kind === 'boss' && S.bosses[spec.b.id] ? '<p class="placed-note"><span class="pn-ico">✓</span><span>You already beat ' + esc(spec.b.name) + '. A rematch is just for fun.</span></p>' : '') +
       '<div class="actions"><button class="btn primary big" data-act="startGame">▶&nbsp; ' + esc(I.cta) + '</button></div>');
@@ -2926,7 +2959,7 @@
       var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
       if (b.dataset.band) {
         var v = +b.dataset.band; S.band = v; S.coach.level = levelForRating(Math.max(S.puzzle.rating, v)); PATHUI.open = null;
-        if (S.puzzle.hist.length <= 1) { S.puzzle.rating = Math.max(400, v); S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; }
+        if (S.puzzle.hist.length <= 1) { S.puzzle.rating = v; S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; }
         save(); renderTop(); openSettings(); if (current === MODES.path) MODES.path.enter(true); else if (current === MODES.progress) MODES.progress.enter();
         toast('Level set to ' + v + '. Your course starts at ' + STAGES[placementStage()].name + '.');
       }
@@ -3039,13 +3072,13 @@
         Sound.unlock(); Voice.say([C('welcome')]);
         m.querySelector('.intro-card').innerHTML =
           '<div class="coach-orb small" aria-hidden="true"><span>' + pieceSVG('n', 'w', 32) + '</span></div>' +
-          '<div class="eyebrow">Step 1 of 2</div><h1 class="h1">Where are you starting?</h1>' +
+          '<div class="eyebrow">One quick question</div><h1 class="h1">Where are you starting?</h1>' +
           '<p class="lede">Pick the closest match. You can always revisit earlier lessons.</p>' +
           '<div class="bands">' + BANDS.map(function (bd) { return '<button class="band-btn" data-band="' + bd.v + '"><span class="bb-v">' + bd.v + '</span><span><span class="bb-t">' + bd.t + '</span><span class="bb-s">' + bd.s + '</span></span><span class="bb-go" aria-hidden="true">→</span></button>'; }).join('') + '</div>';
         return;
       }
       var v = +b.dataset.band;
-      S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = Math.max(400, v);
+      S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = v;
       S.coach.level = levelForRating(v); PATHUI.open = null;
       S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
       save(); m.hidden = true; m.onclick = null; m.classList.remove('intro');
@@ -3122,11 +3155,11 @@
 
   // ================= Welcome tour =================
   var Tour = (function () {
-    var i = 0, el = null;
+    var i = 0, el = null, steps = [];
     function close() { if (el) { el.remove(); el = null; } closeTools(); document.body.classList.remove('tour-tools'); window.removeEventListener('resize', place); Voice.stop(); S.toured = true; save(); }
     function place() {
       if (!el) return;
-      var step = TOUR[i], spot = el.querySelector('.tour-spot'), card = el.querySelector('.tour-card');
+      var step = TOUR[steps[i]], spot = el.querySelector('.tour-spot'), card = el.querySelector('.tour-card');
       var target = step.sel ? document.querySelector(step.sel) : null;
       if (target && target.scrollIntoView) target.scrollIntoView({ block: 'nearest' });
       var r = target ? target.getBoundingClientRect() : null;
@@ -3153,7 +3186,7 @@
       }
     }
     function render() {
-      var step = TOUR[i];
+      var step = TOUR[steps[i]];
       // On phones the board tools sit behind the "..." button: open that menu for its tour step.
       var tb = document.querySelector('.board-tools'), tbtn = $('#tools-btn');
       var compact = (MQ && MQ.matches) || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches);
@@ -3161,16 +3194,18 @@
       if (step.sel === '.board-tools' && compact) { tb.classList.add('open'); tbtn.setAttribute('aria-expanded', 'true'); } else closeTools();
       el.querySelector('.tour-spot').classList.remove('pop'); void el.offsetWidth; el.querySelector('.tour-spot').classList.add('pop');
       el.querySelector('.tour-card').innerHTML =
-        '<div class="eyebrow">' + (i + 1) + ' / ' + TOUR.length + '</div><h2 class="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
+        '<div class="eyebrow">' + (i + 1) + ' / ' + steps.length + '</div><h2 class="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
         '<div class="actions">' + (i > 0 ? '<button class="btn ghost" data-tour="back">Back</button>' : '<button class="btn ghost" data-tour="skip">Skip tour</button>') +
-        '<button class="btn primary" data-tour="next">' + (i === TOUR.length - 1 ? 'Start training' : 'Next') + '</button></div>';
+        '<button class="btn primary" data-tour="next">' + (i === steps.length - 1 ? 'Start training' : 'Next') + '</button></div>';
       place(); requestAnimationFrame(place); setTimeout(place, 420);
-      Voice.say([{ id: 'T-' + i, text: step.text }]);
+      Voice.say([{ id: 'T-' + steps[i], text: step.text }]);
     }
     function start() {
       if (el) close();
       if (current !== MODES.path) go('path');
       i = 0;
+      // brand-new players get the short version: welcome, board, path, puzzles, ready
+      steps = beginnerMode() ? [0, 1, 4, 5, TOUR.length - 1] : TOUR.map(function (t, k) { return k; });
       el = document.createElement('div'); el.className = 'tour';
       el.innerHTML = '<div class="tour-spot"></div><div class="tour-card" role="dialog" aria-modal="true" aria-label="App tour"></div>';
       document.body.appendChild(el);
@@ -3179,7 +3214,7 @@
         var a = b.dataset.tour;
         if (a === 'skip') close();
         else if (a === 'back') { i = Math.max(0, i - 1); render(); }
-        else if (i >= TOUR.length - 1) { close(); }
+        else if (i >= steps.length - 1) { close(); }
         else { i++; render(); }
       });
       window.addEventListener('resize', place);

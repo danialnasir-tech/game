@@ -294,6 +294,7 @@ button:disabled { cursor: not-allowed; }
   .coach-text { font-size: 15px; }
   /* puzzles: task first, stats after */
   body[data-mode="puzzles"] .panel, body[data-mode="rush"] .panel { display: flex; flex-direction: column; }
+  body[data-mode="puzzles"] .panel > *, body[data-mode="rush"] .panel > * { flex-shrink: 0; }
   body[data-mode="puzzles"] .panel > .coach-card { order: -3; margin-top: 0; }
   body[data-mode="puzzles"] .panel > .status { order: -2; }
   body[data-mode="puzzles"] .panel > .actions { order: -1; position: static; margin: 10px 0 14px; padding: 0; background: none; }
@@ -725,6 +726,7 @@ body.board-2d #view-btn, body.board-2d #center-btn { display: none; }
 .boss-ava { flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--bc) 85%, white), var(--bc) 60%, color-mix(in srgb, var(--bc) 55%, black)); box-shadow: 0 0 0 3px var(--bg-2), 0 0 18px color-mix(in srgb, var(--bc) 55%, transparent); }
 .jlesson.jboss .boss-ava { margin-left: 0; position: relative; z-index: 1; }
 .op-kind.boss { background: rgba(255,210,63,.2); color: var(--brass-hi); }
+.jlesson.jboss.locked { opacity: .55; }
 .spec-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; } .spec-hero .h1 { margin: 2px 0; }
 .vg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .vg-clock { display: flex; flex-direction: column; align-items: flex-end; } .vg-clock .mono { font-size: 30px; font-weight: 700; transition: color .2s; } .vg-clock .mono.low { color: var(--bad); }
