@@ -1401,7 +1401,7 @@ if (typeof module !== 'undefined') module.exports = ENGINE_FACTORY;
 ;
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
-  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'How every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
+  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
   { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
   { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the thinking routine that stops blunders.', lessons: ['l-discovered', 'l-defender', 'l-patterns', 'l-cct'] },
   { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Opposition, the Lucena and Philidor, pawn breaks and pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
@@ -1409,6 +1409,18 @@ var STAGES = [
 ];
 
 var LESSONS = {
+  'l-board': {
+    title: 'The Board', minutes: 5, takeaways: ['Files are the columns a to h. Ranks are the rows 1 to 8.', 'A square is named by its file, then its rank, like d4.', 'A move is written as the piece letter plus the square it lands on, like Nf3. Pawn moves have no letter, like e4.'], goal: 'Learn the names of the squares and how chess moves are written.',
+    steps: [
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'A chessboard has 64 squares, 8 across and 8 up. The columns are called files. They are lettered a to h, from left to right as White sees the board. The rows are called ranks. They are numbered 1 to 8, starting from White\'s side.', marks: ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'Every square has a name: its file letter, then its rank number. The bottom left corner is a1. Walk up the d-file and you pass d1, d2, d3, all the way to d8. The four centre squares, d4, e4, d5 and e5, are the most important squares on the board.', arrows: [['d1', 'd8', 'g']], marks: ['d4', 'e4', 'd5', 'e5'] },
+      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'e2', 'a8', 'h1', 'c6', 'f5'], text: 'Your turn: tap the square I name. Find the file letter first, then count up the ranks.', done: 'Six for six. You can read the board now.' },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'This is how every game starts. White fills ranks 1 and 2, Black fills ranks 7 and 8. Check the corners: there is always a light square in each player\'s bottom right corner. Light on the right. The white queen starts on her own colour, d1.', marks: ['h1', 'a8', 'd1', 'd8'] },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1', text: 'Moves are written with a letter for the piece and the square it lands on. K is the king, Q the queen, R a rook, B a bishop and N a knight. Pawns get no letter. So e4 means a pawn moves to e4, and Nf3 means a knight moves to f3. An x means a capture, like Bxf7. A plus sign means check, a hash sign means checkmate, and O-O means castling.', arrows: [['g1', 'f3', 'g']] },
+      { t: 'move', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Now read and play. The move is written e4. Which pawn can reach e4? Play it.', sol: ['e2e4'], hint: 'A pawn move with no letter. The e-pawn on e2 can jump two squares to e4.', done: 'e4. The most popular first move in chess.' },
+      { t: 'move', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', text: 'Black answered e5. Now play the move written Nf3.', sol: ['g1f3'], hint: 'N is the knight. The knight on g1 jumps to f3.', done: 'Nf3. You just read and played chess notation. Every book and app writes moves this way.' }
+    ]
+  },
   'l-rook': {
     title: 'The Rook', minutes: 4, takeaways: ['Rooks move in straight lines, up, down and sideways.', 'Plan a route before you move, and count your moves.'], goal: 'Move the rook in straight lines and collect every star.',
     steps: [
@@ -1825,7 +1837,213 @@ var PUZZLES_MINED = [{"id":"x05","title":"Knight fork","theme":"fork","r":500,"f
   {"id":"x16","title":"Mate in 4","theme":"mate","r":1725,"fen":"8/1r6/3p1kp1/p3p3/4bn2/8/P6q/KR3Q2 b - - 3 40","sol":["e4b1","f1b1","b7b1","a1b1","f4d3","a2a3","h2b2"],"explain":"Bxb1 and after Qxb1, Rxb1+, Kxb1, Nd3, a3, Qb2# the king has no escape.","mate":4},
   {"id":"x55","title":"Mate in 6","theme":"mate","r":1850,"fen":"4r3/p1p1pk1p/2Q1p3/8/1B1Pp3/PPP1br1q/8/R2K2R1 b - - 1 36","sol":["f3f1","g1f1","h3f1","d1c2","f1d3","c2b2","d3d2","b2b1","d2c1","b1a2","c1c2"],"explain":"Rf1+ and after Rxf1+, Qxf1+, Kc2, Qd3+, Kb2, Qd2+, Kb1, Qc1+, Ka2, Qc2# the king has no escape.","mate":6},
   {"id":"x65","title":"Mate in 6","theme":"mate","r":2000,"fen":"8/3k1p2/8/3b1p2/1p3r2/8/8/K7 b - - 1 54","sol":["f4f2","a1b1","b4b3","b1c1","b3b2","c1b1","d5e4","b1a2","b2b1q","a2a3","f2a2"],"explain":"Rf2 and after Kb1, b3, Kc1, b2+, Kb1, Be4+, Ka2, b1=Q+, Ka3, Ra2# the king has no escape.","mate":6},
-  {"id":"x39","title":"Mate in 6","theme":"mate","r":2200,"fen":"3k1b1r/1p1np1pp/4B3/pNp1P3/3n1P2/P7/1P1R2PP/3R2K1 w - - 1 23","sol":["d2d4","c5d4","d1d4","b7b6","d4d7","d8c8","b5a7","c8b8","a7c6","b8a8","d7a7"],"explain":"Rxd4 and after cxd4, Rxd4, b6, Rxd7+, Kc8, Na7+, Kb8, Nc6+, Ka8, Ra7# the king has no escape.","mate":6}];
+  {"id":"x39","title":"Mate in 6","theme":"mate","r":2200,"fen":"3k1b1r/1p1np1pp/4B3/pNp1P3/3n1P2/P7/1P1R2PP/3R2K1 w - - 1 23","sol":["d2d4","c5d4","d1d4","b7b6","d4d7","d8c8","b5a7","c8b8","a7c6","b8a8","d7a7"],"explain":"Rxd4 and after cxd4, Rxd4, b6, Rxd7+, Kc8, Na7+, Kb8, Nc6+, Ka8, Ra7# the king has no escape.","mate":6},
+  {"id":"y002","title":"Take the free bishop","theme":"hanging","r":500,"fen":"r1r3k1/ppp3p1/3qP2p/b3B3/2n1PQ2/8/P3KPPP/1R3B1R b - - 0 21","sol":["c4e5"],"explain":"Nxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y007","title":"Mate in one","theme":"mate","r":500,"fen":"7k/5nr1/5QRp/3P4/N1P3p1/6K1/PP1q3P/7R w - - 10 45","sol":["f6g7"],"explain":"Qxg7# the king has no escape.","mate":1},
+  {"id":"y009","title":"Take the free rook","theme":"hanging","r":500,"fen":"4k2r/p4p1p/bR4p1/4P2n/8/5P1P/PP3K2/1R6 b - - 0 38","sol":["a7b6"],"explain":"axb6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y010","title":"Mate in one","theme":"mate","r":500,"fen":"6k1/1R6/8/p5p1/6P1/3P3K/P1R5/8 w - - 0 47","sol":["c2c8"],"explain":"Rc8# the king has no escape.","mate":1},
+  {"id":"y012","title":"Take the free rook","theme":"hanging","r":500,"fen":"Q1bk1b1r/p3pppp/8/4q2n/2p5/Pn2B3/1P2PPPP/RN2KB1R b Q - 0 13","sol":["b3a1"],"explain":"Nxa1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y013","title":"Take the free queen","theme":"hanging","r":500,"fen":"1rb1k1nr/p1pp1ppp/p7/4q3/4P3/4BN2/PPP2PPP/RN2K2R w KQk - 0 9","sol":["f3e5"],"explain":"Nxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y015","title":"Take the free queen","theme":"hanging","r":500,"fen":"1r2kr2/pp1b1p2/3ppQpp/2pP3n/P1B1P2K/1N5P/1P4P1/2N4R b - - 0 25","sol":["h5f6"],"explain":"Nxf6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y016","title":"Mate in one","theme":"mate","r":500,"fen":"r2qkbr1/ppp2p1p/2n5/3p2B1/2BPn1bK/P5P1/1PP4P/RN4QR b q - 1 14","sol":["d8g5"],"explain":"Qxg5# the king has no escape.","mate":1},
+  {"id":"y017","title":"Quiet killer move","theme":"combo","r":500,"fen":"r1b3kq/2pnn1p1/p2p3p/b3p1P1/PP2P2P/2pP1P2/2P4R/1R1QK1B1 b - - 0 23","sol":["a5b6"],"explain":"Bb6 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y018","title":"Mate in one","theme":"mate","r":500,"fen":"7b/3n3k/2rp2p1/1p2p2p/5q2/P1p5/1r1R4/R1K5 b - - 3 60","sol":["f4d2"],"explain":"Qxd2# the king has no escape.","mate":1},
+  {"id":"y020","title":"Take the free knight","theme":"hanging","r":500,"fen":"5rk1/1p1bnq2/r2p2p1/p2PN2p/P3R3/1P1Q4/2P2PPP/1R1K4 b - - 0 24","sol":["d6e5"],"explain":"dxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y021","title":"Take the free rook","theme":"hanging","r":500,"fen":"r5k1/p1nq4/3np1P1/7R/2R5/1p6/P3QPP1/5K2 b - - 0 36","sol":["d6c4"],"explain":"Nxc4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y022","title":"Take the free queen","theme":"hanging","r":500,"fen":"r5k1/5p2/p1nPp2p/1B3p2/3Q4/8/1P4b1/3RK3 b - - 0 43","sol":["c6d4"],"explain":"Nxd4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y025","title":"Take the free bishop","theme":"hanging","r":500,"fen":"rnq1kb2/2p2pp1/8/pp2N1PN/3P2np/4P3/PPP1KP1P/R1BQ3b w q - 0 17","sol":["d1h1"],"explain":"Qxh1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y027","title":"Take the free queen","theme":"hanging","r":500,"fen":"r7/pp2kp1p/6p1/3pp2P/2r1n3/5N2/2Q2PP1/1R3R1K b - - 0 30","sol":["c4c2"],"explain":"Rxc2 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y028","title":"Take the free rook","theme":"hanging","r":500,"fen":"4qk1r/5ppp/r1P2n2/3P4/Q4P2/5N2/4B2P/4K1R1 w - - 0 29","sol":["a4a6"],"explain":"Qxa6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y031","title":"Knight fork","theme":"fork","r":500,"fen":"r1bqk2r/pppp1ppp/2n5/2b1p3/2B1P1n1/1PN2N2/P1PP1PPP/1RBQ1K1R b kq - 2 8","sol":["g4f2"],"explain":"Nxf2 attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y032","title":"Take the free knight","theme":"hanging","r":500,"fen":"7r/p2n2p1/3BNk1p/b4p1B/8/8/P1P5/2KR4 b - - 0 33","sol":["f6e6"],"explain":"Kxe6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y033","title":"Take the free pawn","theme":"hanging","r":500,"fen":"rnb1kbnr/pppp1ppp/8/8/4Pp1q/2PP2P1/PP5P/RNBQKBNR b KQkq - 0 5","sol":["f4g3"],"explain":"fxg3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y034","title":"Take the free rook","theme":"hanging","r":500,"fen":"4kbr1/2q2pp1/r3p2p/1pp1p3/4P3/1nQPN1PP/P4P2/R3KRN1 b - - 1 31","sol":["b3a1"],"explain":"Nxa1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y036","title":"Queen fork","theme":"fork","r":500,"fen":"3r1k2/4n1r1/p2qQ3/1p2N1p1/P1p1P3/2P5/R1P2P1P/5RK1 w - - 1 30","sol":["e6d6"],"explain":"Qxd6 attacks two targets at once and only one can be saved. You come out a queen ahead."},
+  {"id":"y041","title":"Queen fork","theme":"fork","r":500,"fen":"6k1/5pp1/8/p1p1p2p/2P1P1q1/P1Q5/K3R2P/8 b - - 0 52","sol":["g4e2"],"explain":"Qxe2+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
+  {"id":"y043","title":"Take the free rook","theme":"hanging","r":500,"fen":"1r2k3/6pr/6p1/3PBp2/1P3P2/P6P/5bP1/RK6 w - - 0 51","sol":["e5b8"],"explain":"Bxb8 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y047","title":"Bishop fork","theme":"fork","r":500,"fen":"5rk1/5pp1/2p5/1pQbpq2/4P1Rp/5N1P/r1N3K1/5R2 b - - 0 34","sol":["d5e4"],"explain":"Bxe4 attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y048","title":"Rook fork","theme":"fork","r":500,"fen":"3r4/pp2r2k/2p3p1/7p/P2PR2P/1PPK4/6P1/8 w - - 0 34","sol":["e4e7"],"explain":"Rxe7+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
+  {"id":"y049","title":"Quiet killer move","theme":"combo","r":500,"fen":"r4k2/1b2qp1p/1n4r1/p2p4/Q2P1B2/P1N2P2/1PP4P/R2B1K1R w - - 3 24","sol":["a4b3"],"explain":"Qb3 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y050","title":"Pawn fork","theme":"fork","r":500,"fen":"r1b1kb1r/ppp2ppp/4p3/3p1q2/3PN3/P2Q1N2/1PP2PPP/R1B1K1R1 b Qkq - 0 12","sol":["d5e4"],"explain":"dxe4 attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y051","title":"Quiet killer move","theme":"combo","r":500,"fen":"4r3/2p3k1/p1qpbpnp/8/1p2P2Q/2PB2PP/P2NRP2/2R4K w - - 1 27","sol":["h4h5"],"explain":"Qh5 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y052","title":"Rook fork","theme":"fork","r":500,"fen":"5R2/kpp3r1/2p4p/p1P2b1P/P7/1P3P2/K5B1/8 b - - 0 40","sol":["g7g2"],"explain":"Rxg2+ attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y053","title":"Take the free queen","theme":"hanging","r":500,"fen":"r2n2r1/pppk1p1p/4b1p1/4p2q/PBP1P2b/1Q1P1BPP/1P3P2/1R3RK1 w - - 2 20","sol":["f3h5"],"explain":"Bxh5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y054","title":"Knight fork","theme":"fork","r":500,"fen":"r1b5/1p3kp1/3b1p1r/p1n4p/2N5/2P2NP1/P4P1P/BR2R1K1 w - - 0 35","sol":["c4d6"],"explain":"Nxd6+ attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y056","title":"Mate in one","theme":"mate","r":500,"fen":"8/p7/5p2/2p3pp/2k5/P4P1P/5P2/1Q1R3K w - - 0 36","sol":["b1d3"],"explain":"Qd3# the king has no escape.","mate":1},
+  {"id":"y060","title":"Knight fork","theme":"fork","r":500,"fen":"rnbqk2r/ppppbppp/5n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R w KQkq - 6 5","sol":["g5f7"],"explain":"Nxf7 attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y063","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"4b3/1p2kp2/8/1P5r/4PPK1/1P2R1P1/6P1/8 w - - 0 44","sol":["g4h5"],"explain":"Kxh5 is the only move that keeps the win. You come out a rook ahead."},
+  {"id":"y064","title":"Take the free bishop","theme":"hanging","r":500,"fen":"4k1r1/rppq1p1p/1b1p2p1/4p2n/3nP1BP/p1NPB3/PPPQ1PP1/R3K1R1 b - - 0 22","sol":["d7g4"],"explain":"Qxg4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y065","title":"Take the free bishop","theme":"hanging","r":500,"fen":"2kr3r/p2b1p1p/7p/p2Pb3/1qPQP3/2N3P1/P3KP1P/1R3R2 w - - 0 21","sol":["d4e5"],"explain":"Qxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y069","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"7r/5pk1/6p1/P4p1p/5P2/RP4P1/6K1/1r1R4 b - - 0 54","sol":["b1d1"],"explain":"Rxd1 is the only move that keeps the win. You come out a rook ahead."},
+  {"id":"y071","title":"Mate in one","theme":"mate","r":500,"fen":"1Qb1kb1r/4pp2/r5pp/4N3/3P4/4K3/PP3P1P/7R w - - 0 29","sol":["b8c8"],"explain":"Qxc8# the king has no escape.","mate":1},
+  {"id":"y072","title":"Take the free knight","theme":"hanging","r":500,"fen":"5kr1/2P4r/pR1n1p2/P2bp3/7p/5N1P/5PP1/6KR w - - 0 36","sol":["b6d6"],"explain":"Rxd6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y073","title":"Take the free queen","theme":"hanging","r":500,"fen":"1r6/2pp2p1/1p1Nk2r/p4nqp/P2P3P/6P1/1B3P2/3R1K1R w - - 0 28","sol":["h4g5"],"explain":"hxg5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y074","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"8/8/3K1k2/7p/p7/P1N2B1P/2r5/8 b - - 1 54","sol":["c2c3"],"explain":"Rxc3 is the only move that keeps the win. You come out a piece ahead."},
+  {"id":"y076","title":"Promote and win","theme":"promotion","r":500,"fen":"5k2/p1n5/1p6/2p3r1/P1N5/1P1P1N2/1RP2p1K/8 b - - 1 45","sol":["f2f1q"],"explain":"f1=Q clears the way for a new queen. You come out a rook ahead."},
+  {"id":"y077","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"8/8/5k2/7p/rB5P/3PK1P1/8/8 b - - 3 56","sol":["a4b4"],"explain":"Rxb4 is the only move that keeps the win. You come out a piece ahead."},
+  {"id":"y078","title":"Take the free rook","theme":"hanging","r":500,"fen":"5nk1/1r1b2pr/p1p4p/7P/6P1/2NpRPB1/6K1/1R6 w - - 0 45","sol":["b1b7"],"explain":"Rxb7 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y079","title":"Queen fork","theme":"fork","r":500,"fen":"4k2r/pp2bppp/1q6/4P3/P2Np1b1/8/1PP3PP/R3QRK1 b k - 0 16","sol":["b6d4"],"explain":"Qxd4+ attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y080","title":"Take the free knight","theme":"hanging","r":500,"fen":"r1b5/1pp2kp1/p2p2rp/b2P4/P3Rp2/5PN1/1P1P2PP/2B1K2R b - - 3 32","sol":["f4g3"],"explain":"fxg3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y083","title":"Take the free queen","theme":"hanging","r":500,"fen":"r1b1kb1r/ppppq2p/2n3p1/3n2B1/8/5N2/PPP1PPPP/R2QKB1R w KQkq - 0 8","sol":["g5e7"],"explain":"Bxe7 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y084","title":"Bishop fork","theme":"fork","r":500,"fen":"r2q1rk1/pbp2ppp/2p5/4p3/1b6/N1P1B3/P4PPP/RQ2KB1R b KQ - 0 14","sol":["b4c3"],"explain":"Bxc3+ attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y092","title":"Knight fork","theme":"fork","r":500,"fen":"r1b1k2r/ppb5/3n1p2/8/3R1BN1/P1P4P/5PP1/5K1R w - - 0 32","sol":["g4f6"],"explain":"Nxf6+ attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y094","title":"Promote and win","theme":"promotion","r":500,"fen":"8/P5k1/6p1/4b2p/1PP4r/8/4N3/5K2 w - - 0 51","sol":["a7a8q"],"explain":"a8=Q clears the way for a new queen. You come out a rook ahead."},
+  {"id":"y097","title":"Mate in one","theme":"mate","r":500,"fen":"3b3k/1p6/2p1P1Q1/n1P1N3/pP6/4P1P1/1P3P2/1R2K3 w - - 0 41","sol":["e5f7"],"explain":"Nf7# the king has no escape.","mate":1},
+  {"id":"y100","title":"Take the free queen","theme":"hanging","r":500,"fen":"1r4k1/2p5/pbRp3p/3P1bp1/1P6/1q5P/P4P1K/2B1Q3 w - - 0 40","sol":["a2b3"],"explain":"axb3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y101","title":"Take the free queen","theme":"hanging","r":500,"fen":"7r/rp1kpp2/pn6/3Pb1N1/2p4P/2N1P3/PP1B2q1/2K2RR1 w - - 0 32","sol":["g1g2"],"explain":"Rxg2 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y102","title":"Mate in one","theme":"mate","r":500,"fen":"4k1r1/1R6/2p1p1N1/2B1P2p/P7/6P1/1P5P/3R3K w - - 0 44","sol":["b7e7"],"explain":"Re7# the king has no escape.","mate":1},
+  {"id":"y105","title":"Take the free queen","theme":"hanging","r":500,"fen":"1rbk2r1/ppp1p3/3pq3/3P1p1Q/1RP1n3/2P4P/P4PP1/2B1K2R w K - 0 20","sol":["d5e6"],"explain":"dxe6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y107","title":"Mate in one","theme":"mate","r":500,"fen":"rq3r1k/p1p1Np1p/1p3b2/6B1/4p3/3P4/P1P3PP/1R3R1K w - - 0 26","sol":["g5f6"],"explain":"Bxf6# the king has no escape.","mate":1},
+  {"id":"y109","title":"Take the free bishop","theme":"hanging","r":500,"fen":"rn1qk3/pppbn2r/5Q1b/1B1p4/3PP2P/8/PPP3P1/RNB1K2R b KQq - 0 11","sol":["h6c1"],"explain":"Bxc1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y110","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"8/1kp2p2/ppp2p2/5P1p/PP4rP/2Pr3R/3B2P1/6K1 w - - 0 45","sol":["h3d3"],"explain":"Rxd3 is the only move that keeps the win. You come out a rook ahead."},
+  {"id":"y117","title":"Take the free pawn","theme":"hanging","r":500,"fen":"rnb1k1nr/pppp1ppp/3b4/8/1P2Pp1q/2N3P1/P1PPN2P/R1BQKB1R b KQkq - 0 6","sol":["f4g3"],"explain":"fxg3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y120","title":"Mate in one","theme":"mate","r":500,"fen":"2Qb3r/1p3kpp/rqpB4/p7/1n1P1N2/1PK2P2/P1P3PP/3R3R w - - 19 29","sol":["c8e6"],"explain":"Qe6# the king has no escape.","mate":1},
+  {"id":"y130","title":"Take the free pawn","theme":"hanging","r":500,"fen":"r3k2r/pb1pq1pp/p1p5/8/Q3p3/5N2/P4PPP/3RR1K1 w kq - 2 17","sol":["e1e4"],"explain":"Rxe4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y133","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"6k1/1pp5/1b2P1p1/p2p2P1/8/PPP2r1p/4R3/2R1K3 w - - 1 43","sol":["e6e7"],"explain":"e7 is the only move that keeps the win. You come out a decisive edge ahead."},
+  {"id":"y144","title":"Endgame accuracy","theme":"endgame","r":500,"fen":"3R4/1k6/5Knp/p1p1p1p1/P7/1P3P2/8/8 w - - 10 57","sol":["f6g6"],"explain":"Kxg6 is the only move that keeps the win. You come out a piece ahead."},
+  {"id":"y147","title":"Knight fork","theme":"fork","r":500,"fen":"r1b1kb1r/p1p2ppp/2pqp3/3pN2n/3P1B2/4P3/PPPQ1PPP/RN2K2R w KQkq - 0 9","sol":["e5f7"],"explain":"Nxf7 attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y149","title":"Mate in one","theme":"mate","r":500,"fen":"6k1/2p2p1p/4r3/RP4P1/1P1q4/1b3P2/6P1/5K1R b - - 1 44","sol":["b3c4"],"explain":"Bc4# the king has no escape.","mate":1},
+  {"id":"y150","title":"Take the free rook","theme":"hanging","r":500,"fen":"3r2kr/5ppp/p1N4n/5p2/P1p2P2/2K5/1PP3PP/4R3 w - - 0 27","sol":["c6d8"],"explain":"Nxd8 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y151","title":"Mate in one","theme":"mate","r":500,"fen":"3R1rk1/2p3pp/3n4/1p1p4/q2R4/2P5/rP3P2/1K6 b - - 1 37","sol":["a2a1"],"explain":"Ra1# the king has no escape.","mate":1},
+  {"id":"y153","title":"Take the free bishop","theme":"hanging","r":500,"fen":"r1b1kr2/ppp2pQ1/1bn4B/4p2p/1Pq1P1n1/5NP1/P3N1BP/R4R1K b q - 3 18","sol":["g4h6"],"explain":"Nxh6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y154","title":"Take the free rook","theme":"hanging","r":500,"fen":"6kr/5ppp/2R5/8/2KPb2P/5PP1/Pb6/7R b - - 0 37","sol":["e4c6"],"explain":"Bxc6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y158","title":"Take the free pawn","theme":"hanging","r":500,"fen":"r1b5/nppk4/8/1P1p4/2NP2P1/7K/6B1/R7 w - - 0 39","sol":["g2d5"],"explain":"Bxd5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y160","title":"Bishop fork","theme":"fork","r":500,"fen":"7q/r5k1/3p1b2/p1p1B1pp/P1P1P3/3R1P1P/3n1P2/5QK1 w - - 0 52","sol":["e5f6"],"explain":"Bxf6+ attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y165","title":"Take the free queen","theme":"hanging","r":500,"fen":"7r/5pkp/4p3/4P3/B2q2P1/5NbP/PP2K3/7R w - - 0 44","sol":["f3d4"],"explain":"Nxd4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y166","title":"Take the free queen","theme":"hanging","r":500,"fen":"1Q1qkbr1/p1pp4/4p1pp/3bp3/2B1P3/8/PP3PPP/R1B1K2R b KQ - 0 17","sol":["d8b8"],"explain":"Qxb8 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y168","title":"Bishop fork","theme":"fork","r":500,"fen":"2nr1k1r/2p2pp1/p1q3bp/P1p1P3/1pN1PnPP/1P1B1N2/R1P2P2/1Q2K2R b - - 4 28","sol":["g6e4"],"explain":"Bxe4 attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y169","title":"Take the free rook","theme":"hanging","r":500,"fen":"5q2/5kp1/4p2p/3p1p2/3P4/b1p1P1PP/R1K1Q1P1/1r5R b - - 2 38","sol":["b1h1"],"explain":"Rxh1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y171","title":"Mate in one","theme":"mate","r":500,"fen":"r1b4k/1p2p3/4p1Q1/p2p3p/2P1B3/2N5/5PP1/1RN2K2 w - d6 0 31","sol":["g6h7"],"explain":"Qh7# the king has no escape.","mate":1},
+  {"id":"y172","title":"Bishop fork","theme":"fork","r":500,"fen":"r1b1k2r/ppp2ppp/2nb2q1/3Bp3/8/3P1Q2/PPP2PPP/RNB1K2R w KQkq - 1 9","sol":["d5c6"],"explain":"Bxc6+ attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y173","title":"Mate in one","theme":"mate","r":500,"fen":"8/4Q1pk/2P4p/3P4/6PP/2BK1P2/P1R5/6R1 w - - 3 36","sol":["e7g7"],"explain":"Qxg7# the king has no escape.","mate":1},
+  {"id":"y177","title":"Take the free bishop","theme":"hanging","r":500,"fen":"r3k2r/1b4Rp/p3Nb2/2p5/2pP4/8/PPPK1P1P/R7 w - - 0 21","sol":["g7b7"],"explain":"Rxb7 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y180","title":"Quiet killer move","theme":"combo","r":500,"fen":"1r1q1br1/1p1bkBp1/p1n4p/4p1N1/8/P1P1P3/1PQ3PP/R5KR b - - 0 23","sol":["g8h8"],"explain":"Rh8 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y182","title":"Take the free pawn","theme":"hanging","r":500,"fen":"rnb1k2r/ppB2pbp/4p3/8/4P2P/3P4/PPP3P1/RN2KB1R b KQkq - 0 11","sol":["g7b2"],"explain":"Bxb2 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y184","title":"Take the free queen","theme":"hanging","r":500,"fen":"6k1/5p1r/1p4pp/4n1q1/1p1RP3/1NQ4P/2b2R2/5K1B b - - 2 43","sol":["b4c3"],"explain":"bxc3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y186","title":"Mate in one","theme":"mate","r":500,"fen":"5k2/2pR4/R4N1p/6p1/p5P1/5P2/5K1P/2q5 w - - 5 60","sol":["a6a8"],"explain":"Ra8# the king has no escape.","mate":1},
+  {"id":"y192","title":"Take the free bishop","theme":"hanging","r":500,"fen":"4k2r/pp3p2/8/3rPbp1/3N1P2/8/PP4PP/R3K2R w KQ - 0 27","sol":["d4f5"],"explain":"Nxf5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y194","title":"Take the free rook","theme":"hanging","r":500,"fen":"r2R4/5kp1/p1p5/7p/1q6/1p3N1P/5PP1/2Q3K1 b - - 0 46","sol":["a8d8"],"explain":"Rxd8 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."},
+  {"id":"y195","title":"Mate in one","theme":"mate","r":500,"fen":"r1bR3r/1pp1k2p/5q2/4P1Q1/p1B5/P3P3/2P3PR/4K3 w - - 3 31","sol":["g5f6"],"explain":"Qxf6# the king has no escape.","mate":1},
+  {"id":"y196","title":"Pawn fork","theme":"fork","r":500,"fen":"r3r3/5p2/p1Q1b1kp/1p2p3/4PP2/PR1P4/q2NK1PP/6R1 w - - 3 28","sol":["f4f5"],"explain":"f5+ attacks two targets at once and only one can be saved. You come out a decisive edge ahead."},
+  {"id":"y198","title":"Take the free knight","theme":"hanging","r":500,"fen":"3r1k2/1p3p2/p4r1p/2q5/P2pB3/1P2nP1P/1QPB3P/6RK w - - 2 37","sol":["d2e3"],"explain":"Bxe3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y199","title":"Take the free knight","theme":"hanging","r":500,"fen":"8/ppn1k1p1/7p/B1pnP3/2P4P/5rP1/PP1R1P2/2K5 w - - 0 33","sol":["c4d5"],"explain":"cxd5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y204","title":"Take the free queen","theme":"hanging","r":500,"fen":"rn2k1r1/p5bp/1ppq1n2/4P3/4P3/2N4P/PPP2PP1/R1B1R1K1 w q - 0 17","sol":["e5d6"],"explain":"exd6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."},
+  {"id":"y205","title":"Take the free bishop","theme":"hanging","r":500,"fen":"r4rk1/pp5p/2B3p1/8/5P2/3PR2P/bP6/5RK1 b - - 0 24","sol":["b7c6"],"explain":"bxc6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y006","title":"Mate in 2","theme":"mate","r":650,"fen":"4R3/4Bp1k/1rbp3p/p5pN/1p4P1/1P5P/1P3K2/R7 w - - 0 37","sol":["h5f6","h7g6","e8g8"],"explain":"Nf6+ and after Kg6, Rg8# the king has no escape.","mate":2},
+  {"id":"y037","title":"Bishop fork","theme":"fork","r":650,"fen":"4nk1r/2p1ppbp/3p2p1/3P2B1/1r6/2N2KP1/1P3P1P/R3R3 w - - 0 24","sol":["g5e7","f8g8","a1a8"],"explain":"Bxe7+ attacks two targets at once and only one can be saved. You come out material ahead."},
+  {"id":"y042","title":"Mate in 2","theme":"mate","r":650,"fen":"1rbqkb2/1ppp2pr/5P2/p7/2QNN3/P3P3/1P4pP/2KR1R2 w - - 0 21","sol":["f6f7","e8e7","d4f5"],"explain":"f7+ and after Ke7, Nf5# the king has no escape.","mate":2},
+  {"id":"y055","title":"Knight fork","theme":"fork","r":650,"fen":"2r5/5pkp/1p3p2/p1p1p3/4r3/P3N1P1/5P1P/3RR1K1 w - - 4 37","sol":["e3f5","g7g6","f5e7"],"explain":"Nf5+ attacks two targets at once and only one can be saved. You come out a decisive edge ahead."},
+  {"id":"y062","title":"Mate in 2","theme":"mate","r":650,"fen":"r2kr3/2pn3p/p6b/3b1p2/1pNP1p2/2PB4/PP4q1/R1BK4 b - - 2 29","sol":["d5f3","d3e2","g2e2"],"explain":"Bf3+ and after Be2, Qxe2# the king has no escape.","mate":2},
+  {"id":"y067","title":"Mate in 2","theme":"mate","r":650,"fen":"4rr2/1pk2ppp/4q3/p1b4R/8/8/PPPP2PP/R1BQ3K b - - 9 24","sol":["e6e1","d1e1","e8e1"],"explain":"Qe1+ and after Qxe1, Rxe1# the king has no escape.","mate":2},
+  {"id":"y075","title":"Mate in 2","theme":"mate","r":650,"fen":"8/1p3k2/P5p1/2p2p2/1p6/r7/3K4/7r b - - 0 60","sol":["h1h2","d2d1","a3a1"],"explain":"Rh2+ and after Kd1, Ra1# the king has no escape.","mate":2},
+  {"id":"y082","title":"Mate in 2","theme":"mate","r":650,"fen":"3k4/2p2p2/p2p2q1/1p1b4/Pb1P1P2/1P6/1BP1NK2/2R5 b - a3 0 34","sol":["g6g2","f2e3","g2f3"],"explain":"Qg2+ and after Ke3, Qf3# the king has no escape.","mate":2},
+  {"id":"y087","title":"Queen fork","theme":"fork","r":650,"fen":"r1b1k2r/p1pp2p1/1p5p/5p2/P2q3P/4P3/R1PN2P1/2Q1KBR1 b kq - 0 20","sol":["d4e3","e1d1","e3g1"],"explain":"Qxe3+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
+  {"id":"y088","title":"Mate in 2","theme":"mate","r":650,"fen":"5k2/1K3p1p/p5pN/Pb4P1/8/6qP/2r5/8 b - - 0 53","sol":["g3c7","b7a8","b5c6"],"explain":"Qc7+ and after Ka8, Bc6# the king has no escape.","mate":2},
+  {"id":"y090","title":"Mate in 2","theme":"mate","r":650,"fen":"3r4/5R2/bp1pk2p/8/1PPK1n2/P3p2P/8/5R2 w - - 5 47","sol":["f1f4","e3e2","f4f6"],"explain":"R1xf4 and after e2, R4f6# the king has no escape.","mate":2},
+  {"id":"y136","title":"Mate in 2","theme":"mate","r":650,"fen":"2k3r1/1p2p3/p1p1p2p/5p2/2Pr3P/PQ3PP1/4B2q/4K3 b - - 2 31","sol":["h2g3","e1f1","g3g1"],"explain":"Qxg3+ and after Kf1, Qg1# the king has no escape.","mate":2},
+  {"id":"y138","title":"Mate in 2","theme":"mate","r":650,"fen":"1Qbkr3/5p2/p2p4/1p2B1pn/2p4q/P3P1NP/1P3KP1/2R5 w - - 0 29","sol":["b8b6","d8e7","b6d6"],"explain":"Qb6+ and after Ke7, Qxd6# the king has no escape.","mate":2},
+  {"id":"y152","title":"Queen fork","theme":"fork","r":650,"fen":"1k6/3n4/p1R1p1p1/1p5q/8/4Q3/P4P2/5K2 b - - 0 47","sol":["h5h1","f1e2","h1c6"],"explain":"Qh1+ attacks two targets at once and only one can be saved. You come out a rook ahead."},
+  {"id":"y174","title":"Bishop fork","theme":"fork","r":650,"fen":"2q1kr2/1r4p1/1pb1p3/p1p1P3/P1Pp2P1/RP1P1NB1/4QPK1/7R b - - 0 40","sol":["c6f3","e2f3","f8f3"],"explain":"Bxf3+ attacks two targets at once and only one can be saved. You come out a queen ahead."},
+  {"id":"y197","title":"Knight fork","theme":"fork","r":650,"fen":"2q1k2r/p4pp1/7p/1NppP3/2P5/5b2/PP1K1PPP/1R5R w k - 0 22","sol":["b5d6","e8d7","d6c8"],"explain":"Nd6+ attacks two targets at once and only one can be saved. You come out a queen ahead."},
+  {"id":"y026","title":"Quiet killer move","theme":"combo","r":675,"fen":"1r2kbr1/p1pn1ppp/Bpbnp3/3p1qPP/3P4/4BN2/PPPN1P2/R2QK2R w Q - 7 18","sol":["f3h4"],"explain":"Nh4 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y039","title":"Queen fork","theme":"fork","r":675,"fen":"rnbqk2r/ppp2ppp/8/2bpP3/P7/1PP5/2P3PP/R1BQKBNR b KQkq - 0 7","sol":["d8h4"],"explain":"Qh4+ attacks two targets at once and only one can be saved. You come out a decisive edge ahead."},
+  {"id":"y114","title":"Endgame accuracy","theme":"endgame","r":675,"fen":"8/8/2b2kp1/R3prpp/p7/P3KPPP/8/5R2 w - - 15 52","sol":["a5a6"],"explain":"Ra6 is the only move that keeps the win. You come out a decisive edge ahead."},
+  {"id":"y118","title":"Quiet killer move","theme":"combo","r":675,"fen":"r1b1kb1r/pppp1ppp/2n4n/4P3/8/q1N2N2/P1PBPPPP/1R1QKB1R w Kkq - 4 8","sol":["c3b5"],"explain":"Nb5 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y121","title":"Quiet killer move","theme":"combo","r":675,"fen":"1r5k/1rp3p1/p2b3p/2Pq4/7P/P1R1BP2/2N2PR1/2K2Q2 w - - 1 46","sol":["c2b4"],"explain":"Nb4 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y125","title":"Endgame accuracy","theme":"endgame","r":675,"fen":"8/1kq5/2p4p/1p1pP2Q/r6P/5R2/2P3P1/6K1 w - - 0 44","sol":["f3f7"],"explain":"Rf7 is the only move that keeps the win. You come out a decisive edge ahead."},
+  {"id":"y140","title":"Quiet killer move","theme":"combo","r":675,"fen":"r1bqk2r/ppp2p1p/5np1/2P1p3/1np1P3/N4Q2/PPP1NPPP/R1B1K2R w KQkq - 0 9","sol":["c1g5"],"explain":"Bg5 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y003","title":"Mate in 2","theme":"mate","r":800,"fen":"8/8/p1b3k1/P6p/3b4/1R3pKP/4r3/8 b - - 1 44","sol":["d4e5","g3h4","e2e4"],"explain":"Be5+ and after Kh4, Re4# the king has no escape.","mate":2},
+  {"id":"y008","title":"Mate in 2","theme":"mate","r":800,"fen":"5RBk/2r3p1/1b6/5N1P/8/1P5P/8/1K6 w - - 7 51","sol":["g8f7","h8h7","f7g6"],"explain":"Bf7+ and after Kh7, Bg6# the king has no escape.","mate":2},
+  {"id":"y014","title":"Mate in 2","theme":"mate","r":800,"fen":"3r3k/p1p2ppp/8/8/R4P2/P1b5/5qPK/8 b - - 8 46","sol":["f2h4","h2g1","d8d1"],"explain":"Qh4+ and after Kg1, Rd1# the king has no escape.","mate":2},
+  {"id":"y019","title":"Mate in 2","theme":"mate","r":800,"fen":"k5r1/p7/1p1Rp1r1/4Rp2/2P2P1p/PP3P1P/8/7K b - - 0 42","sol":["g6g1","h1h2","g8g2"],"explain":"Rg1+ and after Kh2, R8g2# the king has no escape.","mate":2},
+  {"id":"y023","title":"Mate in 3","theme":"mate","r":800,"fen":"8/kpp3p1/p1nb2p1/8/P3pPqP/4P3/2R4K/8 b - f3 0 36","sol":["e4f3","h2h1","g4h4","h1g1","h4e1"],"explain":"exf3+ and after Kh1, Qxh4+, Kg1, Qe1# the king has no escape.","mate":3},
+  {"id":"y046","title":"Mate in 2","theme":"mate","r":800,"fen":"3k1r2/8/1p1bp3/1B4pp/1PR1R3/4P2P/6r1/4K3 b - - 1 38","sol":["d6g3","e1d1","f8f1"],"explain":"Bg3+ and after Kd1, Rf1# the king has no escape.","mate":2},
+  {"id":"y061","title":"Mate in 2","theme":"mate","r":800,"fen":"8/1p4r1/8/2p4P/1kn1K3/8/8/q7 b - - 0 56","sol":["a1d4","e4f5","d4e5"],"explain":"Qd4+ and after Kf5, Qe5# the king has no escape.","mate":2},
+  {"id":"y098","title":"Pawn fork","theme":"fork","r":800,"fen":"2kr1bn1/1ppb1p2/p3pq1r/3p4/3P1PP1/2N1P2P/PPP1B3/R1Q1K2R w KQ - 1 16","sol":["g4g5","f6g7","g5h6"],"explain":"g5 attacks two targets at once and only one can be saved. You come out a rook ahead."},
+  {"id":"y103","title":"Mate in 3","theme":"mate","r":800,"fen":"2r3k1/8/3p2p1/3bp3/p6P/P3B1q1/1R4P1/K7 b - - 3 53","sol":["g3e3","b2c2","e3e1","a1b2","c8b8"],"explain":"Qxe3 and after Rc2, Qe1+, Kb2, Rb8# the king has no escape.","mate":3},
+  {"id":"y112","title":"Mate in 2","theme":"mate","r":800,"fen":"r3k3/p5Rp/P4R2/8/2B2p2/2P4P/5r2/7K w - - 2 50","sol":["c4b5","e8d8","f6f8"],"explain":"Bb5+ and after Kd8, Rf8# the king has no escape.","mate":2},
+  {"id":"y116","title":"Mate in 3","theme":"mate","r":800,"fen":"3k4/5ppp/2p5/1PPp4/8/2P5/2r1RK1P/2q5 b - - 0 40","sol":["c1f4","f2g2","c2e2","g2h3","e2h2"],"explain":"Qf4+ and after Kg2, Rxe2+, Kh3, Rxh2# the king has no escape.","mate":3},
+  {"id":"y137","title":"Mate in 2","theme":"mate","r":800,"fen":"8/2p5/1p3k1p/1P3PpK/r4p2/7P/5P2/8 b - - 2 54","sol":["f4f3","h5h6","a4h4"],"explain":"f3 and after Kxh6, Rh4# the king has no escape.","mate":2},
+  {"id":"y161","title":"Mate in 2","theme":"mate","r":800,"fen":"2r4k/1Q3R2/4q1np/P2p2p1/3P4/4P3/1PP3PP/R6K w - - 0 34","sol":["f7h7","h8g8","b7g7"],"explain":"Rh7+ and after Kg8, Qg7# the king has no escape.","mate":2},
+  {"id":"y176","title":"Mate in 2","theme":"mate","r":800,"fen":"4rk1r/p3qp1p/p4n2/3p1Q1P/N4B2/P7/1PPR2P1/2K4R w - - 2 28","sol":["f4h6","f8g8","f5g5"],"explain":"Bh6+ and after Kg8, Qg5# the king has no escape.","mate":2},
+  {"id":"y183","title":"Mate in 3","theme":"mate","r":800,"fen":"r1b3kr/pp1p1ppp/3Q1n2/1B2pNq1/4P3/8/PPP2PPP/R3K2R w KQ - 3 13","sol":["f5e7","g8f8","e7g6","f8g8","d6f8"],"explain":"Ne7+ and after Kf8, Ng6+, Kg8, Qf8# the king has no escape.","mate":3},
+  {"id":"y201","title":"Mate in 3","theme":"mate","r":800,"fen":"1r4k1/p1p2ppp/1p3n2/2P5/4r3/1Q2qN2/P1P3KP/5R1R b - - 11 27","sol":["e4g4","g2h3","e3h6","f3h4","h6h4"],"explain":"Rg4+ and after Kh3, Qh6+, Nh4, Qxh4# the king has no escape.","mate":3},
+  {"id":"y057","title":"Quiet killer move","theme":"combo","r":825,"fen":"rn2k2r/pp3ppp/2p2n2/q3p3/1b2pPB1/1PNP4/PBPQ2PP/R3K1NR b KQkq - 0 9","sol":["e4e3"],"explain":"e3 starts a forcing sequence. You come out a decisive edge ahead."},
+  {"id":"y086","title":"Take the free bishop","theme":"hanging","r":825,"fen":"r3k2r/p4ppp/bpP5/1B2n3/Nb3P2/8/P5PP/1R3KNR w kq - 1 18","sol":["b5a6"],"explain":"Bxa6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."},
+  {"id":"y128","title":"Take the free pawn","theme":"hanging","r":825,"fen":"5k1r/pb2rpp1/2p5/4p2p/P1P5/BP6/5P2/R3R1K1 w - - 2 31","sol":["e1e5"],"explain":"Rxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out material ahead."},
+  {"id":"y024","title":"Mate in 4","theme":"mate","r":925,"fen":"1r2k3/rpp2p1p/p1n2Q2/q4bN1/5Np1/1P1P4/P6P/B4BKR w - - 5 28","sol":["f6f7","e8d8","a1f6","d8c8","f7e8","c6d8","e8d8"],"explain":"Qxf7+ and after Kd8, Bf6+, Kc8, Qe8+, Nd8, Qxd8# the king has no escape.","mate":4},
+  {"id":"y040","title":"Mate in 4","theme":"mate","r":925,"fen":"6k1/N1p2p1p/p5p1/3pPb2/1n1P3Q/1K4NP/1PP3P1/4q3 b - - 2 31","sol":["f5c2","b3a3","e1e3","a3b4","e3b3","b4c5","b3c4"],"explain":"Bxc2+ and after Ka3, Qe3+, Kxb4, Qb3+, Kc5, Qc4# the king has no escape.","mate":4},
+  {"id":"y045","title":"Mate in 5","theme":"mate","r":925,"fen":"5r2/4P2k/7P/4r3/2p5/3n2P1/p5K1/8 b - - 0 53","sol":["f8f2","g2h3","e5h5","h3g4","f2f5","e7e8q","d3f2"],"explain":"Rf2+ and after Kh3, Rh5+, Kg4, Rff5, e8=Q, Nf2# the king has no escape.","mate":5},
+  {"id":"y124","title":"Mate in 4","theme":"mate","r":925,"fen":"r7/p5p1/1k6/3q4/PP1R2PB/8/1P2N3/2R1K3 w - - 4 39","sol":["d4d5","b6a6","d5a5","a6b6","a5b5","b6a6","c1c6"],"explain":"Rxd5 and after Ka6, Ra5+, Kb6, Rb5+, Ka6, Rc6# the king has no escape.","mate":4},
+  {"id":"y167","title":"Mate in 4","theme":"mate","r":925,"fen":"rnq1r1k1/1pp5/p7/3pBp2/3P3R/P1P5/2PN2PQ/3bKB2 w - - 0 22","sol":["h4h8","g8f7","h8h7","f7g8","h7g7","g8f8","h2h8"],"explain":"Rh8+ and after Kf7, Rh7+, Kg8, Rg7+, Kf8, Qh8# the king has no escape.","mate":4},
+  {"id":"y170","title":"Mate in 4","theme":"mate","r":925,"fen":"r4br1/pp5p/2kPQ1pn/q1p1p3/4Pp2/PPN4P/2P2PP1/3R1RK1 w - - 3 22","sol":["d6d7","c6c7","c3d5","c7b8","e6e8","a5d8","e8d8"],"explain":"d7+ and after Kc7, Nd5+, Kb8, Qe8+, Qd8, Qxd8# the king has no escape.","mate":4},
+  {"id":"y175","title":"Mate in 4","theme":"mate","r":925,"fen":"3r2k1/1p3pp1/p1p5/8/P5P1/6P1/1P1B2q1/2K5 b - - 2 37","sol":["g2d2","c1b1","d2d1","b1a2","d1a4","a2b1","d8d1"],"explain":"Qxd2+ and after Kb1, Qd1+, Ka2, Qxa4+, Kb1, Rd1# the king has no escape.","mate":4},
+  {"id":"y089","title":"Mate in 3","theme":"mate","r":950,"fen":"8/2R5/5k2/5p2/2P5/K2np1Pp/7P/5q2 b - - 1 52","sol":["f1a1","a3b3","a1b2","b3a4","b2b4"],"explain":"Qa1+ and after Kb3, Qb2+, Ka4, Qb4# the king has no escape.","mate":3},
+  {"id":"y113","title":"Rook fork","theme":"fork","r":950,"fen":"6kr/3r1p1p/4b3/4P2p/pQ5P/5R2/P1q1PKP1/5B1R w - - 0 36","sol":["f3g3","e6g4","g3g4","h5g4","b4g4"],"explain":"Rg3+ attacks two targets at once and only one can be saved. You come out a decisive edge ahead."},
+  {"id":"y142","title":"Mate in 3","theme":"mate","r":950,"fen":"3r4/1p2k2p/p5p1/2p5/P1P3p1/8/2r2pK1/8 b - - 1 57","sol":["f2f1q","g2g3","c2g2","g3h4","f1f6"],"explain":"f1=Q+ and after Kg3, Rg2+, Kh4, Qf6# the king has no escape.","mate":3},
+  {"id":"y156","title":"Mate in 3","theme":"mate","r":950,"fen":"8/8/p6P/8/k2r4/5P2/1b3K2/7q b - - 3 59","sol":["h1h2","f2e1","b2c3","e1f1","d4d1"],"explain":"Qh2+ and after Ke1, Bc3+, Kf1, Rd1# the king has no escape.","mate":3},
+  {"id":"y068","title":"Mate in 2","theme":"mate","r":975,"fen":"3k3r/1p5p/4Q3/3P4/1K1P4/8/PP6/R7 w - - 3 40","sol":["a1c1","h8f8","c1c8"],"explain":"Rc1 and after Rf8, Rc8# the king has no escape.","mate":2},
+  {"id":"y146","title":"Bishop fork","theme":"fork","r":975,"fen":"4rkr1/pp3p1p/1q2b1p1/4p3/P1B1P1nP/1RN2N2/2nPQPP1/5KR1 b - - 5 20","sol":["e6c4","b3b6","c4e2"],"explain":"Bxc4 attacks two targets at once and only one can be saved. You come out a piece ahead."},
+  {"id":"y123","title":"Mate in 5","theme":"mate","r":1075,"fen":"6k1/8/8/P5P1/1P1b4/7q/2K5/8 b - - 2 54","sol":["h3c3","c2d1","c3d3","d1c1","d4c3","b4b5","d3d2","c1b1","d2b2"],"explain":"Qc3+ and after Kd1, Qd3+, Kc1, Bc3, b5, Qd2+, Kb1, Qb2# the king has no escape.","mate":5},
+  {"id":"y135","title":"Mate in 5","theme":"mate","r":1075,"fen":"8/1K3p1k/8/6p1/8/8/5p1r/8 b - - 0 58","sol":["f2f1q","b7c6","f1c4","c6d6","h2d2","d6e7","c4e6","e7f8","d2d8"],"explain":"f1=Q and after Kc6, Qc4+, Kd6, Rd2+, Ke7, Qe6+, Kf8, Rd8# the king has no escape.","mate":5},
+  {"id":"y163","title":"Mate in 5","theme":"mate","r":1075,"fen":"8/3n3p/1p4k1/8/P7/P4PP1/5P2/1R1R2K1 w - - 1 39","sol":["d1d7","b6b5","b1b5","g6f6","b5b6","f6e5","b6h6","e5f5","d7d5"],"explain":"Rxd7 and after b5, Rxb5, Kf6, Rb6+, Ke5, Rh6, Kf5, Rd5# the king has no escape.","mate":5},
+  {"id":"y178","title":"Mate in 5","theme":"mate","r":1075,"fen":"8/8/8/4k3/2Q1B1K1/8/8/8 w - - 3 61","sol":["c4d5","e5f6","d5d6","f6f7","e4d5","f7e8","d6c7","e8f8","c7f7"],"explain":"Qd5+ and after Kf6, Qd6+, Kf7, Bd5+, Ke8, Qc7, Kf8, Qf7# the king has no escape.","mate":5},
+  {"id":"y004","title":"Mate in 4","theme":"mate","r":1100,"fen":"r3k1r1/p2b3Q/2q1p3/3p4/1p1P3P/1P3R2/P1P3P1/3K1R2 w - - 1 31","sol":["h7g8","e8e7","f3f7","e7d6","g8g3","e6e5","g3e5"],"explain":"Qxg8+ and after Ke7, Rf7+, Kd6, Qg3+, e5, Qxe5# the king has no escape.","mate":4},
+  {"id":"y030","title":"Mate in 4","theme":"mate","r":1100,"fen":"7Q/2p3R1/p4p2/1p3k2/1Pb1r3/2P3P1/5K2/5R2 w - - 1 46","sol":["h8h3","e4g4","h3g4","f5e5","g7e7","e5d6","g4d7"],"explain":"Qh3+ and after Rg4, Qxg4+, Ke5, Re7+, Kd6, Qd7# the king has no escape.","mate":4},
+  {"id":"y058","title":"Mate in 3","theme":"mate","r":1100,"fen":"r3kb1Q/pp2q3/2p4p/4R2p/2P5/P3P3/1P4PP/3R2K1 w - - 0 26","sol":["h8h7","f8g7","h7g8","g7f8","g8g6"],"explain":"Qh7 and after Bg7, Qg8+, Bf8, Qg6# the king has no escape.","mate":3},
+  {"id":"y059","title":"Mate in 3","theme":"mate","r":1100,"fen":"7r/p6p/1k4pb/8/1n6/1P6/PKBr1q1P/3R3R b - - 1 28","sol":["d2c2","b2b1","c2c1","d1c1","f2a2"],"explain":"Rxc2+ and after Kb1, Rc1+, Rxc1, Qxa2# the king has no escape.","mate":3},
+  {"id":"y095","title":"Mate in 3","theme":"mate","r":1100,"fen":"R7/1p3nk1/6p1/RP1Pp1q1/4Pp2/3P1Q1p/7r/4K3 b - - 1 57","sol":["g5g1","f3f1","g1e3","e1d1","e3d2"],"explain":"Qg1+ and after Qf1, Qe3+, Kd1, Qd2# the king has no escape.","mate":3},
+  {"id":"y099","title":"Mate in 3","theme":"mate","r":1100,"fen":"8/Q1p2pk1/P1P5/5q1p/6nK/5r2/8/8 b - - 1 52","sol":["g7g6","a7e3","f5f6","e3g5","f6g5"],"explain":"Kg6 and after Qe3, Qf6+, Qg5+, Qxg5# the king has no escape.","mate":3},
+  {"id":"y108","title":"Mate in 3","theme":"mate","r":1100,"fen":"8/3PQ3/2k2p2/2p3p1/6P1/pPK5/P7/4R3 w - - 1 56","sol":["d7d8n","c6b5","e7b7","b5a5","d8c6"],"explain":"d8=N+ and after Kb5, Qb7+, Ka5, Nc6# the king has no escape.","mate":3},
+  {"id":"y111","title":"Mate in 3","theme":"mate","r":1100,"fen":"6k1/8/1P1p2p1/P2Prp2/6b1/8/R1P3PK/1r6 b - - 0 41","sol":["f5f4","a2a3","e5e1","a3c3","e1h1"],"explain":"f4 and after Ra3, Ree1, Rc3, Rh1# the king has no escape.","mate":3},
+  {"id":"y122","title":"Mate in 4","theme":"mate","r":1100,"fen":"r7/1b4k1/1bp2p2/p2p4/7K/P6R/3r4/8 b - - 1 48","sol":["a8h8","h4g3","b6c7","g3g4","b7c8","g4f3","h8h3"],"explain":"Rh8+ and after Kg3, Bc7+, Kg4, Bc8+, Kf3, Rxh3# the king has no escape.","mate":4},
+  {"id":"y141","title":"Quiet killer move","theme":"combo","r":1100,"fen":"8/6pk/Q4pp1/P6r/n2r4/8/5PP1/2R3K1 b - - 0 43","sol":["d4h4","f2f4","h4h1","g1f2","h1c1"],"explain":"Rdh4 starts a forcing sequence: f4 Rh1+ Kf2 Rxc1. You come out a rook ahead."},
+  {"id":"y181","title":"Mate in 3","theme":"mate","r":1100,"fen":"5r2/1p2n1pp/p3k3/6q1/8/7P/1Q6/4K2b b - - 5 48","sol":["g5g3","e1d1","g3d3","d1c1","f8f1"],"explain":"Qg3+ and after Kd1, Qd3+, Kc1, Rf1# the king has no escape.","mate":3},
+  {"id":"y190","title":"Mate in 3","theme":"mate","r":1100,"fen":"3k4/pR5p/2p1Bp2/4pN2/4P1P1/8/1p2K1PP/r6R w - - 1 43","sol":["f5d6","a1e1","h1e1","c6c5","b7d7"],"explain":"Nd6 and after Re1+, Rxe1, c5, Rd7# the king has no escape.","mate":3},
+  {"id":"y191","title":"Mate in 4","theme":"mate","r":1100,"fen":"8/1pp3p1/8/2kP2p1/4Q3/1p5P/5PP1/1R4K1 w - - 0 37","sol":["b1c1","c5b6","e4b4","b6a7","c1a1","a7b8","b4f8"],"explain":"Rc1+ and after Kb6, Qb4+, Ka7, Ra1+, Kb8, Qf8# the king has no escape.","mate":4},
+  {"id":"y202","title":"Mate in 3","theme":"mate","r":1100,"fen":"2k5/8/4p1p1/b5Pn/3R1PK1/7P/7r/1r6 b - - 1 45","sol":["b1g1","g4f3","g1g3","f3e4","h2e2"],"explain":"Rg1+ and after Kf3, Rg3+, Ke4, Re2# the king has no escape.","mate":3},
+  {"id":"y139","title":"Mate in 6","theme":"mate","r":1200,"fen":"8/6Pb/8/2k4p/7P/4K3/5p2/8 b - - 0 53","sol":["f2f1q","g7g8q","h7g8","e3e4","g8h7","e4e3","h7d3","e3d2","f1e2","d2c3","e2c2"],"explain":"f1=Q and after g8=Q, Bxg8, Ke4, Bh7+, Ke3, Bd3, Kd2, Qe2+, Kc3, Qc2# the king has no escape.","mate":6},
+  {"id":"y066","title":"Mate in 5","theme":"mate","r":1225,"fen":"4k3/3r4/1R5p/5N1P/p1B2P2/5K2/P1P5/8 w - - 12 57","sol":["b6b8","d7d8","c4b5","e8f7","b8d8","f7e6","b5c4","e6f5","d8f8"],"explain":"Rb8+ and after Rd8, Bb5+, Kf7, Rxd8, Ke6, Bc4+, Kxf5, Rf8# the king has no escape.","mate":5},
+  {"id":"y127","title":"Mate in 5","theme":"mate","r":1225,"fen":"6k1/8/6n1/5R2/P7/2B5/1PP5/3R2K1 w - - 1 59","sol":["d1d8","g6f8","f5f8","g8h7","d8d7","h7g6","d7g7","g6h5","f8h8"],"explain":"Rd8+ and after Nf8, Rfxf8+, Kh7, Rd7+, Kg6, Rg7+, Kh5, Rh8# the king has no escape.","mate":5},
+  {"id":"y179","title":"Mate in 5","theme":"mate","r":1225,"fen":"8/8/q2r1k2/3R4/2P3Q1/7P/P5P1/7K w - - 7 50","sol":["d5f5","f6e6","f5f4","e6e7","g4g7","e7e6","g7f7","e6e5","f7f5"],"explain":"Rf5+ and after Ke6, Rf4+, Ke7, Qg7+, Ke6, Qf7+, Ke5, Qf5# the king has no escape.","mate":5},
+  {"id":"y188","title":"Mate in 5","theme":"mate","r":1225,"fen":"7Q/8/1p1k4/p2r4/6P1/2p5/4NP2/R4K1R w - - 1 50","sol":["h8d8","d6c6","h1h6","c6c5","d8c7","c5b4","h6b6","d5b5","c7c3"],"explain":"Qd8+ and after Kc6, Rh6+, Kc5, Qc7+, Kb4, Rxb6+, Rb5, Qxc3# the king has no escape.","mate":5},
+  {"id":"y085","title":"Mate in 4","theme":"mate","r":1250,"fen":"8/2p5/4k3/8/1K6/5r2/8/N6q b - - 1 58","sol":["h1b1","b4c4","b1e4","c4b5","f3f5","b5a6","e4a8"],"explain":"Qb1+ and after Kc4, Qe4+, Kb5, Rf5+, Ka6, Qa8# the king has no escape.","mate":4},
+  {"id":"y131","title":"Mate in 4","theme":"mate","r":1250,"fen":"r4k1N/pp3Bpp/3q4/2p2QB1/3n4/8/2P2PPP/R6K w - - 3 28","sol":["f5h7","d6h2","h1h2","d4f3","g2f3","a7a5","h7g8"],"explain":"Qxh7 and after Qxh2+, Kxh2, Nf3+, gxf3, a5, Qg8# the king has no escape.","mate":4},
+  {"id":"y001","title":"Mate in 3","theme":"mate","r":1275,"fen":"4k3/2pb4/p1p5/2Pp4/4p2b/1PB3q1/1P5R/7K b - - 1 46","sol":["d7g4","h2g2","g4f3","h1g1","g3g2"],"explain":"Bg4 and after Rg2, Bf3, Kg1, Qxg2# the king has no escape.","mate":3},
+  {"id":"y035","title":"Mate in 3","theme":"mate","r":1275,"fen":"8/2p3p1/1P1b3p/6k1/4Qp2/5PP1/1P3P1P/3R2K1 w - - 1 40","sol":["e4e6","f4g3","h2h4","g5h4","e6g4"],"explain":"Qe6 and after fxg3, h4+, Kxh4, Qg4# the king has no escape.","mate":3},
+  {"id":"y081","title":"Mate in 3","theme":"mate","r":1275,"fen":"1k6/7p/2Q5/2pP4/p4N2/2P5/PP3P1P/1K6 w - - 3 47","sol":["f4e6","a4a3","c6b6","b8c8","b6c7"],"explain":"Ne6 and after a3, Qb6+, Kc8, Qc7# the king has no escape.","mate":3},
+  {"id":"y091","title":"Mate in 3","theme":"mate","r":1275,"fen":"1k6/1p6/8/p1Q5/P6n/8/2R1KP2/8 w - - 5 61","sol":["c2d2","b7b6","c5b6","b8c8","d2d8"],"explain":"Rd2 and after b6, Qxb6+, Kc8, Rd8# the king has no escape.","mate":3},
+  {"id":"y119","title":"Mate in 3","theme":"mate","r":1275,"fen":"8/8/8/5p1k/1P3P2/P2PK1p1/6B1/2R5 w - - 0 47","sol":["c1c6","h5g4","g2f3","g4h4","c6h6"],"explain":"Rc6 and after Kg4, Bf3+, Kh4, Rh6# the king has no escape.","mate":3},
+  {"id":"y129","title":"Mate in 3","theme":"mate","r":1275,"fen":"r5kr/ppp4p/8/n1p5/5NN1/2P5/PP3PPP/3R1K2 w - - 1 22","sol":["d1d7","a5c4","g4f6","g8f8","f4e6"],"explain":"Rd7 and after Nc4, Nf6+, Kf8, Ne6# the king has no escape.","mate":3},
+  {"id":"y132","title":"Mate in 3","theme":"mate","r":1275,"fen":"rnbk1B2/2pp1p1p/p2q2p1/1p1PQ3/1PB5/2P2N2/P4PPP/5K1R w - - 1 18","sol":["e5h8","d6e7","f8g7","e7e8","g7f6"],"explain":"Qh8 and after Qe7, Bg7+, Qe8, Bf6# the king has no escape.","mate":3},
+  {"id":"y189","title":"Mate in 3","theme":"mate","r":1275,"fen":"2nkr3/1Q3pp1/4p3/3P2Pp/8/4R3/BpP2P1P/6K1 w - - 2 38","sol":["e3c3","b2b1q","a2b1","c8d6","b7c7"],"explain":"Rc3 and after b1=Q+, Bxb1, Nd6, Qc7# the king has no escape.","mate":3},
+  {"id":"y070","title":"Mate in 7","theme":"mate","r":1350,"fen":"1rb5/p4Q1p/n1pR2q1/4p1pk/8/4P1pP/4KP2/2R5 w - - 2 38","sol":["d6g6","b8b2","e2d1","c8g4","f2f3","g4f3","f7f3","h5g6","c1c6","g6g7","f3f6","g7g8","c6c8"],"explain":"Rxg6 and after Rb2+, Kd1, Bg4+, f3, Bxf3+, Qxf3+, Kxg6, Rxc6+, Kg7, Qf6+, Kg8, Rc8# the king has no escape.","mate":7},
+  {"id":"y038","title":"Mate in 5","theme":"mate","r":1400,"fen":"8/8/4k3/KR2p3/3r4/8/7p/6q1 b - - 1 57","sol":["g1a1","a5b6","d4d6","b6c7","a1a7","b5b7","a7c5","c7b8","d6d8"],"explain":"Qa1+ and after Kb6, Rd6+, Kc7, Qa7+, Rb7, Qc5+, Kb8, Rd8# the king has no escape.","mate":5},
+  {"id":"y096","title":"Mate in 5","theme":"mate","r":1400,"fen":"3Q4/8/8/8/4k3/8/2p3P1/2R2K2 w - - 1 52","sol":["c1e1","e4f5","d8d5","f5g6","e1e6","g6f7","d5d7","f7f8","e6e8"],"explain":"Re1+ and after Kf5, Qd5+, Kg6, Re6+, Kf7, Qd7+, Kf8, Re8# the king has no escape.","mate":5},
+  {"id":"y106","title":"Mate in 4","theme":"mate","r":1400,"fen":"8/5pkp/4p1p1/p7/1rr2P1P/1n6/1K6/3R4 b - - 1 56","sol":["b3c1","b2a1","b4b3","d1d2","c4a4","d2a2","a4a2"],"explain":"Nc1+ and after Ka1, Rb3, Rd2, Ra4+, Ra2, Rxa2# the king has no escape.","mate":4},
+  {"id":"y115","title":"Mate in 4","theme":"mate","r":1400,"fen":"8/1pk2p2/2r5/6RP/5r2/1K6/1Pn3P1/8 b - - 0 36","sol":["c2a1","b3a2","c6a6","g5a5","a6a5","a2b1","f4f1"],"explain":"Na1+ and after Ka2, Ra6+, Ra5, Rxa5+, Kb1, Rf1# the king has no escape.","mate":4},
+  {"id":"y134","title":"Mate in 4","theme":"mate","r":1400,"fen":"r4k1r/ppp4p/n1np4/6BB/3P3P/5P2/PPP3P1/RN2R1K1 w - - 1 24","sol":["g5h6","f8g8","e1e4","c6e5","d4e5","a6c5","e4g4"],"explain":"Bh6+ and after Kg8, Re4, Ne5, dxe5, Nc5, Rg4# the king has no escape.","mate":4},
+  {"id":"y145","title":"Mate in 4","theme":"mate","r":1400,"fen":"r1b1k2r/1pp1n2p/p2q1P2/2Q5/3p4/3B4/PPPB1PPP/4RRK1 w - - 2 24","sol":["e1e7","e8d8","c5d6","c7d6","d2a5","b7b6","a5b6"],"explain":"Rxe7+ and after Kd8, Qxd6+, cxd6, Ba5+, b6, Bxb6# the king has no escape.","mate":4},
+  {"id":"y148","title":"Mate in 4","theme":"mate","r":1400,"fen":"8/8/R7/3k1bRp/5P2/P7/4K2P/8 w - - 6 49","sol":["g5f5","d5e4","f5h5","e4d4","a6c6","d4e4","c6c4"],"explain":"Rxf5+ and after Ke4, Rxh5, Kd4, Rc6, Ke4, Rc4# the king has no escape.","mate":4},
+  {"id":"y185","title":"Mate in 4","theme":"mate","r":1400,"fen":"7k/p1p1pBbp/2q2np1/2P1p3/1P1n4/8/P4PPP/1NB2K1R b - - 0 21","sol":["c6b5","f1g1","d4e2","g1f1","e2g3","f1g1","b5f1"],"explain":"Qb5+ and after Kg1, Ne2+, Kf1, Ng3+, Kg1, Qf1# the king has no escape.","mate":4},
+  {"id":"y187","title":"Mate in 4","theme":"mate","r":1400,"fen":"r4b2/1p1q4/p1n1bp1p/3pkp2/4pNr1/1B4P1/PPPN1P1P/R2Q1RK1 w - - 8 22","sol":["d2c4","d5c4","f4g6","g4g6","f2f4","e4f3","f1e1"],"explain":"Nc4+ and after dxc4, Ng6+, Rxg6, f4+, exf3, Re1# the king has no escape.","mate":4},
+  {"id":"y203","title":"Mate in 4","theme":"mate","r":1400,"fen":"r1b1k3/ppp4p/3p1P2/3P4/6PP/1KPRn3/P3q3/8 b q - 1 30","sol":["e2c2","b3a3","e3c4","a3b4","a7a5","b4c4","c2a4"],"explain":"Qc2+ and after Ka3, Nc4+, Kb4, a5+, Kxc4, Qa4# the king has no escape.","mate":4},
+  {"id":"y104","title":"Mate in 7","theme":"mate","r":1500,"fen":"5qr1/2kb1pb1/p2p1n1p/1p1Pp1p1/1Q2P3/P3BNPP/3R1P2/5K1R w - - 0 27","sol":["b4a5","c7c8","d2c2","d7c6","c2c6","c8d7","a5c7","d7e8","c7b8","e8e7","b8d6","e7e8","c6c8"],"explain":"Qa5+ and after Kc8, Rc2+, Bc6, Rxc6+, Kd7, Qc7+, Ke8, Qb8+, Ke7, Qxd6+, Ke8, Rc8# the king has no escape.","mate":7},
+  {"id":"y044","title":"Mate in 6","theme":"mate","r":1525,"fen":"3k4/3b3Q/7p/1p5r/3P4/PBR5/2P2PP1/5K2 w - - 0 36","sol":["h7h8","d8e7","h8g7","e7d8","g7f8","d7e8","f8f6","d8d7","f6e6","d7d8","c3c8"],"explain":"Qh8+ and after Ke7, Qg7+, Kd8, Qf8+, Be8, Qf6+, Kd7, Qe6+, Kd8, Rc8# the king has no escape.","mate":6},
+  {"id":"y157","title":"Mate in 6","theme":"mate","r":1525,"fen":"r7/pp3k2/2Pp4/7p/3N1pb1/2QBq2p/PP4P1/n4K1R b - - 0 25","sol":["h3g2","f1g2","g4h3","h1h3","a8g8","d3g6","g8g6","h3g3","g6g3","g2f1","g3g1"],"explain":"hxg2+ and after Kxg2, Bh3+, Rxh3, Rg8+, Bg6+, Rxg6+, Rg3, Rxg3+, Kf1, Rg1# the king has no escape.","mate":6},
+  {"id":"y143","title":"Mate in 5","theme":"mate","r":1550,"fen":"4n3/8/2R5/p4Pk1/P3K3/8/6P1/8 w - a6 0 59","sol":["c6g6","g5h4","e4f4","e8f6","g6f6","h4h5","g2g4","h5h4","f6h6"],"explain":"Rg6+ and after Kh4, Kf4, Nf6, Rxf6, Kh5, g4+, Kh4, Rh6# the king has no escape.","mate":5},
+  {"id":"y164","title":"Mate in 5","theme":"mate","r":1550,"fen":"6k1/r1p2ppp/1n6/4p3/p3p2P/8/P4q2/3KR3 b - - 3 40","sol":["b6c4","e1e2","f2d4","d1c1","d4a1","c1c2","a1b2","c2d1","b2b1"],"explain":"Nc4 and after Re2, Qd4+, Kc1, Qa1+, Kc2, Qb2+, Kd1, Qb1# the king has no escape.","mate":5},
+  {"id":"y162","title":"Mate in 7","theme":"mate","r":1675,"fen":"6k1/p4pp1/2p5/8/2p3pP/r7/2K5/8 b - - 1 43","sol":["g4g3","c2b2","a3b3","b2c2","g3g2","h4h5","g2g1q","c2d2","g1e3","d2c2","e3d3","c2c1","b3b1"],"explain":"g3 and after Kb2, Rb3+, Kc2, g2, h5, g1=Q, Kd2, Qe3+, Kc2, Qd3+, Kc1, Rb1# the king has no escape.","mate":7},
+  {"id":"y093","title":"Mate in 5","theme":"mate","r":1700,"fen":"3Q4/2p3k1/1p6/7P/2q3p1/P7/5PP1/3R2KR w - - 3 46","sol":["d8g5","g7f7","d1d7","f7e6","d7e7","e6d6","g5e5","d6c6","e7c7"],"explain":"Qg5+ and after Kf7, Rd7+, Ke6, Re7+, Kd6, Qe5+, Kc6, Rxc7# the king has no escape.","mate":5},
+  {"id":"y126","title":"Mate in 5","theme":"mate","r":1700,"fen":"8/1p6/r7/3P4/2k5/1p2QP1P/P5K1/7R w - - 0 45","sol":["h1c1","c4d5","c1c5","d5d6","e3e5","d6d7","c5c7","d7d8","e5e7"],"explain":"Rc1+ and after Kxd5, Rc5+, Kd6, Qe5+, Kd7, Rc7+, Kd8, Qe7# the king has no escape.","mate":5},
+  {"id":"y159","title":"Mate in 6","theme":"mate","r":1700,"fen":"Q5R1/2k2p2/p4b1p/P7/7P/6P1/1PP5/7K w - - 2 55","sol":["g8c8","c7d6","a8c6","d6e5","c8e8","f6e7","e8e7","e5f5","c6f3","f5g6","f3f7"],"explain":"Rc8+ and after Kd6, Qc6+, Ke5, Re8+, Be7, Rxe7+, Kf5, Qf3+, Kg6, Qxf7# the king has no escape.","mate":6},
+  {"id":"y193","title":"Mate in 5","theme":"mate","r":1700,"fen":"3r4/4kp2/1q1p1bpp/1p2p3/4P3/PP3P2/1P1K2PP/4R3 b - - 0 38","sol":["d8c8","e1e3","b6d4","e3d3","d4f2","d2d1","c8c2","a3a4","f2e2"],"explain":"Rc8 and after Re3, Qd4+, Rd3, Qf2+, Kd1, Rc2, a4, Qe2# the king has no escape.","mate":5},
+  {"id":"y029","title":"Mate in 4","theme":"mate","r":1725,"fen":"r5k1/6r1/p1p2Q1R/6p1/4Pp2/2P4P/2P3PK/6R1 w - - 1 34","sol":["g1d1","c6c5","d1d8","a8d8","f6d8","g8f7","h6f6"],"explain":"Rd1 and after c5, Rd8+, Rxd8, Qxd8+, Kf7, Rf6# the king has no escape.","mate":4},
+  {"id":"y200","title":"Mate in 4","theme":"mate","r":1725,"fen":"4Q3/k7/7p/8/p2P4/P4K1P/1P1N4/8 w - - 5 53","sol":["e8c8","a7b6","d2c4","b6b5","c8c5","b5a6","c5b6"],"explain":"Qc8 and after Kb6, Nc4+, Kb5, Qc5+, Ka6, Qb6# the king has no escape.","mate":4},
+  {"id":"y206","title":"Mate in 5","theme":"mate","r":1875,"fen":"8/3p4/7p/p1r5/3k2p1/8/1K6/3b4 b - - 1 59","sol":["c5c2","b2b1","d4c3","b1a1","c2c1","a1a2","d1b3","a2a3","c1a1"],"explain":"Rc2+ and after Kb1, Kc3, Ka1, Rc1+, Ka2, Bb3+, Ka3, Ra1# the king has no escape.","mate":5},
+  {"id":"y005","title":"Mate in 6","theme":"mate","r":2000,"fen":"2N1k2r/p5p1/7p/3Q2P1/P1P2P2/4P3/1q3nP1/R4RK1 w - - 3 28","sol":["d5c6","e8f8","c6d6","f8g8","d6e6","g8f8","e6e7","f8g8","e7e8","g8h7","g5g6"],"explain":"Qc6+ and after Kf8, Qd6+, Kg8, Qe6+, Kf8, Qe7+, Kg8, Qe8+, Kh7, g6# the king has no escape.","mate":6},
+  {"id":"y011","title":"Mate in 6","theme":"mate","r":2025,"fen":"8/4p3/3k4/p6r/7P/6p1/p3r1P1/2R3K1 b - - 2 60","sol":["h5b5","c1d1","d6e6","g1f1","e2f2","f1g1","b5b1","h4h5","b1d1"],"explain":"Rb5 and after Rd1+, Ke6, Kf1, Rf2+, Kg1, Rb1, h5, Rxd1# the king has no escape.","mate":6},
+  {"id":"y155","title":"Mate in 5","theme":"mate","r":2025,"fen":"4k3/5p2/p1p2p2/P2p4/1P1P3p/8/5PK1/3q4 b - - 3 45","sol":["d1d3","f2f3","d3e2","g2h3","e2f2","h3g4","f2g3","g4h5","g3g5"],"explain":"Qd3 and after f3, Qe2+, Kh3, Qf2, Kg4, Qg3+, Kh5, Qg5# the king has no escape.","mate":5}];
 if (typeof PUZZLES !== 'undefined') PUZZLES.push.apply(PUZZLES, PUZZLES_MINED);
 if (typeof module !== 'undefined') module.exports = PUZZLES_MINED;
 
@@ -1988,6 +2206,14 @@ if (typeof module !== 'undefined') module.exports = { BOSSES: BOSSES, CHALLENGES
 // coach: 'wander' = the coach only walks his king around and never captures (a friendly sparring partner),
 //        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
 var MISSIONS = {
+  'l-board': [
+    { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
+      text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
+    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander',
+      text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
+    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander',
+      text: 'Now a real opening, the London System: d4, Bf4, e3, Nf3. Four moves, all from their written names.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+  ],
   'l-rook': [
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
       text: 'Attack my king with your rook. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
@@ -2049,7 +2275,7 @@ var MISSIONS = {
 // so a beginner can focus on the piece they just learned. Falls back to any legal move.
 function missionWander(g, rnd) {
   rnd = rnd || Math.random;
-  var all = g.moves(), quiet = all.filter(function (m) { return !m.captured; }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
+  var all = g.moves(), quiet = all.filter(function (m) { return !m.captured && !/\+/.test(m.san); }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
   var pool = kings.length ? kings : quiet.length ? quiet : all;
   if (!pool.length) return null;
   var own = [], me = g.turn();
@@ -2067,6 +2293,11 @@ function missionMaterial(g, color) {
 // Called after each of your moves. st = { caps: 0 }. Returns 'win' when the goal is met.
 function missionCheck(m, g, mv, st) {
   if (mv.captured && (!m.types || m.types.indexOf(mv.captured) >= 0)) st.caps = (st.caps || 0) + 1;
+  if (m.goal === 'sequence') {
+    var want = m.seq[st.k || 0], got = String(mv.san).replace(/[+#]/g, '');
+    if (got !== want) { st.wrong = got; return 'wrong'; }
+    st.k = (st.k || 0) + 1; return st.k >= m.seq.length ? 'win' : null;
+  }
   var foe = mv.color === 'w' ? 'b' : 'w';
   if (m.goal === 'check' && g.inCheck()) return 'win';
   if (m.goal === 'capture' && st.caps >= (m.count || 1)) return 'win';
@@ -2401,6 +2632,19 @@ Object.assign(MORE_POOLS, {
   pr_slowdev: ["Too many pieces stayed at home. Develop everything before you attack.", "Your knights and bishops were slow to come out."],
   pr_missedbetter: ["You missed some stronger moves. Compare two or three candidates before you play.", "Several moves had a better option. Slow down at the critical moments."]
 });
+
+// One-line hints spoken the first time each area opens (keep in sync with HINTS in app.js)
+var HINT_LINES_TEXT = {
+  puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
+  arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
+  openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
+  play: 'Coach games: pick a level and play. I comment on your moves as you go.',
+  progress: 'Progress: your rating chart, badges and streak live here.',
+  analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
+  mission: 'A coach mission: reach the goal in the shown number of moves.'
+};
+function HINT_LINES() { return Object.keys(HINT_LINES_TEXT).map(function (k) { return { id: 'H-' + k, text: HINT_LINES_TEXT[k], group: 'more' }; }); }
+if (typeof module !== 'undefined') { module.exports.HINT_LINES = HINT_LINES; }
 
 ;
 // Vector chess piece icons (45x45 viewBox). Font-free so they render identically on every device.
@@ -2760,7 +3004,7 @@ function BOARD2D_FACTORY() {
       return packCache[i];
     }
     // First launch: download the start packs (lines the first session needs) with byte-level progress.
-    var START_CLIP = /^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(rook|bishop-queen|knight)\b/; // keep in sync with pack-voice.js
+    var START_CLIP = /^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(board|rook|bishop-queen|knight)\b|^M-sq_|^V-quiz_|^H-/; // keep in sync with pack-voice.js
     function preloadStart(onProgress) {
       var size = {}, list = [];
       Object.keys(VOICE_FILES).forEach(function (id) { var e = VOICE_FILES[id]; size[e[0]] = Math.max(size[e[0]] || 0, e[1] + e[2]); if (START_CLIP.test(id) && list.indexOf(e[0]) < 0) list.push(e[0]); });
@@ -3715,7 +3959,7 @@ function BOARD2D_FACTORY() {
       '<div class="lock-progress"><i style="width:' + Math.round(done / UNLOCK_AT[mode] * 100) + '%"></i></div><p class="muted small">' + done + ' of ' + UNLOCK_AT[mode] + ' lessons done</p>' +
       '<div class="actions"><button class="btn primary big" data-act="startNext">Continue learning</button></div>' +
       '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button>' +
-      (mode === 'play' ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze a chess.com game</b><span>Works right away, no lessons needed.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') + '</div>');
+      '</div>');
   }
   ACT.peek = function (d) { S.peek[d.m] = true; save(); go(d.m); };
   function go(mode, arg) {
@@ -3769,15 +4013,8 @@ function BOARD2D_FACTORY() {
     S.visited = S.visited || {};
     document.querySelectorAll('.rail button[data-go]').forEach(function (b) { var m = b.dataset.go; b.classList.toggle('new', !S.visited[m] && !isLocked(m)); });
   }
-  var HINTS = {
-    puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
-    arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
-    openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
-    play: 'Coach games: pick a level and play. I comment on your moves as you go.',
-    progress: 'Progress: your rating chart, badges and streak live here.',
-    analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
-    mission: 'A coach mission: reach the goal in the shown number of moves.'
-  };
+  var HINTS = HINT_LINES_TEXT;
+
   var HINT = null;
   function firstHint(mode) {
     S.hinted = S.hinted || {}; HINT = null;
@@ -3785,6 +4022,7 @@ function BOARD2D_FACTORY() {
     if (!t || S.hinted[mode] || !S.onboarded) return;
     S.hinted[mode] = 1; save();
     HINT = { mode: mode, text: t };
+    setTimeout(function () { if (HINT && HINT.mode === mode) Voice.say([{ id: 'H-' + mode, text: t }], true); }, 900);
   }
   function hintHtml() { return HINT && document.body.dataset.mode === HINT.mode ? '<button class="first-hint" data-act="hintOk"><span class="fh-ico" aria-hidden="true">💡</span><span>' + esc(HINT.text) + '</span><span class="fh-x">Got it</span></button>' : ''; }
   ACT.hintOk = function () { HINT = null; var el = $('.first-hint'); if (el) { el.classList.add('out'); setTimeout(function () { el.remove(); }, 250); } };
@@ -3823,7 +4061,6 @@ function BOARD2D_FACTORY() {
   // Everything the app can do, visible from day one; locked items say exactly when they open.
   function exploreStrip() {
     var items = [
-      { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' },
       { m: 'arena', ico: 'q', t: 'Practice Arena', s: 'Quick games, bosses', act: 'arena' },
       { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
       { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
@@ -3831,6 +4068,7 @@ function BOARD2D_FACTORY() {
       { m: 'openings', ico: 'b', t: 'Openings', s: OPENINGS.length + ' lines & traps' },
       { m: 'progress', ico: 'r', t: 'Badges', s: 'Track your climb' }
     ];
+    if (analyzeReady()) items.splice(3, 0, { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' });
     return '<div class="sect-head"><h2>Explore</h2><span class="muted small">jump in anytime</span></div><div class="explore">' + items.map(function (it) {
       var lock = isLocked(it.m), need = lock ? UNLOCK_AT[it.m] - lessonsDone() : 0;
       return '<button class="ex-tile' + (lock ? ' locked' : '') + '" ' + (it.act ? 'data-act="' + it.act + '"' : 'data-act="goMode" data-m="' + it.m + '"') + '><span class="ex-ico">' + pieceSVG(it.ico, 'w', 24) + '</span><b>' + it.t + '</b><span>' + (lock ? '🔒 after ' + need + ' more lesson' + (need > 1 ? 's' : '') : it.s) + '</span></button>';
@@ -3839,28 +4077,31 @@ function BOARD2D_FACTORY() {
   ACT.goMode = function (d) { go(d.m); };
   // ===== First steps: a checklist that walks a new player through every part of the app =====
   var DISCOVER = [
-    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '4 minutes. Learn how the rook moves.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
+    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '5 minutes. Learn the board and how moves are written.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
     { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
-    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-rook" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
+    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-board" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
     { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
     { k: 'play', ico: 'p', t: 'Play a game against me', s: 'A real game, with tips on every move.', act: 'data-act="goPlay"', lock: 'play', done: function () { return (S.games || []).length >= 1; } },
     { k: 'opening', ico: 'b', t: 'Learn an opening', s: 'The first moves the pros play.', act: 'data-act="goMode" data-m="openings"', lock: 'openings', done: function () { return Object.keys(S.openings || {}).length >= 1; } },
     { k: 'analyze', ico: 'n', t: 'Analyze a chess.com game', s: 'See your mistakes and how to fix them.', act: 'data-act="goAnalyze"', done: function () { return (S.anHist || []).length >= 1; } }
   ];
-  function discCount() { return DISCOVER.filter(function (x) { return x.done(); }).length; }
-  function discAllDone() { return discCount() >= DISCOVER.length; }
+  // game analysis only makes sense once someone can play a full game
+  function analyzeReady() { return S.band >= 800 || stageCleared(0) || lessonsDone() >= 6 || (S.anHist || []).length > 0; }
+  function discList() { return DISCOVER.filter(function (x) { return x.k !== 'analyze' || analyzeReady(); }); }
+  function discCount() { return discList().filter(function (x) { return x.done(); }).length; }
+  function discAllDone() { return discCount() >= discList().length; }
   // reward each newly explored area once
   function discSync() {
     S.disc = S.disc || {}; var fresh = [];
-    DISCOVER.forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
+    discList().forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
     if (!fresh.length) return;
     save(); addXP(20 * fresh.length);
-    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + DISCOVER.length + ' explored');
+    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + discList().length + ' explored');
   }
   function discoverCard() {
-    var n = discCount(), next = DISCOVER.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
-    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / DISCOVER.length * 100) + '"><b>' + n + '</b>/' + DISCOVER.length + '</span></div>' +
-      '<div class="disc-list">' + DISCOVER.filter(function (x) { return !x.done(); }).concat(DISCOVER.filter(function (x) { return x.done(); })).map(function (x) {
+    var L0 = discList(), n = discCount(), next = L0.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
+    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / L0.length * 100) + '"><b>' + n + '</b>/' + L0.length + '</span></div>' +
+      '<div class="disc-list">' + L0.filter(function (x) { return !x.done(); }).concat(L0.filter(function (x) { return x.done(); })).map(function (x) {
         var ok = x.done(), lock = !ok && x.lock && isLocked(x.lock), need = lock ? UNLOCK_AT[x.lock] - lessonsDone() : 0;
         return '<button class="disc-item' + (ok ? ' done' : '') + (lock ? ' locked' : '') + (x === next ? ' next' : '') + '" ' + (lock ? 'data-act="goMode" data-m="' + x.lock + '"' : x.act) + '><span class="disc-ico">' + (ok ? '✓' : pieceSVG(x.ico, 'w', 18)) + '</span><span class="disc-t"><b>' + esc(x.t) + '</b><span>' + (lock ? '🔒 After ' + need + ' more lesson' + (need > 1 ? 's' : '') : esc(x.s)) + '</span></span>' + (x === next ? '<span class="disc-go">Try it →</span>' : ok ? '' : '<span class="disc-xp">+20</span>') + '</button>';
       }).join('') + '</div></section>';
@@ -3897,7 +4138,7 @@ function BOARD2D_FACTORY() {
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        (discAllDone() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : discoverCard()) +
+        (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
@@ -4056,7 +4297,7 @@ function BOARD2D_FACTORY() {
       var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
       if (LS.quizI !== LS.i) { LS.quizI = LS.i; LS.quiz = QUIZ_OF(step); if (LS.quiz) { LS.quiz.found = []; LS.stepDone = false; } }
       var Q = LS.quiz;
-      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : 'Your move';
+      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' ? 'Board game' : 'Your move';
       var actions = '';
       if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
       else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
@@ -4068,6 +4309,7 @@ function BOARD2D_FACTORY() {
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
         '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (Q && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
+        (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (Q && Q.done ? quizBox(Q) : '') +
         (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
         '</div>' +
@@ -4088,6 +4330,12 @@ function BOARD2D_FACTORY() {
         Collect.refresh();
         return;
       }
+      if (step.t === 'squares') {
+        setupBoard(step.fen, { orient: 'w' });
+        LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.squareTap; MODES.lesson.render();
+        setTimeout(function () { if (LS && LS.sq && LS.L.steps[LS.i] === step) Voice.say([M('sq_' + step.targets[0])], true); }, 5200);
+        return;
+      }
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: new Game(step.fen).turn() });
       if (step.arrows) B3.arrows(step.arrows);
       if (step.marks) B3.markers('mark', step.marks);
@@ -4103,6 +4351,14 @@ function BOARD2D_FACTORY() {
         IX.canMove = function (c) { return c === g.turn(); };
         IX.onMove = MODES.lesson.onMove;
       }
+    },
+    squareTap: function (sq) {
+      var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'squares' || Q.i >= step.targets.length) return;
+      var want = step.targets[Q.i];
+      if (sq !== want) { Q.miss++; LS.mistakes += 0.25; B3.flash('bad', [sq], 600); Sound.play('bad'); toast('That is ' + sq + '. Find the ' + want[0] + '-file, then rank ' + want[1] + '.'); if (Q.miss >= 2) B3.flash('hint', [1, 2, 3, 4, 5, 6, 7, 8].map(function (r) { return want[0] + r; }), 1400); return; }
+      Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq);
+      if (Q.i >= step.targets.length) { LS.stepDone = true; IX.tap = null; Sound.play('good'); Voice.say([V('quiz_done')]); MODES.lesson.render(); setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good'); return; }
+      MODES.lesson.render(); Voice.say([M('sq_' + step.targets[Q.i])]);
     },
     quizTap: function (sq) {
       var Q = LS && LS.quiz; if (!Q || Q.done) return;
@@ -4198,7 +4454,7 @@ function BOARD2D_FACTORY() {
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     var ms = MISSIONS[id], msDone = coachMissionsDone(id);
     if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Coach missions (replay)' : 'Coach missions: ' + ms.map(function (m) { return m.title; }).slice(0, 2).join(', ') + '…', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
-    if ((!ms || playNew) && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
+    if (!ms && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
     if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against the engine.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
@@ -4229,7 +4485,18 @@ function BOARD2D_FACTORY() {
   function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
     var step = LS.L.steps[LS.i];
-    if (step.t === 'collect') { setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return; }
+    if (step.t === 'squares' && LS.sq) { var w = step.targets[LS.sq.i]; if (w) { B3.flash('hint', [w], 1500); setStatus('Here it is: ' + w + '. Files are letters along the bottom, ranks are numbers up the side.'); LS.hintUsed = true; } return; }
+    if (step.t === 'collect') {
+      // point at a real move: a star in one jump if there is one, otherwise a square that reaches a star next
+      var c = IX.collect, pc = step.piece;
+      if (c && c.left && c.left.length) {
+        var now = Collect.reach(pc, c.at), hit = now.filter(function (q) { return c.left.indexOf(q) >= 0; })[0], via = null;
+        if (!hit) via = now.filter(function (q) { return Collect.reach(pc, q).some(function (z) { return c.left.indexOf(z) >= 0; }); })[0];
+        var to = hit || via;
+        if (to) { B3.arrows([[c.at, to, 'g']]); B3.flash('hint', [to], 2200); setStatus(hit ? 'The ' + PIECE_NAME[pc] + ' can grab the star on ' + to + ' right now.' : 'No star in one move. Go to ' + to + ' first: from there a star is one move away.'); LS.hintUsed = true; return; }
+      }
+      setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return;
+    }
     var u = step.sol[LS.ply];
     if (LS.hintUsed) { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); setStatus('The arrow shows the move.'); }
     else { B3.markers('hint', [u.slice(0, 2)]); setStatus(esc(step.hint || 'Look at the highlighted piece.')); LS.hintUsed = true; }
@@ -5334,10 +5601,10 @@ function BOARD2D_FACTORY() {
 
   // ================= Coach missions: short hands-on scenarios right after a lesson =================
   var MS = null;
-  var GOAL_TXT = { check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
+  var GOAL_TXT = { sequence: 'Play the written moves', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
   function missionStars(m, n) { return n <= m.par ? 3 : n <= m.par + Math.ceil((m.limit - m.par) / 2) ? 2 : 1; }
   function coachMissionsDone(id) { return (MISSIONS[id] || []).filter(function (m) { return S.missions && S.missions[m.id]; }).length; }
-  function missionGoalCount(m, g) { return m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
+  function missionGoalCount(m, g) { return m.goal === 'sequence' ? m.seq.length : m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
   MODES.mission = {
     label: 'Coach mission',
     enter: function (arg) {
@@ -5366,6 +5633,7 @@ function BOARD2D_FACTORY() {
         if (r.captured) { B3.burst(r.to); xpPop('+5', r.to); }
         var res = missionCheck(m, g, r, MS.st);
         if (res === 'win') return MODES.mission.finish(true);
+        if (res === 'wrong') return MODES.mission.finish(false, 'You played ' + MS.st.wrong + ', but the move written was ' + m.seq[MS.st.k || 0] + '. Read the letter, then the square.');
         if (res === 'stalemate') return MODES.mission.finish(false, 'Stalemate! My king has no legal move but is not in check, so it is a draw. Always leave me a move.');
         if (MS.n >= m.limit) return MODES.mission.finish(false, m.limit === 1 ? 'That move does not do it.' : 'Out of moves. ' + (m.goal === 'mate' ? 'Box my king in faster.' : 'Look for a shorter route.'));
         MS.busy = true; MODES.mission.render();
@@ -5399,7 +5667,7 @@ function BOARD2D_FACTORY() {
     },
     render: function () {
       var m = MS.m, list = MISSIONS[MS.lesson], L = LESSONS[MS.lesson], left = m.limit - MS.n;
-      var got = m.goal === 'captureAll' ? MS.total - missionMaterial(MS.g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? MS.st.caps : MS.over === 'win' ? 1 : 0;
+      var got = m.goal === 'sequence' ? (MS.st.k || 0) : m.goal === 'captureAll' ? MS.total - missionMaterial(MS.g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? MS.st.caps : MS.over === 'win' ? 1 : 0;
       var steps = list.map(function (x, k) { var s = S.missions && S.missions[x.id]; return '<span class="ms-step' + (k === MS.i ? ' on' : '') + (s ? ' done' : '') + '">' + (s ? '★' : k + 1) + '</span>'; }).join('<i class="ms-link"></i>');
       var moves = ''; for (var k = 0; k < m.limit; k++) moves += '<i class="ms-mv' + (k < MS.n ? ' used' : '') + (k === m.par - 1 ? ' par' : '') + '"></i>';
       var body;
@@ -5413,7 +5681,8 @@ function BOARD2D_FACTORY() {
       } else {
         body = '<div class="ms-track"><div class="ms-goal"><span class="ms-goal-ico">◎</span><b>' + esc(GOAL_TXT[m.goal]) + '</b>' + (MS.total > 1 ? '<span class="ms-count">' + got + ' / ' + MS.total + '</span>' : '') + '</div>' +
           '<div class="ms-moves"><span>' + (MS.busy ? 'Coach is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
-          (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') + '</div>' +
+          (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') +
+          (m.goal === 'sequence' ? '<div class="ms-seq">' + m.seq.map(function (x, k) { return '<span class="mono' + (k < got ? ' done' : k === got ? ' now' : '') + '">' + esc(x) + '</span>'; }).join('') + '</div>' : '') + '</div>' +
           (MS.hint ? '<p class="ms-tip">💡 ' + esc(m.tip) + '</p>' : '') +
           '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
       }
@@ -5432,8 +5701,26 @@ function BOARD2D_FACTORY() {
   ACT.missionHint = function () {
     if (!MS) return; MS.hint++;
     if (MS.over === 'fail') MODES.mission.load(), MS.hint = 1;
-    var g = MS.g, m = MS.m, win = g.moves().filter(function (mv) { var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }); var ok = missionCheck(m, g, r, { caps: (MS.st.caps || 0) + 0 }) === 'win' || (m.goal === 'capture' || m.goal === 'captureAll') && !!r.captured; g.undo(); return ok; });
-    if (win.length) B3.flash('hint', [win[0].from], 1800);
+    var g = MS.g, m = MS.m, side = m.side || 'w';
+    if (MS.busy || g.turn() !== side) return MODES.mission.render();
+    // search our own moves (the friendly coach mostly shuffles his king) for the quickest route to the goal
+    function reach(depth, st) {
+      var best = null;
+      g.moves().some(function (mv) {
+        var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }), st2 = { caps: st.caps }, res = missionCheck(m, g, r, st2), ok = res === 'win';
+        if (!ok && res !== 'stalemate' && depth > 1 && !g.gameOver()) { var c = missionWander(g, function () { return 0.5; }); if (c) { g.move(c); ok = !!reach(depth - 1, st2); g.undo(); } }
+        g.undo(); if (ok) best = mv; return ok;
+      });
+      return best;
+    }
+    var show = function (mv) { if (!mv || !MS || MS.g !== g) return; B3.arrows([[mv.from, mv.to, 'g']]); B3.flash('hint', [mv.from], 2200); };
+    if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    else {
+      // for capture goals, aim at the next capture; otherwise the whole goal. Fall back to the engine's move.
+      if (m.goal === 'capture' || m.goal === 'captureAll') m = Object.assign({}, m, { goal: 'capture', count: (MS.st.caps || 0) + 1 });
+      var mv = null; for (var d = 1; d <= 3 && !mv; d++) mv = reach(d, { caps: MS.st.caps || 0, k: MS.st.k });
+      if (mv) show(mv); else Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    }
     MODES.mission.render();
   };
   ACT.missionsDone = function () {
@@ -6201,6 +6488,7 @@ function BOARD2D_FACTORY() {
       var bestWinLevel = null;
       COACH_LEVELS.forEach(function (l) { if (games.some(function (g) { return g.result === 'win' && g.level === l.id; })) bestWinLevel = l; });
       setPanel('<div class="eyebrow">Day ' + Math.min(dayNumber(), 30) + ' of 30 · Streak ' + S.streak + '</div><h1 class="h1">Your progress</h1>' +
+        (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Check your chess.com games</b><span>Find the mistakes you repeat and the lesson that fixes each one.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
         '<div class="stat-grid">' +
         stat('Lessons', (lessonsDone + placedN) + '/' + Object.keys(LESSONS).length + (placedN ? ' <span class="muted small">' + placedN + ' skipped</span>' : '')) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +
@@ -7336,6 +7624,10 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .first-hint.out { opacity: 0; transform: translateY(-6px); }
 .fh-ico { font-size: 18px; } .fh-x { margin-left: auto; font-weight: 800; color: var(--brass); white-space: nowrap; font-size: 12.5px; }
 @keyframes fhIn { from { opacity: 0; transform: translateY(-8px); } }
+.sq-game { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(198,255,61,.5); background: linear-gradient(135deg, rgba(198,255,61,.14), rgba(46,230,255,.06)); }
+.sq-ask { font: 700 18px var(--f-display); } .sq-ask b { font-size: 30px; color: var(--brass); text-shadow: 0 0 18px rgba(198,255,61,.5); margin-left: 6px; }
+.ms-seq { display: flex; gap: 6px; flex-wrap: wrap; } .ms-seq span { padding: 5px 11px; border-radius: 10px; background: rgba(255,255,255,.06); font-weight: 700; font-size: 15px; color: var(--muted); }
+.ms-seq span.now { background: var(--brass); color: var(--brass-ink); box-shadow: 0 0 14px rgba(198,255,61,.45); } .ms-seq span.done { color: var(--good); text-decoration: line-through; }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }

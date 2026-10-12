@@ -105,6 +105,14 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - Pink "new" dots on tabs not opened yet (`S.visited`), and a one-line "Got it" hint at the top of the panel the first time each area opens (`HINTS`, `S.hinted`).
 - Background motion was toned down (slower, dimmer aurora; shine only on the hero button).
 
+## The Board lesson, notation missions, smarter hints
+- `l-board` is now the first Foundations lesson: files a–h, ranks 1–8, square names, the starting setup ("light on the right"), and how moves are written (K Q R B N, no letter for pawns, x + # O-O). Step type `squares` is a tap-the-named-square game (spoken with the `M-sq_*` clips). It ends with two moves played from their written names.
+- Missions for `l-board` use goal `sequence` (play the written moves in order; a wrong move fails with an explanation). The friendly coach never gives check now, so it can't interrupt a sequence.
+- Hints: the star-collecting hint draws an arrow to a star or to a square one step from a star; the mission hint searches for the quickest route (next capture for capture goals) and falls back to the engine.
+- Game analysis is hidden from beginners until they can play (`analyzeReady()`: band ≥ 800, Foundations cleared, 6+ lessons, or an earlier analysis). It lives in the Coach tab, Progress and Explore, not on a beginner's home screen.
+- First-visit hints are also spoken (`H-<mode>` clips; texts in `HINT_LINES_TEXT`, voicelines.js).
+- More puzzles: `node tests/mine.js <seed> <count> scratch/mined-<seed>.json`, then `node tests/merge2.js scratch/mined-*.json` (new ids `y001…`, old ones untouched).
+
 ## Open items
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.

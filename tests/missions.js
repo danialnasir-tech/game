@@ -8,9 +8,9 @@ function seeded(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 // shortest number of our moves to reach the goal, assuming the coach replies with `reply` (BFS over our moves, depth-limited)
 function solve(m, g, depth, st, reply) {
   for (const mv of g.moves()) {
-    const st2 = { caps: st.caps }, r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
+    const st2 = { caps: st.caps, k: st.k }, r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
     let res = M.missionCheck(m, g, r, st2), ok = res === 'win';
-    if (!ok && res !== 'stalemate' && depth > 1 && !g.gameOver()) {
+    if (!ok && res !== 'stalemate' && res !== 'wrong' && depth > 1 && !g.gameOver()) {
       const c = reply(g); if (c) { g.move({ from: c.from, to: c.to, promotion: c.promotion }); ok = solve(m, g, depth - 1, st2, reply); g.undo(); }
     }
     g.undo(); if (ok) return true;
@@ -25,9 +25,9 @@ function greedyRun(m, seed) {
     let best = null;
     for (let d = 1; d <= Math.min(5, m.limit - n + 1) && !best; d++) {
       for (const mv of g.moves()) {
-        const st2 = { caps: st.caps }, r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
+        const st2 = { caps: st.caps, k: st.k }, r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
         let res = M.missionCheck(m, g, r, st2), ok = res === 'win';
-        if (!ok && res !== 'stalemate' && d > 1) { const c = M.missionWander(g, seeded(seed + n)); if (c) { g.move(c); ok = solve(m, g, d - 1, st2, x => M.missionWander(x, seeded(seed + n))); g.undo(); } }
+        if (!ok && res !== 'stalemate' && res !== 'wrong' && d > 1) { const c = M.missionWander(g, seeded(seed + n)); if (c) { g.move(c); ok = solve(m, g, d - 1, st2, x => M.missionWander(x, seeded(seed + n))); g.undo(); } }
         g.undo(); if (ok) { best = mv; break; }
       }
     }

@@ -1,6 +1,6 @@
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
-  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'How every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
+  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
   { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
   { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the thinking routine that stops blunders.', lessons: ['l-discovered', 'l-defender', 'l-patterns', 'l-cct'] },
   { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Opposition, the Lucena and Philidor, pawn breaks and pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
@@ -8,6 +8,18 @@ var STAGES = [
 ];
 
 var LESSONS = {
+  'l-board': {
+    title: 'The Board', minutes: 5, takeaways: ['Files are the columns a to h. Ranks are the rows 1 to 8.', 'A square is named by its file, then its rank, like d4.', 'A move is written as the piece letter plus the square it lands on, like Nf3. Pawn moves have no letter, like e4.'], goal: 'Learn the names of the squares and how chess moves are written.',
+    steps: [
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'A chessboard has 64 squares, 8 across and 8 up. The columns are called files. They are lettered a to h, from left to right as White sees the board. The rows are called ranks. They are numbered 1 to 8, starting from White\'s side.', marks: ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'Every square has a name: its file letter, then its rank number. The bottom left corner is a1. Walk up the d-file and you pass d1, d2, d3, all the way to d8. The four centre squares, d4, e4, d5 and e5, are the most important squares on the board.', arrows: [['d1', 'd8', 'g']], marks: ['d4', 'e4', 'd5', 'e5'] },
+      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'e2', 'a8', 'h1', 'c6', 'f5'], text: 'Your turn: tap the square I name. Find the file letter first, then count up the ranks.', done: 'Six for six. You can read the board now.' },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'This is how every game starts. White fills ranks 1 and 2, Black fills ranks 7 and 8. Check the corners: there is always a light square in each player\'s bottom right corner. Light on the right. The white queen starts on her own colour, d1.', marks: ['h1', 'a8', 'd1', 'd8'] },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1', text: 'Moves are written with a letter for the piece and the square it lands on. K is the king, Q the queen, R a rook, B a bishop and N a knight. Pawns get no letter. So e4 means a pawn moves to e4, and Nf3 means a knight moves to f3. An x means a capture, like Bxf7. A plus sign means check, a hash sign means checkmate, and O-O means castling.', arrows: [['g1', 'f3', 'g']] },
+      { t: 'move', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Now read and play. The move is written e4. Which pawn can reach e4? Play it.', sol: ['e2e4'], hint: 'A pawn move with no letter. The e-pawn on e2 can jump two squares to e4.', done: 'e4. The most popular first move in chess.' },
+      { t: 'move', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', text: 'Black answered e5. Now play the move written Nf3.', sol: ['g1f3'], hint: 'N is the knight. The knight on g1 jumps to f3.', done: 'Nf3. You just read and played chess notation. Every book and app writes moves this way.' }
+    ]
+  },
   'l-rook': {
     title: 'The Rook', minutes: 4, takeaways: ['Rooks move in straight lines, up, down and sideways.', 'Plan a route before you move, and count your moves.'], goal: 'Move the rook in straight lines and collect every star.',
     steps: [

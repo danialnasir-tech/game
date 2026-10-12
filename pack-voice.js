@@ -5,7 +5,7 @@ const files=fs.readdirSync(SRC).filter(f=>f.endsWith('.mp3')).sort();
 fs.readdirSync('dist').filter(f=>/^voice-pack-\d+\.mp3$/.test(f)).forEach(f=>fs.unlinkSync('dist/'+f));
 // Lines the very first session needs (tour, core coach phrases, lesson feedback, first three lessons) go into
 // their own small "start" packs, which the first-launch loading screen downloads. Keep in sync with START_CLIP in app.js.
-const START=/^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(rook|bishop-queen|knight)\b/;
+const START=/^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(board|rook|bishop-queen|knight)\b|^M-sq_|^V-quiz_|^H-/;
 const groupOf=id=>START.test(id)?'00start':/^T-/.test(id)?'0tour':/^(C|M)-/.test(id)?'1core':/^V-(best|good|inacc|okay|mistake|blunder|brilliant|great|excellent|book|hang_|missed_|allows_|better_was|why_|castle|develop|capture|check_|coach_|threat_|gamestart|win|loss|draw|resign|takeback|comeback|tip_)/.test(id)?'2game':/^V-/.test(id)?'3misc':/^K-|^L-/.test(id)?'4lessons':/^P-/.test(id)?'5puzzles':'6openings';
 const ids=files.map(f=>f.slice(0,-4)).sort((a,b)=>groupOf(a).localeCompare(groupOf(b))||a.localeCompare(b,undefined,{numeric:true}));
 const index={}, packs=[], sizes=[]; let curGroup=null;

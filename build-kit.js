@@ -4,7 +4,7 @@ const fs=require('fs');const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(r
 const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);
 const V=require('./voicelines.js');
 const MI=require('./missions.js');
-const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES(), V.QUIZ_LINES(D), Object.keys(MI.MISSIONS).flatMap(k=>MI.MISSIONS[k].map(m=>({id:'N-'+m.id,text:m.text,group:'more'}))));
+const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES(), V.QUIZ_LINES(D), V.HINT_LINES(), Object.keys(MI.MISSIONS).flatMap(k=>MI.MISSIONS[k].map(m=>({id:'N-'+m.id,text:m.text,group:'more'}))));
 const ids=new Set();lines.forEach(l=>{if(ids.has(l.id))throw new Error('duplicate id '+l.id);ids.add(l.id);});
 const t=fs.readFileSync('voice-kit-v4/generate-v4-voices.template.js','utf8').replace('/*__LINES__*/[]',()=>JSON.stringify(lines,null,0).replace(/\},\{/g,'},\n  {'));
 fs.writeFileSync('voice-kit-v4/generate-v4-voices.js',t);

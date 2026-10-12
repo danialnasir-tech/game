@@ -183,7 +183,7 @@
       return packCache[i];
     }
     // First launch: download the start packs (lines the first session needs) with byte-level progress.
-    var START_CLIP = /^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(rook|bishop-queen|knight)\b/; // keep in sync with pack-voice.js
+    var START_CLIP = /^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(board|rook|bishop-queen|knight)\b|^M-sq_|^V-quiz_|^H-/; // keep in sync with pack-voice.js
     function preloadStart(onProgress) {
       var size = {}, list = [];
       Object.keys(VOICE_FILES).forEach(function (id) { var e = VOICE_FILES[id]; size[e[0]] = Math.max(size[e[0]] || 0, e[1] + e[2]); if (START_CLIP.test(id) && list.indexOf(e[0]) < 0) list.push(e[0]); });
@@ -1138,7 +1138,7 @@
       '<div class="lock-progress"><i style="width:' + Math.round(done / UNLOCK_AT[mode] * 100) + '%"></i></div><p class="muted small">' + done + ' of ' + UNLOCK_AT[mode] + ' lessons done</p>' +
       '<div class="actions"><button class="btn primary big" data-act="startNext">Continue learning</button></div>' +
       '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button>' +
-      (mode === 'play' ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze a chess.com game</b><span>Works right away, no lessons needed.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') + '</div>');
+      '</div>');
   }
   ACT.peek = function (d) { S.peek[d.m] = true; save(); go(d.m); };
   function go(mode, arg) {
@@ -1192,15 +1192,8 @@
     S.visited = S.visited || {};
     document.querySelectorAll('.rail button[data-go]').forEach(function (b) { var m = b.dataset.go; b.classList.toggle('new', !S.visited[m] && !isLocked(m)); });
   }
-  var HINTS = {
-    puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
-    arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
-    openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
-    play: 'Coach games: pick a level and play. I comment on your moves as you go.',
-    progress: 'Progress: your rating chart, badges and streak live here.',
-    analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
-    mission: 'A coach mission: reach the goal in the shown number of moves.'
-  };
+  var HINTS = HINT_LINES_TEXT;
+
   var HINT = null;
   function firstHint(mode) {
     S.hinted = S.hinted || {}; HINT = null;
@@ -1208,6 +1201,7 @@
     if (!t || S.hinted[mode] || !S.onboarded) return;
     S.hinted[mode] = 1; save();
     HINT = { mode: mode, text: t };
+    setTimeout(function () { if (HINT && HINT.mode === mode) Voice.say([{ id: 'H-' + mode, text: t }], true); }, 900);
   }
   function hintHtml() { return HINT && document.body.dataset.mode === HINT.mode ? '<button class="first-hint" data-act="hintOk"><span class="fh-ico" aria-hidden="true">💡</span><span>' + esc(HINT.text) + '</span><span class="fh-x">Got it</span></button>' : ''; }
   ACT.hintOk = function () { HINT = null; var el = $('.first-hint'); if (el) { el.classList.add('out'); setTimeout(function () { el.remove(); }, 250); } };
@@ -1246,7 +1240,6 @@
   // Everything the app can do, visible from day one; locked items say exactly when they open.
   function exploreStrip() {
     var items = [
-      { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' },
       { m: 'arena', ico: 'q', t: 'Practice Arena', s: 'Quick games, bosses', act: 'arena' },
       { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
       { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
@@ -1254,6 +1247,7 @@
       { m: 'openings', ico: 'b', t: 'Openings', s: OPENINGS.length + ' lines & traps' },
       { m: 'progress', ico: 'r', t: 'Badges', s: 'Track your climb' }
     ];
+    if (analyzeReady()) items.splice(3, 0, { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' });
     return '<div class="sect-head"><h2>Explore</h2><span class="muted small">jump in anytime</span></div><div class="explore">' + items.map(function (it) {
       var lock = isLocked(it.m), need = lock ? UNLOCK_AT[it.m] - lessonsDone() : 0;
       return '<button class="ex-tile' + (lock ? ' locked' : '') + '" ' + (it.act ? 'data-act="' + it.act + '"' : 'data-act="goMode" data-m="' + it.m + '"') + '><span class="ex-ico">' + pieceSVG(it.ico, 'w', 24) + '</span><b>' + it.t + '</b><span>' + (lock ? '🔒 after ' + need + ' more lesson' + (need > 1 ? 's' : '') : it.s) + '</span></button>';
@@ -1262,28 +1256,31 @@
   ACT.goMode = function (d) { go(d.m); };
   // ===== First steps: a checklist that walks a new player through every part of the app =====
   var DISCOVER = [
-    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '4 minutes. Learn how the rook moves.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
+    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '5 minutes. Learn the board and how moves are written.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
     { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
-    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-rook" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
+    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-board" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
     { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
     { k: 'play', ico: 'p', t: 'Play a game against me', s: 'A real game, with tips on every move.', act: 'data-act="goPlay"', lock: 'play', done: function () { return (S.games || []).length >= 1; } },
     { k: 'opening', ico: 'b', t: 'Learn an opening', s: 'The first moves the pros play.', act: 'data-act="goMode" data-m="openings"', lock: 'openings', done: function () { return Object.keys(S.openings || {}).length >= 1; } },
     { k: 'analyze', ico: 'n', t: 'Analyze a chess.com game', s: 'See your mistakes and how to fix them.', act: 'data-act="goAnalyze"', done: function () { return (S.anHist || []).length >= 1; } }
   ];
-  function discCount() { return DISCOVER.filter(function (x) { return x.done(); }).length; }
-  function discAllDone() { return discCount() >= DISCOVER.length; }
+  // game analysis only makes sense once someone can play a full game
+  function analyzeReady() { return S.band >= 800 || stageCleared(0) || lessonsDone() >= 6 || (S.anHist || []).length > 0; }
+  function discList() { return DISCOVER.filter(function (x) { return x.k !== 'analyze' || analyzeReady(); }); }
+  function discCount() { return discList().filter(function (x) { return x.done(); }).length; }
+  function discAllDone() { return discCount() >= discList().length; }
   // reward each newly explored area once
   function discSync() {
     S.disc = S.disc || {}; var fresh = [];
-    DISCOVER.forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
+    discList().forEach(function (x) { if (x.done() && !S.disc[x.k]) { S.disc[x.k] = dayKey(); fresh.push(x); } });
     if (!fresh.length) return;
     save(); addXP(20 * fresh.length);
-    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + DISCOVER.length + ' explored');
+    if (discAllDone()) Badges.award('explorer'); else toast('✓ +20 XP · ' + discCount() + ' of ' + discList().length + ' explored');
   }
   function discoverCard() {
-    var n = discCount(), next = DISCOVER.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
-    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / DISCOVER.length * 100) + '"><b>' + n + '</b>/' + DISCOVER.length + '</span></div>' +
-      '<div class="disc-list">' + DISCOVER.filter(function (x) { return !x.done(); }).concat(DISCOVER.filter(function (x) { return x.done(); })).map(function (x) {
+    var L0 = discList(), n = discCount(), next = L0.filter(function (x) { return !x.done() && !(x.lock && isLocked(x.lock)); })[0];
+    return '<section class="disc"><div class="disc-head"><div><div class="eyebrow">Your first steps</div><b class="disc-title">Try everything once</b></div><span class="disc-ring" style="--p:' + Math.round(n / L0.length * 100) + '"><b>' + n + '</b>/' + L0.length + '</span></div>' +
+      '<div class="disc-list">' + L0.filter(function (x) { return !x.done(); }).concat(L0.filter(function (x) { return x.done(); })).map(function (x) {
         var ok = x.done(), lock = !ok && x.lock && isLocked(x.lock), need = lock ? UNLOCK_AT[x.lock] - lessonsDone() : 0;
         return '<button class="disc-item' + (ok ? ' done' : '') + (lock ? ' locked' : '') + (x === next ? ' next' : '') + '" ' + (lock ? 'data-act="goMode" data-m="' + x.lock + '"' : x.act) + '><span class="disc-ico">' + (ok ? '✓' : pieceSVG(x.ico, 'w', 18)) + '</span><span class="disc-t"><b>' + esc(x.t) + '</b><span>' + (lock ? '🔒 After ' + need + ' more lesson' + (need > 1 ? 's' : '') : esc(x.s)) + '</span></span>' + (x === next ? '<span class="disc-go">Try it →</span>' : ok ? '' : '<span class="disc-xp">+20</span>') + '</button>';
       }).join('') + '</div></section>';
@@ -1320,7 +1317,7 @@
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        (discAllDone() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : discoverCard()) +
+        (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
@@ -1479,7 +1476,7 @@
       var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
       if (LS.quizI !== LS.i) { LS.quizI = LS.i; LS.quiz = QUIZ_OF(step); if (LS.quiz) { LS.quiz.found = []; LS.stepDone = false; } }
       var Q = LS.quiz;
-      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : 'Your move';
+      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' ? 'Board game' : 'Your move';
       var actions = '';
       if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
       else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
@@ -1491,6 +1488,7 @@
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
         '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (Q && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
+        (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (Q && Q.done ? quizBox(Q) : '') +
         (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
         '</div>' +
@@ -1511,6 +1509,12 @@
         Collect.refresh();
         return;
       }
+      if (step.t === 'squares') {
+        setupBoard(step.fen, { orient: 'w' });
+        LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.squareTap; MODES.lesson.render();
+        setTimeout(function () { if (LS && LS.sq && LS.L.steps[LS.i] === step) Voice.say([M('sq_' + step.targets[0])], true); }, 5200);
+        return;
+      }
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: new Game(step.fen).turn() });
       if (step.arrows) B3.arrows(step.arrows);
       if (step.marks) B3.markers('mark', step.marks);
@@ -1526,6 +1530,14 @@
         IX.canMove = function (c) { return c === g.turn(); };
         IX.onMove = MODES.lesson.onMove;
       }
+    },
+    squareTap: function (sq) {
+      var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'squares' || Q.i >= step.targets.length) return;
+      var want = step.targets[Q.i];
+      if (sq !== want) { Q.miss++; LS.mistakes += 0.25; B3.flash('bad', [sq], 600); Sound.play('bad'); toast('That is ' + sq + '. Find the ' + want[0] + '-file, then rank ' + want[1] + '.'); if (Q.miss >= 2) B3.flash('hint', [1, 2, 3, 4, 5, 6, 7, 8].map(function (r) { return want[0] + r; }), 1400); return; }
+      Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq);
+      if (Q.i >= step.targets.length) { LS.stepDone = true; IX.tap = null; Sound.play('good'); Voice.say([V('quiz_done')]); MODES.lesson.render(); setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good'); return; }
+      MODES.lesson.render(); Voice.say([M('sq_' + step.targets[Q.i])]);
     },
     quizTap: function (sq) {
       var Q = LS && LS.quiz; if (!Q || Q.done) return;
@@ -1621,7 +1633,7 @@
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     var ms = MISSIONS[id], msDone = coachMissionsDone(id);
     if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Coach missions (replay)' : 'Coach missions: ' + ms.map(function (m) { return m.title; }).slice(0, 2).join(', ') + '…', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
-    if ((!ms || playNew) && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
+    if (!ms && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
     if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against the engine.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
@@ -1652,7 +1664,18 @@
   function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
     var step = LS.L.steps[LS.i];
-    if (step.t === 'collect') { setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return; }
+    if (step.t === 'squares' && LS.sq) { var w = step.targets[LS.sq.i]; if (w) { B3.flash('hint', [w], 1500); setStatus('Here it is: ' + w + '. Files are letters along the bottom, ranks are numbers up the side.'); LS.hintUsed = true; } return; }
+    if (step.t === 'collect') {
+      // point at a real move: a star in one jump if there is one, otherwise a square that reaches a star next
+      var c = IX.collect, pc = step.piece;
+      if (c && c.left && c.left.length) {
+        var now = Collect.reach(pc, c.at), hit = now.filter(function (q) { return c.left.indexOf(q) >= 0; })[0], via = null;
+        if (!hit) via = now.filter(function (q) { return Collect.reach(pc, q).some(function (z) { return c.left.indexOf(z) >= 0; }); })[0];
+        var to = hit || via;
+        if (to) { B3.arrows([[c.at, to, 'g']]); B3.flash('hint', [to], 2200); setStatus(hit ? 'The ' + PIECE_NAME[pc] + ' can grab the star on ' + to + ' right now.' : 'No star in one move. Go to ' + to + ' first: from there a star is one move away.'); LS.hintUsed = true; return; }
+      }
+      setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return;
+    }
     var u = step.sol[LS.ply];
     if (LS.hintUsed) { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); setStatus('The arrow shows the move.'); }
     else { B3.markers('hint', [u.slice(0, 2)]); setStatus(esc(step.hint || 'Look at the highlighted piece.')); LS.hintUsed = true; }
@@ -2757,10 +2780,10 @@
 
   // ================= Coach missions: short hands-on scenarios right after a lesson =================
   var MS = null;
-  var GOAL_TXT = { check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
+  var GOAL_TXT = { sequence: 'Play the written moves', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
   function missionStars(m, n) { return n <= m.par ? 3 : n <= m.par + Math.ceil((m.limit - m.par) / 2) ? 2 : 1; }
   function coachMissionsDone(id) { return (MISSIONS[id] || []).filter(function (m) { return S.missions && S.missions[m.id]; }).length; }
-  function missionGoalCount(m, g) { return m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
+  function missionGoalCount(m, g) { return m.goal === 'sequence' ? m.seq.length : m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
   MODES.mission = {
     label: 'Coach mission',
     enter: function (arg) {
@@ -2789,6 +2812,7 @@
         if (r.captured) { B3.burst(r.to); xpPop('+5', r.to); }
         var res = missionCheck(m, g, r, MS.st);
         if (res === 'win') return MODES.mission.finish(true);
+        if (res === 'wrong') return MODES.mission.finish(false, 'You played ' + MS.st.wrong + ', but the move written was ' + m.seq[MS.st.k || 0] + '. Read the letter, then the square.');
         if (res === 'stalemate') return MODES.mission.finish(false, 'Stalemate! My king has no legal move but is not in check, so it is a draw. Always leave me a move.');
         if (MS.n >= m.limit) return MODES.mission.finish(false, m.limit === 1 ? 'That move does not do it.' : 'Out of moves. ' + (m.goal === 'mate' ? 'Box my king in faster.' : 'Look for a shorter route.'));
         MS.busy = true; MODES.mission.render();
@@ -2822,7 +2846,7 @@
     },
     render: function () {
       var m = MS.m, list = MISSIONS[MS.lesson], L = LESSONS[MS.lesson], left = m.limit - MS.n;
-      var got = m.goal === 'captureAll' ? MS.total - missionMaterial(MS.g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? MS.st.caps : MS.over === 'win' ? 1 : 0;
+      var got = m.goal === 'sequence' ? (MS.st.k || 0) : m.goal === 'captureAll' ? MS.total - missionMaterial(MS.g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? MS.st.caps : MS.over === 'win' ? 1 : 0;
       var steps = list.map(function (x, k) { var s = S.missions && S.missions[x.id]; return '<span class="ms-step' + (k === MS.i ? ' on' : '') + (s ? ' done' : '') + '">' + (s ? '★' : k + 1) + '</span>'; }).join('<i class="ms-link"></i>');
       var moves = ''; for (var k = 0; k < m.limit; k++) moves += '<i class="ms-mv' + (k < MS.n ? ' used' : '') + (k === m.par - 1 ? ' par' : '') + '"></i>';
       var body;
@@ -2836,7 +2860,8 @@
       } else {
         body = '<div class="ms-track"><div class="ms-goal"><span class="ms-goal-ico">◎</span><b>' + esc(GOAL_TXT[m.goal]) + '</b>' + (MS.total > 1 ? '<span class="ms-count">' + got + ' / ' + MS.total + '</span>' : '') + '</div>' +
           '<div class="ms-moves"><span>' + (MS.busy ? 'Coach is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
-          (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') + '</div>' +
+          (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') +
+          (m.goal === 'sequence' ? '<div class="ms-seq">' + m.seq.map(function (x, k) { return '<span class="mono' + (k < got ? ' done' : k === got ? ' now' : '') + '">' + esc(x) + '</span>'; }).join('') + '</div>' : '') + '</div>' +
           (MS.hint ? '<p class="ms-tip">💡 ' + esc(m.tip) + '</p>' : '') +
           '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
       }
@@ -2855,8 +2880,26 @@
   ACT.missionHint = function () {
     if (!MS) return; MS.hint++;
     if (MS.over === 'fail') MODES.mission.load(), MS.hint = 1;
-    var g = MS.g, m = MS.m, win = g.moves().filter(function (mv) { var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }); var ok = missionCheck(m, g, r, { caps: (MS.st.caps || 0) + 0 }) === 'win' || (m.goal === 'capture' || m.goal === 'captureAll') && !!r.captured; g.undo(); return ok; });
-    if (win.length) B3.flash('hint', [win[0].from], 1800);
+    var g = MS.g, m = MS.m, side = m.side || 'w';
+    if (MS.busy || g.turn() !== side) return MODES.mission.render();
+    // search our own moves (the friendly coach mostly shuffles his king) for the quickest route to the goal
+    function reach(depth, st) {
+      var best = null;
+      g.moves().some(function (mv) {
+        var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }), st2 = { caps: st.caps }, res = missionCheck(m, g, r, st2), ok = res === 'win';
+        if (!ok && res !== 'stalemate' && depth > 1 && !g.gameOver()) { var c = missionWander(g, function () { return 0.5; }); if (c) { g.move(c); ok = !!reach(depth - 1, st2); g.undo(); } }
+        g.undo(); if (ok) best = mv; return ok;
+      });
+      return best;
+    }
+    var show = function (mv) { if (!mv || !MS || MS.g !== g) return; B3.arrows([[mv.from, mv.to, 'g']]); B3.flash('hint', [mv.from], 2200); };
+    if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    else {
+      // for capture goals, aim at the next capture; otherwise the whole goal. Fall back to the engine's move.
+      if (m.goal === 'capture' || m.goal === 'captureAll') m = Object.assign({}, m, { goal: 'capture', count: (MS.st.caps || 0) + 1 });
+      var mv = null; for (var d = 1; d <= 3 && !mv; d++) mv = reach(d, { caps: MS.st.caps || 0, k: MS.st.k });
+      if (mv) show(mv); else Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    }
     MODES.mission.render();
   };
   ACT.missionsDone = function () {
@@ -3624,6 +3667,7 @@
       var bestWinLevel = null;
       COACH_LEVELS.forEach(function (l) { if (games.some(function (g) { return g.result === 'win' && g.level === l.id; })) bestWinLevel = l; });
       setPanel('<div class="eyebrow">Day ' + Math.min(dayNumber(), 30) + ' of 30 · Streak ' + S.streak + '</div><h1 class="h1">Your progress</h1>' +
+        (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Check your chess.com games</b><span>Find the mistakes you repeat and the lesson that fixes each one.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
         '<div class="stat-grid">' +
         stat('Lessons', (lessonsDone + placedN) + '/' + Object.keys(LESSONS).length + (placedN ? ' <span class="muted small">' + placedN + ' skipped</span>' : '')) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +

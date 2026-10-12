@@ -318,3 +318,16 @@ Object.assign(MORE_POOLS, {
   pr_slowdev: ["Too many pieces stayed at home. Develop everything before you attack.", "Your knights and bishops were slow to come out."],
   pr_missedbetter: ["You missed some stronger moves. Compare two or three candidates before you play.", "Several moves had a better option. Slow down at the critical moments."]
 });
+
+// One-line hints spoken the first time each area opens (keep in sync with HINTS in app.js)
+var HINT_LINES_TEXT = {
+  puzzles: 'Puzzles: find the best move in a real position. Every solve moves your rating.',
+  arena: 'Arena: quick 60-second games and boss fights. Tap any tile to play.',
+  openings: 'Openings: learn the first moves the pros play, then drill them from memory.',
+  play: 'Coach games: pick a level and play. I comment on your moves as you go.',
+  progress: 'Progress: your rating chart, badges and streak live here.',
+  analyze: 'Type your chess.com username, or paste a game, and I will find your mistakes.',
+  mission: 'A coach mission: reach the goal in the shown number of moves.'
+};
+function HINT_LINES() { return Object.keys(HINT_LINES_TEXT).map(function (k) { return { id: 'H-' + k, text: HINT_LINES_TEXT[k], group: 'more' }; }); }
+if (typeof module !== 'undefined') { module.exports.HINT_LINES = HINT_LINES; }

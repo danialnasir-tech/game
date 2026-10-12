@@ -4,6 +4,14 @@
 // coach: 'wander' = the coach only walks his king around and never captures (a friendly sparring partner),
 //        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
 var MISSIONS = {
+  'l-board': [
+    { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
+      text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
+    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander',
+      text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
+    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander',
+      text: 'Now a real opening, the London System: d4, Bf4, e3, Nf3. Four moves, all from their written names.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+  ],
   'l-rook': [
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
       text: 'Attack my king with your rook. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
@@ -65,7 +73,7 @@ var MISSIONS = {
 // so a beginner can focus on the piece they just learned. Falls back to any legal move.
 function missionWander(g, rnd) {
   rnd = rnd || Math.random;
-  var all = g.moves(), quiet = all.filter(function (m) { return !m.captured; }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
+  var all = g.moves(), quiet = all.filter(function (m) { return !m.captured && !/\+/.test(m.san); }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
   var pool = kings.length ? kings : quiet.length ? quiet : all;
   if (!pool.length) return null;
   var own = [], me = g.turn();
@@ -83,6 +91,11 @@ function missionMaterial(g, color) {
 // Called after each of your moves. st = { caps: 0 }. Returns 'win' when the goal is met.
 function missionCheck(m, g, mv, st) {
   if (mv.captured && (!m.types || m.types.indexOf(mv.captured) >= 0)) st.caps = (st.caps || 0) + 1;
+  if (m.goal === 'sequence') {
+    var want = m.seq[st.k || 0], got = String(mv.san).replace(/[+#]/g, '');
+    if (got !== want) { st.wrong = got; return 'wrong'; }
+    st.k = (st.k || 0) + 1; return st.k >= m.seq.length ? 'win' : null;
+  }
   var foe = mv.color === 'w' ? 'b' : 'w';
   if (m.goal === 'check' && g.inCheck()) return 'win';
   if (m.goal === 'capture' && st.caps >= (m.count || 1)) return 'win';
