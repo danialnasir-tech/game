@@ -95,6 +95,10 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - "Find my patterns": the last 6 games are scanned, problems summed, plus results by opening and colour from up to 40 games. `S.ccUser` remembers the username, `S.anHist` the last 30 analyses.
 - Not testable from the build container (chess.com is blocked there); tests mock `api.chess.com`. Whether the claude.ai artifact page may call chess.com depends on its network policy; if blocked, the app says so and points to PGN paste. The self-hosted site build has no such limit.
 
+## Brand v3 look
+- The last block in template.html's second `<style>` ("Brand v3") restyles everything on top of the older rules: midnight background with drifting aurora blobs and a faint grid, acid-lime primary (`--brass` now means lime; stars use `--gold`), hot gradients (`--grad-hot`, `--grad-cool`, `--grad-acid`), glass top bar / rail / panel, pill buttons with a shine sweep, colourful sticker tiles in Explore and the Arena, an animated gradient edge on the home hero, and a floating tab bar on phones. Respects reduced motion. The chess boards keep their classic wood look.
+- Avoid the class name `.top` for anything but the header bar.
+
 ## Open items
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.

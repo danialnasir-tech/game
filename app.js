@@ -1409,6 +1409,7 @@
 
   // ================= Lesson =================
   var LS = null;
+  function quizBox(Q) { return '<div class="quiz' + (Q.done ? ' done' : '') + '"><span class="quiz-tag">' + (Q.done ? '✓ Nailed it' : 'Your turn') + '</span><span class="quiz-q">' + esc(Q.text.replace(/^Your turn\. /, '')) + '</span><span class="quiz-pips">' + Array.apply(null, Array(Q.need)).map(function (x, k) { return '<i class="' + (k < Q.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span></div>'; }
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
@@ -1432,9 +1433,9 @@
         '<h1 class="h1">' + esc(L.title) + '</h1>' +
         '<p class="lede">' + esc(L.goal) + '</p>' +
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
-        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div><p class="coach-text">' + esc(step.text) + '</p>' +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (Q && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
-        (Q ? '<div class="quiz' + (Q.done ? ' done' : '') + '"><span class="quiz-tag">' + (Q.done ? '✓ Nailed it' : 'Your turn') + '</span><span class="quiz-q">' + esc(Q.text.replace(/^Your turn\. /, '')) + '</span><span class="quiz-pips">' + Array.apply(null, Array(Q.need)).map(function (x, k) { return '<i class="' + (k < Q.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
+        (Q && Q.done ? quizBox(Q) : '') +
         (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
         '</div>' +
         '<div id="status" class="status"></div>' +
