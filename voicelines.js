@@ -240,3 +240,25 @@ Object.assign(MORE_POOLS, {
   rush_start: ["Puzzle Rush! Three minutes. Go, go, go!", "Rush mode. Solve as many as you can!", "The clock is ticking. Let's rush!", "Speed round! Trust your instincts."],
   rush_end: ["Time! Let's see your score.", "That's the rush! Great effort.", "Rush over. Can you beat that next time?", "Phew! Nice speed solving."]
 });
+
+// ===== Batch 6: Practice Arena, bosses, challenges, opening battles, show-me replays =====
+Object.assign(MORE_POOLS, {
+  arena_start: ["Clock starts now. Go!", "Sixty seconds. Trust your eyes.", "Quick round. Speed and accuracy.", "Ready, set, play!"],
+  arena_end: ["Time is up. Let's see that score.", "Round over. Nice speed.", "That's the buzzer. Good reflexes.", "Done! Can you beat it next round?"],
+  arena_best: ["A new personal best!", "That beats your record!", "Best score yet. Your board vision is improving."],
+  boss_rex: ["I am Rookie Rex. I just learned how the knight moves. Go easy on me!"],
+  boss_tess: ["I am Trapper Tess. Every move I play hides a trick. Let's see if you spot them."],
+  boss_tao: ["I am Tactics Tao. Forks, pins, sacrifices. One careless move and it's over."],
+  boss_greta: ["I am Grinder Greta. No openings, no tricks. Just a long endgame. Can you convert it?"],
+  boss_gus: ["I am Grandmaster Gus. Full strength, no mercy. Show me everything you've learned."],
+  boss_beaten: ["Boss defeated! The whole stage is cleared.", "You beat the boss. That is a real milestone.", "Victory over the boss! On to the next stage.", "The boss falls! Your training is paying off."],
+  boss_lost: ["The boss wins this time. Review the game and come back stronger.", "Not today. Study the key moments, then challenge the boss again.", "Close fight. Bosses are meant to be tough. Try again.", "The boss holds the stage for now. A rematch is one tap away."],
+  challenge_start: ["Here's your challenge. Count your moves.", "Show me the technique. The clock is your move counter.", "Win this position. Precision matters.", "Challenge accepted? Let's go."],
+  challenge_done: ["Challenge complete! Clean technique.", "You did it, and within the move limit.", "Mission accomplished. That's real endgame skill.", "Perfectly converted. Well done."],
+  challenge_fail: ["Out of moves. Try a more direct plan.", "Not this time. Watch the move count and try again.", "Close! Look for the fastest route next time.", "The position slipped away. Have another go."],
+  battle_start: ["Opening battle! Somewhere in this opening I will slip. Punish it.", "Let's battle. Play the opening, and pounce on my mistake.", "Battle time. I'm going to make one bad move. Catch it.", "Watch closely. One of my moves will be a mistake."],
+  battle_slip: ["Hmm, was that a good move?", "Oops. Did I just slip?", "That one might have been careless."],
+  battle_caught: ["You caught it! That's how you punish a mistake.", "Punished! I should not have played that.", "Spotted and punished. Excellent.", "Exactly right. My mistake costs me."],
+  battle_missed: ["You missed my mistake. Watch the replay to see the punishment.", "I got away with it. Let me show you what you could have played.", "Not quite. There was a much stronger move.", "My slip went unpunished. Here's what wins."],
+  replay_intro: ["Watch what happens.", "Here's how it plays out.", "Let me show you on the board.", "Follow the moves."]
+});

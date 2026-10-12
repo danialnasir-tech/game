@@ -1,5 +1,5 @@
 const fs=require('fs');
-let js=['chesscore.js','engine.js','data.js','puzzles2.js','defences.js','voicelines.js','icons.js','board2d.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
+let js=['chesscore.js','engine.js','data.js','puzzles2.js','defences.js','arena.js','voicelines.js','icons.js','board2d.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
 const t=fs.readFileSync('template.html','utf8');
 const vf=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
 js=js.replace('/*__VOICEFILES__*/{}', JSON.stringify(vf)).replace('/*__VOICEPACKS__*/2', fs.existsSync('dist/voice-packs.json')?fs.readFileSync('dist/voice-packs.json','utf8'):'2'); console.log('voice clips', Object.keys(vf).length);

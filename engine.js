@@ -393,6 +393,30 @@ function ENGINE_FACTORY(Game) {
     return { white: g.side ? -s : s, best: r.moves[0] };
   }
 
-  return { evaluate: evaluate, rootSearch: rootSearch, pickMove: pickMove, analyzeMove: analyzeMove, threat: threat, evalPos: evalPos, MATE: MATE };
+  // Best play for n plies from a position: what actually happens next (used by "Show me" replays).
+  function line(fen, n, depth, timeMs) {
+    var g = new Game(fen), out = [];
+    for (var i = 0; i < n; i++) {
+      if (g.gameOver()) break;
+      var r = rootSearch(g.fen(), depth || 5, timeMs || 500, 0);
+      if (!r.moves.length) break;
+      var m = r.moves[0], mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined });
+      if (!mv) break;
+      out.push({ from: mv.from, to: mv.to, promotion: mv.promotion || null, san: mv.san, captured: mv.captured || null, piece: mv.piece, score: m.score });
+    }
+    return out;
+  }
+  // Moves that look natural but are clearly worse, for opening battles: a realistic mistake.
+  function mistake(fen) {
+    var r = rootSearch(fen, 4, 1500, 450);
+    if (!r.moves.length) return null;
+    var best = r.moves[0].score;
+    if (best < -60) return null;
+    var pool = r.moves.filter(function (m) { return best - m.score >= 120 && m.score <= -100 && m.score > -700 && m.piece !== 'k'; });
+    if (!pool.length) return null;
+    var m = pool[Math.floor(Math.random() * Math.min(pool.length, 4))];
+    return { from: m.from, to: m.to, promotion: m.promotion || null, score: m.score, best: best };
+  }
+  return { evaluate: evaluate, rootSearch: rootSearch, pickMove: pickMove, analyzeMove: analyzeMove, threat: threat, evalPos: evalPos, line: line, mistake: mistake, MATE: MATE };
 }
 if (typeof module !== 'undefined') module.exports = ENGINE_FACTORY;

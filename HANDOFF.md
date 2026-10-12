@@ -10,6 +10,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `data.js` | STAGES, LESSONS (26), OPENINGS (23), PUZZLES (30 hand-made), COACH_LEVELS. |
 | `puzzles2.js` | 69 extra puzzles mined from engine self-play, each re-verified (unique winning move). |
 | `defences.js` | DEFENCES (how to meet every opening from the other side), 2 extra trap openings (Stafford, Blackburne Shilling), STAGE_OPENINGS (opening stops on the Path), DEFENCE_LINES() voice lines `D-<id>-<n>`. |
+| `arena.js` | BOSSES (one per stage, beating one clears it), CHALLENGES (win this position vs perfect defence), VISION_GAMES (Square Sprint, Hanging Hunt, Check Finder, Knight Race). |
 | `voicelines.js` | All coach lines + variation pools (no line repeats until all are used). |
 | `icons.js` | Vector chess piece icons (no unicode glyphs — they broke on some servers). |
 | `board2d.js` | Flat 2D board with the same API as the 3D board. |
@@ -65,6 +66,12 @@ Publish `dist/chess-ascent.html` as an artifact and pass the 18 packs as support
 - The Path shows opening stops between lessons (`stageStops`, `stopHtml`); the daily Opening mission and "What next?" go to the next undrilled stop (`nextStop`).
 - In coach games the coach often plays a real line or trap (`pickBookLine`, `bookMove`), announces it in the feed, and offers a study button after the game.
 - The 467 defence / trap-opening lines are generated and packed (user's run, verified against the generator manifest).
+
+## Practice Arena (hands-on modes)
+- `MODES.arena` hub; `MODES.vision` runs the 4 timed games (`GAMES` in app.js; board taps go through `IX.tap`).
+- Bosses, challenges and opening battles are coach games with `PL.spec` (`kind` boss / challenge / battle): see `specFen`, `specColor`, `battleEnd`, `specFinish`, `bossEnd`. Bosses pick a favourite book line that fits your moves (`PL.bookPool`).
+- "Show me" replays (`Replay.run`) play out the engine's line (`line()` in engine.js) after a mistake in games, puzzles, review and battles; `mistake()` in engine.js chooses the coach's slip in battles.
+- 55 voice lines for these modes (`MORE_POOLS` batch 6) are in the generator; until generated they are silent and the text still shows.
 
 ## Open items
 1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.

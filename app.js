@@ -7,7 +7,7 @@
   // ================= Storage =================
   var STORE_KEY = 'chess-ascent-v1';
   function freshState() {
-    return { onboarded: false, band: 100, startDate: null, xp: 0, streak: 0, lastActive: null, lessons: {}, openings: {}, puzzle: { rating: 400, solved: {}, hist: [] }, games: [], daily: {}, sound: true, voice: true, coach: { explain: true, threats: true, level: 'club', color: 'w', style: null, evalbar: null }, settings: { coachName: 'Coach Leo', volume: 1, rate: 1, subtitles: true, cameraFixed: false }, badges: {}, peek: {} };
+    return { onboarded: false, band: 100, startDate: null, xp: 0, streak: 0, lastActive: null, lessons: {}, openings: {}, puzzle: { rating: 400, solved: {}, hist: [] }, games: [], daily: {}, sound: true, voice: true, coach: { explain: true, threats: true, level: 'club', color: 'w', style: null, evalbar: null }, settings: { coachName: 'Coach Leo', volume: 1, rate: 1, subtitles: true, cameraFixed: false }, badges: {}, peek: {}, arena: {}, bosses: {}, challenges: {}, cleared: {} };
   }
   function loadState() {
     try {
@@ -887,6 +887,7 @@
     });
   }
   function onBoardClick(sq) {
+    if (IX.tap) return IX.tap(sq);
     if (IX.collect) return Collect.click(sq);
     if (!IX.enabled || !IX.game) return;
     var g = IX.game, p = g.get(sq);
@@ -906,6 +907,7 @@
     if (p && p.color === g.turn() && IX.canMove(p.color)) selectSq(sq);
   }
   function onBoardHover(sq) {
+    if (IX.tap) return true;
     if (IX.collect) return sq === IX.collect.at || !!IX.collect.targets[sq];
     if (!IX.enabled || !IX.game) return false;
     var p = IX.game.get(sq);
@@ -921,6 +923,7 @@
       .then(function () { if (PENDING_DROP) { PENDING_DROP = null; if (g) B3.sync(g.fen()); } });
   }
   function dragCan(sq) {
+    if (IX.tap) return false;
     if (IX.collect) return sq === IX.collect.at && !IX.collect.busy;
     if (!IX.enabled || !IX.game) return false;
     var p = IX.game.get(sq);
@@ -1048,17 +1051,17 @@
   function go(mode, arg) {
     if (isLocked(mode)) {
       if (current && current.leave) current.leave();
-      Voice.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null;
+      Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
       document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode); });
       $('#evalbar').hidden = true; $('#mode-label').textContent = LOCKABLE[mode];
       lockedScreen(mode); return;
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || ((mode === 'rush' || mode === 'stagetest') && b.dataset.go === (mode === 'rush' ? 'puzzles' : 'path')) || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
+    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || ((mode === 'rush' || mode === 'stagetest') && b.dataset.go === (mode === 'rush' ? 'puzzles' : 'path')) || ((mode === 'arena' || mode === 'vision') && b.dataset.go === 'puzzles') || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
     $('#evalbar').hidden = true;
     B3.idle(false);
-    IX.enabled = false; IX.onMove = null; IX.collect = null;
+    IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
     current = MODES[mode];
     document.body.dataset.mode = mode;
     PANEL_ANIM = true;
@@ -1067,7 +1070,7 @@
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1 };
+  var BOARD_MODES = { lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -1114,6 +1117,7 @@
   // Everything the app can do, visible from day one; locked items say exactly when they open.
   function exploreStrip() {
     var items = [
+      { m: 'arena', ico: 'q', t: 'Practice Arena', s: 'Quick games, bosses', act: 'arena' },
       { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
       { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
       { m: 'play', ico: 'k', t: 'Play the coach', s: '5 levels, live tips' },
@@ -1180,7 +1184,7 @@
               if (k === st.lessons.length - 1) stops.slice(Math.floor(st.lessons.length / 2)).forEach(function (sid) { stop += stopHtml(sid); }); // stops left over in short stages
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>' + stop;
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>' + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
@@ -1408,6 +1412,10 @@
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
+    var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
+    if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against perfect defence.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
+    var stB = bossFor(stageOf(id));
+    if (stB && stageComplete(stageOf(id)) && !S.bosses[stB.id]) cards.push({ k: 'boss', ico: stB.icon, t: 'Boss battle: ' + stB.name, s: 'Stage done. Now beat its boss in a real game.', act: 'data-act="boss" data-id="' + stB.id + '"' });
     var ns = nextStop();
     if (ns && (nDone >= 2 || !isLocked('openings'))) cards.push({ k: 'opening', ico: 'b', t: ns.def ? 'Defend against the ' + ns.base.name : 'Learn the ' + ns.name, s: ns.def ? ns.idea.split('. ')[0].replace(/\.$/, '') + '.' : 'Every move explained, then drill it from memory.', act: 'data-act="openOp" data-id="' + ns.id + '"', isNew: opNew });
     else if (!isLocked('openings') && nDone >= 3) cards.push({ k: 'opening', ico: 'b', t: 'Learn an opening', s: 'Your first moves, with the reason behind each one.', act: 'data-act="wnOpening"', isNew: opNew });
@@ -1415,6 +1423,7 @@
     // Variety: after two lessons in a row, nudge toward doing instead of reading
     var pref = lessonsToday >= 2 || nDone % 2 === 1 ? (cards[0].k === 'play' ? 'play' : 'puzzle') : 'lesson';
     if (playNew) pref = 'play'; else if (opNew) pref = 'opening';
+    if (cards.some(function (c) { return c.k === 'boss'; })) pref = 'boss'; else if (cards.some(function (c) { return c.k === 'challenge'; }) && lessonsToday >= 1) pref = 'challenge';
     if (!cards.some(function (c) { return c.k === pref; })) pref = cards[0].k;
     cards.sort(function (a, b) { return (b.k === pref) - (a.k === pref); });
     return '<div class="sect-head"><h2>What next?</h2><span class="muted small">pick any, switch anytime</span></div><div class="wn-grid">' + cards.map(function (c) {
@@ -1488,6 +1497,11 @@
       '<span class="jl-num op" aria-hidden="true">' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</span>' +
       '<span class="jl-title"><em class="op-kind' + (o.def ? ' def' : '') + '">' + (o.def ? 'Defence' : 'Opening') + '</em> ' + esc(o.def ? o.name : o.name) + '</span>' +
       '<span class="jl-meta">' + (done ? 'Mastery ' + m + '/3' : o.moves.length + ' moves') + '</span></button>';
+  }
+  function bossNode(i) {
+    var b = bossFor(i); if (!b) return '';
+    var beat = S.bosses[b.id];
+    return '<button class="jlesson jboss' + (beat ? ' done' : '') + '" data-act="boss" data-id="' + b.id + '">' + bossAvatar(b, 30) + '<span class="jl-title"><em class="op-kind boss">Boss</em> ' + esc(b.name) + '</span><span class="jl-meta">' + (beat ? '✓ Beaten' : 'Beat to clear') + '</span></button>';
   }
   ACT.nextOpening = function () { var o = nextStop(); if (o) go('opening', { id: o.id, mode: 'learn' }); else go('openings'); };
   MODES.openings = {
@@ -1708,7 +1722,7 @@
       var hist = S.puzzle.hist.slice(-1)[0];
       setPanel('<div class="rating-row"><div><div class="eyebrow">Puzzle rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + (PZ.sessionStreak > 1 ? ' · ' + PZ.sessionStreak + ' in a row' : '') + '</div></div>' +
         '<canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
-        '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></div>' +
+        '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
         '<div class="chips">' + themes.map(function (t) { return '<button class="chip ' + (PZ.theme === t ? 'on' : '') + '" data-act="pzTheme" data-t="' + t + '">' + (t === 'all' ? 'All themes' : t === 'combo' ? 'combination' : t) + '</button>'; }).join('') + '</div>' +
         '<div class="coach-card"><div class="coach-tag">Puzzle · ' + p.r + '</div>' +
         '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
@@ -1741,8 +1755,8 @@
       if (!ok) {
         Sound.play('bad'); B3.flash('bad', [mv.to]);
         var d = !c.failed ? MODES.puzzles.grade(false) : 0; Voice.say([V('puzzlemiss', 'puzzlemiss')]);
-        c.failed = true;
-        MODES.puzzles.render('<strong>Not the move.</strong> ' + (d ? 'Rating ' + d + '. ' : '') + 'Try again, or ask for a hint.', 'bad');
+        c.failed = true; c.lastWrong = { fen: g.fen(), uci: uci, san: (new Game(g.fen()).move(mv) || {}).san || uci };
+        MODES.puzzles.render('<strong>Not the move.</strong> ' + (d ? 'Rating ' + d + '. ' : '') + 'Try again, or ask for a hint. <button class="link" data-act="pzWhy">▶ Show why it fails</button>', 'bad');
         IX.enabled = true; return;
       }
       return applyMove(g, mv).then(function () {
@@ -1951,8 +1965,12 @@
     return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
   }
   function bookMove(g) {
-    var L = PL && PL.book; if (!L) return null;
     var h = g.history(), clean = function (x) { return x.replace(/[+#!?]/g, ''); };
+    if (PL && !PL.book && PL.bookPool && PL.bookPool.length) { // a boss picks a favourite line that fits your moves so far
+      var fit = PL.bookPool.filter(function (L) { return L.moves.length > h.length && h.every(function (m, i) { return clean(m) === clean(L.moves[i]); }); });
+      if (fit.length) PL.book = fit[Math.floor(Math.random() * fit.length)];
+    }
+    var L = PL && PL.book; if (!L) return null;
     if (h.length >= L.moves.length) return null;
     for (var i = 0; i < h.length; i++) if (clean(h[i]) !== clean(L.moves[i])) { PL.book = PL.bookSaid ? PL.book : null; return null; }
     var m = new Game(g.fen()).move(L.moves[h.length]);
@@ -1963,6 +1981,7 @@
     label: 'Play the coach',
     enter: function (arg) {
       PL = { setup: true, arg: arg || null };
+      if (arg && arg.spec) { setupBoard(specFen(arg.spec), { drop: true, orient: specColor(arg.spec) }); MODES.play.renderSpecIntro(); return; }
       if (arg && arg.color) { S.coach.color = arg.color; save(); }
       setupBoard(arg && arg.fen || Game.START, { drop: true, orient: arg && arg.color || S.coach.color });
       MODES.play.renderSetup();
@@ -1985,14 +2004,22 @@
       $('#opt-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); };
     },
     start: function () {
-      var c = S.coach, color = c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
-      var fen = PL.arg && PL.arg.fen || Game.START;
+      var c = S.coach, sp = PL.arg && PL.arg.spec, color = sp ? specColor(sp) : c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
+      var fen = sp ? specFen(sp) : PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
-      PL = { g: g, color: color, level: levelById(c.level), log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: coachStyle(), from: PL.arg && PL.arg.from };
-      PL.book = fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
+      var lvl = sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
+      PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0 };
+      PL.book = sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
+      if (sp && sp.kind === 'boss') PL.bookPool = specBook(sp.b.book);
+      if (sp && sp.kind === 'challenge') PL.chMat0 = material(g, color);
+      if (sp && sp.kind === 'battle') { // the ply (coach to move) where the coach will slip
+        var coach = color === 'w' ? 'b' : 'w', at = 3 + Math.floor(Math.random() * Math.max(1, Math.min(sp.line.moves.length, 12) - 4));
+        if ((at % 2 === 0) !== (coach === 'w')) at++;
+        PL.devAt = at;
+      }
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
-      Voice.say([V('gamestart')]);
+      if (!sp) Voice.say([V('gamestart')]);
       Voice.prefetch(['M-to_n', 'V-best-0', 'V-blunder-0', 'V-why_wins-0']);
       MODES.play.render();
       MODES.play.turn();
@@ -2014,16 +2041,16 @@
         return '<span class="mv-cell">' + esc(hist[k]) + (lg && lg.cls ? '<i class="cdot ' + lg.cls + '" title="' + esc(lg.label) + '"></i>' : '') + '</span>';
       }
       var turnTxt = PL.over ? PL.over : PL.thinking ? 'Coach is thinking…' : (g.turn() === PL.color ? 'Your move' : '');
-      setPanel('<div class="play-head"><div><div class="eyebrow">vs ' + PL.level.name + ' · ~' + PL.level.elo + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
+      setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
         '<div class="play-btns"><button class="icon-btn" data-act="pHint" title="Hint" aria-label="Hint">?</button><button class="icon-btn" data-act="pUndo" title="Take back" aria-label="Take back">↶</button><button class="icon-btn" data-act="pResign" title="Resign" aria-label="Resign">⚑</button></div></div>' +
         '<div class="feed">' + (PL.feed.length ? PL.feed.slice(-6).reverse().map(function (f, k) {
           var n = PL.feed.length - 1 - k, open = k === 0 || PL.feedOpen === n;
           if (open) return '<div class="feed-item ' + f.cls + '"><span class="fi-tag">' + esc(f.tag) + '</span><p>' + f.html + '</p></div>';
           var tmp = document.createElement('div'); tmp.innerHTML = f.html; var line = (tmp.textContent || '').split(/(?<=[.!?])\s/)[0];
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
-        }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(S.settings.coachName) + '</span><p>' + (PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
+        }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(PL.spec ? (PL.spec.kind === 'boss' ? PL.spec.b.name : 'Goal') : S.settings.coachName) + '</span><p>' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.intro : PL.spec.kind === 'challenge' ? PL.spec.c.text : 'Play your opening. The coach will slip once: find the move that punishes it.') : PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
         '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted">No moves yet</span>') + '</div>' +
-        (PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
+        (PL.over && PL.specActions ? '<div class="actions over-actions">' + PL.specActions + '</div>' : PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
       var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
     },
     say: function (tag, html, cls) { PL.feed.push({ tag: tag, html: html, cls: cls || '' }); },
@@ -2058,9 +2085,13 @@
           });
         }
       } else {
+        if (PL.judging) return;
+        if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
         IX.enabled = false; PL.thinking = true; MODES.play.render();
-        var t0 = Date.now(), fen = g.fen(), bm = bookMove(g);
-        (bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()))).then(function (r) {
+        var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
+        var job = slip ? Eng.call('mistake', fen).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
+          : bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
+        job.then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
           var wait = Math.max(0, 450 - (Date.now() - t0));
           setTimeout(function () {
@@ -2069,7 +2100,8 @@
             if (!r || !r.move) { MODES.play.checkOver(); return; }
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
               PL.log.push({});
-              if (r.book) MODES.play.bookNote(g);
+              if (r.slip) { PL.devDone = true; PL.devPly = g.history().length - 1; toast('⚡ The coach slipped. Find the punishment!'); Voice.say([V('battle_slip')], true); }
+              if (r.book && !PL.spec) MODES.play.bookNote(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
               else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
               if (r.score != null) setEval(PL.color === 'w' ? -r.score : r.score, true);
@@ -2088,6 +2120,17 @@
       var res;
       return applyMove(g, mv).then(function (r) {
         res = r;
+        var sp = PL.spec;
+        if (sp && sp.kind === 'challenge') {
+          PL.chN++;
+          if (sp.c.goal === 'promote' && r.promotion) { MODES.play.render(); return MODES.play.finish('win', 'Promoted in ' + PL.chN + ' moves!'); }
+          if (sp.c.goal === 'survive' && PL.chN >= sp.c.limit && !g.inCheckmate()) { MODES.play.render(); return MODES.play.finish(material(g, PL.color) >= PL.chMat0 - 1 ? 'win' : 'loss', material(g, PL.color) >= PL.chMat0 - 1 ? 'You held the position for ' + sp.c.limit + ' moves.' : 'You survived, but lost material.'); }
+        }
+        if (sp && sp.kind === 'battle' && PL.devDone && moveNo === PL.devPly + 1) {
+          PL.judging = true; MODES.play.render();
+          Eng.call('analyzeMove', fenBefore, uci, 30, 1400).then(function (a) { if (PL && PL.g === g) MODES.play.battleEnd(a, fenBefore, uci, r); });
+          return;
+        }
         if (S.coach.explain) {
           Eng.call('analyzeMove', fenBefore, uci, 30, 1100).then(function (a) { if (PL && PL.g === g) MODES.play.comment(a, res, moveNo, fenBefore); });
         }
@@ -2139,7 +2182,7 @@
         var wb = whyBest(a, a.bestSan, ply, fenBefore);
         PL.log[idx].why = wb[0];
         html += c.label + '. ' + why + '<span class="better">Best was <strong>' + esc(a.bestSan) + '</strong>. ' + esc(wb[1]) + '</span>' +
-          '<span class="fi-actions"><button class="mini-btn" data-act="pRetry" data-i="' + idx + '">↶ Retry this move</button><button class="mini-btn ghost" data-act="pSayBest" data-i="' + idx + '">▶ Hear it</button></span>';
+          '<span class="fi-actions"><button class="mini-btn" data-act="pShow" data-i="' + idx + '">▶ Show me what happens</button><button class="mini-btn ghost" data-act="pRetry" data-i="' + idx + '">↶ Retry</button><button class="mini-btn ghost" data-act="pSayBest" data-i="' + idx + '">🔊 Hear it</button></span>';
         if (quiet || (keyOnly && c.key === 'inacc')) { if (!PL.over) MODES.play.render(); return; }
         MODES.play.say(c.label, html, c.cls);
         var reason = null;
@@ -2194,6 +2237,7 @@
     },
     finish: function (result, msg) {
       if (PL.over) return;
+      if (PL.spec && PL.spec.kind !== 'boss') return MODES.play.specFinish(result, msg);
       PL.over = msg; IX.enabled = false;
       var mine = PL.log.filter(function (l) { return l && l.cls; });
       var acc = mine.length ? Math.round(mine.reduce(function (s, l) { return s + 100 * Math.exp(-Math.max(0, l.loss) / 220); }, 0) / mine.length) : null;
@@ -2208,6 +2252,7 @@
       var endLine = result === 'win' ? 'win' : result === 'draw' ? 'draw' : /Checkmate/.test(msg) ? 'loss' : null;
       if (endLine) Voice.say([V(endLine, endLine)]);
       else Voice.say([V('resign')]);
+      if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
       MODES.play.say('Game over', esc(msg) + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
@@ -2237,6 +2282,7 @@
   ACT.pResign = function () { if (PL && !PL.over && PL.g) MODES.play.finish('loss', 'You resigned.'); };
   ACT.pUndo = function () {
     if (!PL || !PL.g || PL.thinking || PL.over) return;
+    if (PL.spec) { toast('No takebacks in arena games.'); return; }
     var g = PL.g, n = 0;
     while (g.history().length && n < 2) { g.undo(); n++; if (g.turn() === PL.color) break; }
     PL.log.length = g.history().length;
@@ -2247,6 +2293,7 @@
   };
   ACT.pRetry = function (d) {
     if (!PL || !PL.g || PL.thinking) return;
+    if (PL.spec) { toast('No takebacks in arena games. Use Show me to learn from it.'); return; }
     var idx = +d.i, g = PL.g, lg = PL.log[idx];
     if (PL.over) { PL.over = false; }
     while (g.history().length > idx) g.undo();
@@ -2265,6 +2312,7 @@
   };
   ACT.pHint = function () {
     if (!PL || !PL.g || PL.over || PL.g.turn() !== PL.color) return;
+    if (PL.spec && PL.spec.kind !== 'challenge') { toast(PL.spec.kind === 'battle' ? 'No hints: finding the punishment is the battle.' : 'No hints against a boss.'); return; }
     var g = PL.g;
     if (PL.hinting) return;
     PL.hinting = true;
@@ -2321,7 +2369,7 @@
       var cur = r.log[r.ply - 1], curHtml = '';
       if (cur && cur.label) {
         curHtml = '<div class="feed-item ' + cur.cls + '"><span class="fi-tag">Move ' + Math.ceil(r.ply / 2) + ' · ' + esc(cur.label) + '</span><p><strong>' + esc(cur.san) + '</strong>' +
-          (CLASS[cur.key] && !CLASS[cur.key].positive ? ' Best was <strong>' + esc(cur.bestSan) + '</strong> (green arrow).' + (cur.reply ? ' After your move, ' + esc(cur.reply) + ' was strong for your opponent.' : '') + ' <button class="link" data-act="rvSay" data-n="' + r.ply + '">▶ Explain</button>' : ' Well played.') + '</p></div>';
+          (CLASS[cur.key] && !CLASS[cur.key].positive ? ' Best was <strong>' + esc(cur.bestSan) + '</strong> (green arrow).' + (cur.reply ? ' After your move, ' + esc(cur.reply) + ' was strong for your opponent.' : '') + ' <button class="link" data-act="rvShow" data-n="' + r.ply + '">▶ Show me</button> · <button class="link" data-act="rvSay" data-n="' + r.ply + '">🔊 Explain</button>' : ' Well played.') + '</p></div>';
       }
       setPanel('<button class="back" data-act="goPlay">← New game</button><div class="eyebrow">Game review · vs ' + esc(r.level.name) + '</div>' +
         '<h1 class="h1">' + esc(r.over || 'Game review') + '</h1>' +
@@ -2396,6 +2444,361 @@
   ACT.practiceHint = function () { var it = PR.list[PR.i]; B3.arrows([[it.best.from, it.best.to, 'g']]); Voice.say([pickPool('better_was')].concat(moveParts(it.bestSan, it.best.from, it.best.to, it.best.piece, it.best.captured))); PR.done = true; MODES.practice.render('The move was <strong>' + esc(it.bestSan) + '</strong>.'); };
   ACT.practiceNext = function () { PR.done = false; if (PR.i < PR.list.length - 1) { PR.i++; MODES.practice.load(); } else if (PR.back && PR.back.moves) { go('review', PR.back); } else go('path'); };
   ACT.practiceBack = function () { if (PR.back && PR.back.moves) go('review', PR.back); else go('path'); };
+
+  // ================= Show me: replay what happens on the board =================
+  function material(g, color) { var v = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p) v += (p.color === color ? 1 : -1) * VAL[p.type]; }); }); return v; }
+  var Replay = (function () {
+    var tok = 0;
+    function bar(html) {
+      var b = $('#replay-bar');
+      if (!b) { b = document.createElement('div'); b.id = 'replay-bar'; b.className = 'replay-bar'; b.setAttribute('role', 'status'); $('.stage').appendChild(b); }
+      b.hidden = !html; if (html) b.innerHTML = html;
+    }
+    // Play `moves` (from/to/promotion objects) from `fen`; `me` is the learner's colour. Calls opts.done(summary, game).
+    function run(fen, moves, opts) {
+      var my = ++tok, g = new Game(fen), me = opts.me, m0 = material(g, me), first = opts.firstIsMine;
+      IX.enabled = false; deselect(); B3.arrows([]); B3.sync(fen); B3.markers('last', []); showCheck(g);
+      Voice.say([V('replay_intro')], true);
+      var i = 0;
+      bar('<span class="rb-tag">Replay</span><span class="rb-text">' + esc(opts.title || 'Watch what happens') + '</span>');
+      (function step() {
+        if (my !== tok) return;
+        if (i >= moves.length || g.gameOver()) {
+          var d = material(g, me) - m0, mate = g.inCheckmate(), loser = mate ? (g.turn() === me ? 'you' : 'them') : null;
+          var sum = mate ? (loser === 'you' ? 'and that is checkmate against you.' : 'and that is checkmate.') : d <= -1 ? 'You end up ' + (-d) + ' point' + (-d > 1 ? 's' : '') + ' of material down.' : d >= 1 ? 'You end up ' + d + ' point' + (d > 1 ? 's' : '') + ' of material ahead.' : 'Material stays level.';
+          bar('<span class="rb-tag">Result</span><span class="rb-text">' + esc(sum) + '</span><span class="rb-actions">' + (opts.actions || '') + '<button class="mini-btn ghost" data-act="replayAgain">↻ Again</button></span>');
+          Replay.last = { fen: fen, moves: moves, opts: opts };
+          if (opts.done) opts.done(sum, g);
+          return;
+        }
+        var mv = moves[i], mine = (g.turn() === me), t = new Game(g.fen()), dec = t.move(mv);
+        if (!dec) { i = moves.length; return step(); }
+        B3.arrows([[mv.from, mv.to, mine ? (first && i === 0 ? 'r' : 'g') : 'r']]);
+        bar('<span class="rb-tag">' + (i + 1) + ' / ' + moves.length + '</span><span class="rb-text">' + (mine ? 'You play ' : 'They answer ') + '<b class="mono">' + esc(dec.san) + '</b>' + (dec.captured ? ', taking the ' + PIECE_NAME[dec.captured] : '') + (/#$/.test(dec.san) ? '. Checkmate!' : /\+$/.test(dec.san) ? ', with check' : '') + '</span>');
+        setTimeout(function () {
+          if (my !== tok) return;
+          applyMove(g, mv).then(function () { i++; setTimeout(step, 850); });
+        }, 700);
+      })();
+    }
+    return { run: run, stop: function () { tok++; bar(null); }, bar: bar, last: null };
+  })();
+  ACT.replayAgain = function () { var L = Replay.last; if (L) Replay.run(L.fen, L.moves, L.opts); };
+  function uciMv(u) { return typeof u === 'string' ? uciObj(u) : { from: u.from, to: u.to, promotion: u.promotion || undefined }; }
+  // Coach game: show how the mistake is punished, then offer to rewind
+  ACT.pShow = function (d) {
+    var idx = +d.i, lg = PL && PL.log[idx];
+    if (!lg || !lg.fen) return;
+    if (PL.thinking) { toast('One moment: the coach is still moving.'); return; }
+    var after = new Game(lg.fen); after.move(uciMv(lg.uci));
+    toast('Working out the punishment…');
+    Eng.call('line', after.fen(), 3, 5, 500).then(function (line) {
+      if (!PL || !PL.g) return;
+      PL.replaying = true;
+      Replay.run(lg.fen, [uciMv(lg.uci)].concat(line || []), { me: PL.color, firstIsMine: true, title: 'Your move ' + lg.san + ', and what follows',
+        actions: '<button class="mini-btn" data-act="pRetry" data-i="' + idx + '">↶ Retry this move</button><button class="mini-btn ghost" data-act="replayBack">Back to game</button>' });
+    });
+  };
+  ACT.replayBack = function () {
+    Replay.stop();
+    if (current === MODES.play && PL && PL.g) { PL.replaying = false; B3.sync(PL.g.fen()); B3.arrows([]); showCheck(PL.g); IX.enabled = !PL.over && PL.g.turn() === PL.color && !PL.thinking; }
+    else if (current === MODES.puzzles && IX.game) { B3.sync(IX.game.fen()); B3.arrows([]); IX.enabled = !PZ.cur.done; }
+    else if (current === MODES.review && RV) MODES.review.goto(RV.ply);
+  };
+  // Puzzles: why does my wrong move fail?
+  ACT.pzWhy = function () {
+    var w = PZ.cur && PZ.cur.lastWrong; if (!w) return;
+    var after = new Game(w.fen); after.move(uciMv(w.uci));
+    Eng.call('line', after.fen(), 2, 5, 600).then(function (line) {
+      if (current !== MODES.puzzles) return;
+      Replay.run(w.fen, [uciMv(w.uci)].concat(line || []), { me: new Game(w.fen).turn(), firstIsMine: true, title: 'Why ' + w.san + ' does not work',
+        actions: '<button class="mini-btn" data-act="replayBack">Try again</button>' });
+    });
+  };
+  // Review: replay the punishment of a mistake
+  ACT.rvShow = function (d) {
+    var lg = RV && RV.log[+d.n - 1]; if (!lg || !lg.fen) return;
+    var after = new Game(lg.fen); after.move(uciMv(lg.uci));
+    Eng.call('line', after.fen(), 3, 5, 500).then(function (line) {
+      if (current !== MODES.review) return;
+      Replay.run(lg.fen, [uciMv(lg.uci)].concat(line || []), { me: RV.color, firstIsMine: true, title: 'Move ' + Math.ceil(+d.n / 2) + ': ' + lg.san,
+        actions: '<button class="mini-btn" data-act="replayBest" data-n="' + d.n + '">▶ Show the better move</button><button class="mini-btn ghost" data-act="replayBack">Done</button>' });
+    });
+  };
+  ACT.replayBest = function (d) {
+    var lg = RV && RV.log[+d.n - 1]; if (!lg || !lg.best) return;
+    var after = new Game(lg.fen); after.move(uciMv(lg.best));
+    Eng.call('line', after.fen(), 3, 5, 500).then(function (line) {
+      if (current !== MODES.review) return;
+      Replay.run(lg.fen, [uciMv(lg.best)].concat(line || []), { me: RV.color, title: 'The better move: ' + lg.bestSan, actions: '<button class="mini-btn ghost" data-act="replayBack">Done</button>' });
+    });
+  };
+
+  // ================= Practice Arena hub =================
+  S.arena = S.arena || {}; S.bosses = S.bosses || {}; S.challenges = S.challenges || {};
+  function bossFor(i) { return BOSSES.filter(function (b) { return b.stage === i; })[0]; }
+  function bossAvatar(b, size) { return '<span class="boss-ava" style="--bc:' + b.color + ';width:' + size + 'px;height:' + size + 'px">' + pieceSVG(b.icon, 'b', Math.round(size * 0.62)) + '</span>'; }
+  function stars(n) { return '<span class="st-stars" aria-label="' + n + ' of 3 stars">' + '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span></span>'; }
+  MODES.arena = {
+    label: 'Practice Arena',
+    enter: function () {
+      setupBoard(Game.START, { drop: true, orient: 'w' });
+      setTimeout(function () { if (current === MODES.arena) B3.idle(true); }, 1200);
+      MODES.arena.render();
+    },
+    render: function () {
+      var vis = VISION_GAMES.map(function (v) { var best = S.arena[v.id] || 0; return '<button class="ar-tile" data-act="vision" data-id="' + v.id + '"><span class="ar-ico">' + pieceSVG(v.icon, 'w', 24) + '</span><b>' + esc(v.name) + '</b><span class="ar-sub">' + esc(v.blurb) + '</span><span class="ar-best">' + (best ? 'Best ' + best : v.secs + ' sec') + '</span></button>'; }).join('');
+      var ch = CHALLENGES.map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="ch-card' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="ch-top"><b>' + esc(c.title) + '</b>' + stars(st) + '</span><span class="ar-sub">' + esc(c.text) + '</span><span class="ch-goal">' + (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit : 'Survive ' + c.limit + ' moves') + '</span></button>'; }).join('');
+      var bosses = BOSSES.map(function (b) { var open = stageUnlocked(b.stage), beat = S.bosses[b.id]; return '<button class="boss-row' + (beat ? ' beat' : '') + '" data-act="boss" data-id="' + b.id + '" ' + (open ? '' : 'disabled') + '>' + bossAvatar(b, 40) + '<span class="br-txt"><b>' + esc(b.name) + '</b><span>' + esc(STAGES[b.stage].name) + ' · ~' + levelById(b.level).elo + '</span></span><span class="br-state">' + (beat ? '✓ Beaten' : open ? 'Fight →' : '🔒') + '</span></button>'; }).join('');
+      setPanel('<div class="eyebrow">Practice Arena</div><h1 class="h1">Play it, don\'t read it</h1>' +
+        '<p class="lede">Quick board-vision games, endgames to win against perfect defence, opening battles and the five bosses.</p>' +
+        '<div class="sect-head"><h2>Quick games</h2><span class="muted small">beat your best</span></div><div class="ar-grid">' + vis + '</div>' +
+        '<div class="sect-head"><h2>Opening battle</h2>' + (S.battleBest ? '<span class="pill-count">best streak ' + S.battleBest + '</span>' : '') + '</div>' +
+        '<button class="battle-cta" data-act="battle"><span class="bc-ico">⚔</span><span><b>The coach slips once. Punish it.</b><span>A real opening from your repertoire. Somewhere in it the coach makes a mistake: find the move that wins.</span></span><span class="to-go">→</span></button>' +
+        '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against perfect defence</span></div><div class="ch-list">' + ch + '</div>' +
+        '<div class="sect-head"><h2>Boss battles</h2><span class="muted small">beat one to clear its stage</span></div><div class="boss-list">' + bosses + '</div>');
+    },
+    leave: function () { B3.idle(false); }
+  };
+  ACT.arena = function () { go('arena'); };
+  ACT.vision = function (d) { go('vision', d.id); };
+  ACT.challenge = function (d) { var c = CHALLENGES.filter(function (x) { return x.id === d.id; })[0]; if (c) go('play', { spec: { kind: 'challenge', c: c } }); };
+  ACT.boss = function (d) { var b = BOSSES.filter(function (x) { return x.id === d.id; })[0]; if (b) go('play', { spec: { kind: 'boss', b: b } }); };
+  ACT.battle = function () {
+    var R = S.puzzle.rating, tier = openingTier(R), lines = allLines().filter(function (L) { return TIER[L.level] <= tier + 1 && L.moves.length >= 8 && !(L.family === 'Traps' && !L.def); });
+    var L = lines[Math.floor(Math.random() * lines.length)];
+    go('play', { spec: { kind: 'battle', line: L } });
+  };
+
+  // ================= Quick vision games =================
+  var VG = null;
+  function randomPosition(minPly, maxPly) {
+    for (var tries = 0; tries < 40; tries++) {
+      var g = new Game(), n = minPly + Math.floor(Math.random() * (maxPly - minPly));
+      for (var i = 0; i < n; i++) { var ms = g._gen(); if (!ms.length) break; var caps = ms.filter(function (m) { return m.captured; }); var pick = caps.length && Math.random() < 0.35 ? caps[Math.floor(Math.random() * caps.length)] : ms[Math.floor(Math.random() * ms.length)]; g._make(pick); }
+      var f = g.fen(), h = new Game(f);
+      if (!h.gameOver() && !h.inCheck()) return h;
+    }
+    return new Game();
+  }
+  function freeTargets(g) {
+    var out = {}, us = g.side, them = us ^ 8;
+    g._gen().forEach(function (m) {
+      if (!m.captured || m.captured === 'k') return;
+      g._make(m); var safe = !g.attacked(m.t, them); g._undo();
+      if (safe || VAL[m.captured] > VAL[m.piece]) out[Game.sqName(m.t)] = m.captured;
+    });
+    return out;
+  }
+  function checkMoves(g) { var out = {}; g.moves().forEach(function (m) { if (/[+#]$/.test(m.san)) out[m.from + m.to] = m.san; }); return out; }
+  var GAMES = {
+    squares: {
+      intro: 'A square name appears. Tap that square on the board. A wrong tap costs 2 seconds.',
+      setup: function () { setupBoard('8/8/8/8/8/8/8/8 w - - 0 1', { orient: VG.orient }); },
+      next: function () { var t; do { t = 'abcdefgh'[Math.floor(Math.random() * 8)] + (1 + Math.floor(Math.random() * 8)); } while (t === VG.target); VG.target = t; MODES.vision.render(); },
+      tap: function (sq) { if (sq === VG.target) { VG.score++; B3.flash('good', [sq], 280); Sound.play('move'); GAMES.squares.next(); } else { B3.flash('bad', [sq], 280); Sound.play('bad'); VG.end -= 2000; } },
+      prompt: function () { return '<div class="vg-target mono">' + VG.target + '</div><p class="muted small">You see the board from ' + (VG.orient === 'w' ? 'White' : 'Black') + '\'s side.</p>'; }
+    },
+    hanging: {
+      intro: 'Tap every enemy piece you can capture and keep: undefended pieces, or pieces worth more than your attacker. A wrong tap costs 3 seconds.',
+      setup: function () { },
+      next: function () {
+        var g, t, tries = 0;
+        do { g = randomPosition(14, 40); t = freeTargets(g); tries++; } while ((Object.keys(t).length < 1 || Object.keys(t).length > 4) && tries < 60);
+        VG.g = g; VG.targets = t; VG.found = {};
+        setupBoard(g.fen(), { orient: g.turn() }); IX.enabled = false;
+        MODES.vision.render();
+      },
+      tap: function (sq) {
+        if (VG.targets[sq] && !VG.found[sq]) {
+          VG.found[sq] = true; VG.score++; Sound.play('capture'); B3.markers('good', Object.keys(VG.found));
+          if (Object.keys(VG.found).length === Object.keys(VG.targets).length) { B3.burst(sq); setTimeout(function () { if (VG && VG.running) GAMES.hanging.next(); }, 450); } else MODES.vision.render();
+        } else if (!VG.found[sq]) { B3.flash('bad', [sq], 300); Sound.play('bad'); VG.end -= 3000; }
+      },
+      prompt: function () { var n = Object.keys(VG.targets).length, f = Object.keys(VG.found).length; return '<p class="vg-line"><b>' + (VG.g.turn() === 'w' ? 'White' : 'Black') + ' to move.</b> Tap the enemy pieces you can win.</p><div class="vg-pips">' + Array.apply(null, Array(n)).map(function (x, i) { return '<i class="' + (i < f ? 'on' : '') + '"></i>'; }).join('') + '</div><p class="muted small">' + (n - f) + ' left in this position</p>'; }
+    },
+    checks: {
+      intro: 'Play every move that gives check. Each check counts, a move that is not check costs 3 seconds.',
+      setup: function () { },
+      next: function () {
+        var g, c, tries = 0;
+        do { g = randomPosition(16, 44); c = checkMoves(g); tries++; } while ((Object.keys(c).length < 2 || Object.keys(c).length > 6) && tries < 80);
+        VG.fen = g.fen(); VG.checks = c; VG.found = {};
+        var b = setupBoard(VG.fen, { orient: g.turn() });
+        IX.enabled = true; IX.canMove = function (col) { return col === b.turn(); };
+        IX.onMove = function (mv, uci) {
+          var k = mv.from + mv.to;
+          if (VG.checks[k] && !VG.found[k]) { VG.found[k] = true; VG.score++; Sound.play('check'); B3.arrows(Object.keys(VG.found).map(function (x) { return [x.slice(0, 2), x.slice(2, 4), 'g']; })); }
+          else if (!VG.checks[k]) { Sound.play('bad'); B3.flash('bad', [mv.to], 300); VG.end -= 3000; }
+          B3.sync(VG.fen);
+          if (Object.keys(VG.found).length === Object.keys(VG.checks).length) { setTimeout(function () { if (VG && VG.running) GAMES.checks.next(); }, 450); }
+          else { IX.enabled = true; MODES.vision.render(); }
+        };
+        MODES.vision.render();
+      },
+      prompt: function () { var n = Object.keys(VG.checks).length, f = Object.keys(VG.found).length; return '<p class="vg-line"><b>' + (new Game(VG.fen).turn() === 'w' ? 'White' : 'Black') + ' to move.</b> Find every check.</p><div class="vg-pips">' + Array.apply(null, Array(n)).map(function (x, i) { return '<i class="' + (i < f ? 'on' : '') + '"></i>'; }).join('') + '</div><p class="muted small">' + Object.keys(VG.found).map(function (k) { return VG.checks[k]; }).join(' · ') + '</p>'; }
+    },
+    knight: {
+      intro: 'Jump the knight to the star. Reaching it in the fewest possible moves scores 3, otherwise 1.',
+      setup: function () { VG.at = 'b1'; },
+      dist: function (a, b) { var seen = {}, q = [[a, 0]]; seen[a] = 1; while (q.length) { var c = q.shift(); if (c[0] === b) return c[1]; Collect.reach('n', c[0]).forEach(function (s) { if (!seen[s]) { seen[s] = 1; q.push([s, c[1] + 1]); } }); } return 9; },
+      next: function () {
+        var t, d; do { t = 'abcdefgh'[Math.floor(Math.random() * 8)] + (1 + Math.floor(Math.random() * 8)); d = GAMES.knight.dist(VG.at, t); } while (d < 2 || d > 4);
+        VG.target = t; VG.min = d; VG.jumps = 0;
+        B3.setPosition(fenOf('n', VG.at)); B3.stars([t]); B3.markers('sel', [VG.at]); B3.markers('moves', []);
+        MODES.vision.render();
+      },
+      tap: function (sq) {
+        if (VG.busy) return;
+        if (Collect.reach('n', VG.at).indexOf(sq) < 0) { B3.flash('bad', [sq], 300); Sound.play('bad'); B3.markers('moves', Collect.reach('n', VG.at).map(function (s) { return { sq: s }; })); return; }
+        VG.busy = true; VG.jumps++; var from = VG.at; VG.at = sq; B3.markers('moves', []); Sound.play('move');
+        B3.animateMove({ from: from, to: sq, flags: 'n', color: 'w' }).then(function () {
+          VG.busy = false; B3.markers('sel', [sq]);
+          if (sq === VG.target) { B3.takeStar(sq); Sound.play('star'); VG.score += VG.jumps === VG.min ? 3 : 1; VG.lastPerfect = VG.jumps === VG.min; GAMES.knight.next(); }
+          else MODES.vision.render();
+        });
+      },
+      prompt: function () { return '<p class="vg-line">Reach the star. Fewest possible: <b>' + VG.min + '</b> jumps.</p><p class="muted small">Jumps so far: ' + VG.jumps + (VG.lastPerfect ? ' · last one was perfect!' : '') + '</p>'; }
+    }
+  };
+  MODES.vision = {
+    label: 'Quick game',
+    enter: function (id) {
+      var meta = VISION_GAMES.filter(function (v) { return v.id === id; })[0];
+      VG = { id: id, meta: meta, score: 0, running: false, orient: 'w' };
+      GAMES[id].setup(); if (id !== 'squares') setupBoard(Game.START, { orient: 'w' });
+      IX.tap = null; MODES.vision.renderIntro();
+    },
+    renderIntro: function () {
+      var best = S.arena[VG.id] || 0;
+      setPanel('<button class="back" data-act="arena">← Arena</button><div class="eyebrow">Quick game · ' + VG.meta.secs + ' seconds</div><h1 class="h1">' + esc(VG.meta.name) + '</h1>' +
+        '<p class="lede">' + esc(GAMES[VG.id].intro) + '</p>' + (best ? '<p class="muted small">Your best: <b>' + best + '</b></p>' : '') +
+        (VG.id === 'squares' ? '<div class="seg">' + [['w', 'From White'], ['b', 'From Black']].map(function (o) { return '<button class="' + (VG.orient === o[0] ? 'on' : '') + '" data-act="vgOrient" data-o="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>' : '') +
+        '<div class="actions"><button class="btn primary big" data-act="vgStart">▶&nbsp; Start</button></div>');
+    },
+    start: function () {
+      VG.score = 0; VG.running = true; VG.end = Date.now() + VG.meta.secs * 1000;
+      document.body.dataset.layout = 'board';
+      Voice.say([V('arena_start')], true);
+      if (VG.id === 'squares') GAMES.squares.setup();
+      IX.tap = GAMES[VG.id].tap || null;
+      clearInterval(MODES.vision.timer);
+      MODES.vision.timer = setInterval(function () {
+        if (!VG || !VG.running || current !== MODES.vision) return;
+        var el = $('#vg-time'), left = Math.max(0, VG.end - Date.now());
+        if (el) { el.textContent = (left / 1000).toFixed(1); el.classList.toggle('low', left < 10000); }
+        if (left <= 0) MODES.vision.finish();
+      }, 100);
+      GAMES[VG.id].next();
+    },
+    render: function () {
+      if (!VG.running) return;
+      setPanel('<div class="vg-head"><div><div class="eyebrow">' + esc(VG.meta.name) + '</div><div class="rating">' + VG.score + '</div></div><div class="vg-clock"><span class="mono" id="vg-time">' + (Math.max(0, VG.end - Date.now()) / 1000).toFixed(1) + '</span><span class="muted small">seconds</span></div></div>' +
+        '<div class="coach-card vg-card">' + GAMES[VG.id].prompt() + '</div>' +
+        '<div class="actions"><button class="btn ghost" data-act="vgStop">Stop</button></div>');
+    },
+    finish: function () {
+      if (!VG.running) return;
+      VG.running = false; clearInterval(MODES.vision.timer); IX.tap = null; IX.enabled = false; B3.arrows([]);
+      var prev = S.arena[VG.id] || 0, best = VG.score > prev && VG.score > 0;
+      if (best) S.arena[VG.id] = VG.score;
+      addXP(Math.min(40, VG.score * 2)); save();
+      if (best) { confetti(); Sound.play('win'); } else Sound.play('good');
+      Voice.say([best && prev ? V('arena_best') : V('arena_end')]);
+      document.body.dataset.layout = 'browse';
+      setPanel('<button class="back" data-act="arena">← Arena</button><div class="eyebrow">' + esc(VG.meta.name) + ' · time</div><h1 class="h1">' + (best && prev ? 'New best!' : 'Round over') + '</h1>' +
+        '<div class="rush-final"><div class="rating">' + VG.score + '</div><span class="muted">' + (best && prev ? 'previous best ' + prev : 'best ' + Math.max(prev, VG.score)) + '</span></div>' +
+        '<div class="actions"><button class="btn primary big" data-act="vgAgain">▶&nbsp; Play again</button></div>' +
+        '<div class="ar-grid small">' + VISION_GAMES.filter(function (v) { return v.id !== VG.id; }).map(function (v) { return '<button class="ar-tile" data-act="vision" data-id="' + v.id + '"><b>' + esc(v.name) + '</b><span class="ar-best">' + (S.arena[v.id] ? 'Best ' + S.arena[v.id] : v.secs + ' sec') + '</span></button>'; }).join('') + '</div>');
+    },
+    leave: function () { clearInterval(MODES.vision.timer); if (VG) VG.running = false; IX.tap = null; }
+  };
+  ACT.vgStart = function () { MODES.vision.start(); };
+  ACT.vgAgain = function () { go('vision', VG.id); MODES.vision.start(); };
+  ACT.vgStop = function () { MODES.vision.finish(); };
+  ACT.vgOrient = function (d) { VG.orient = d.o; GAMES.squares.setup(); MODES.vision.renderIntro(); };
+
+  // ================= Special coach games: bosses, challenges, opening battles =================
+  function specIntro(spec) {
+    if (spec.kind === 'boss') { var b = spec.b; return { eyebrow: 'Boss battle · ' + STAGES[b.stage].name, title: b.name, text: b.intro, ava: bossAvatar(b, 64), meta: b.title + ' · ~' + levelById(b.level).elo, cta: 'Fight ' + b.name.split(' ')[1] }; }
+    if (spec.kind === 'challenge') { var c = spec.c; return { eyebrow: 'Win this position', title: c.title, text: c.text, meta: (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit + ' moves' : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit + ' moves' : 'Survive ' + c.limit + ' moves') + ' · 3 stars in ≤ ' + c.par, cta: 'Start the challenge' }; }
+    var L = spec.line; return { eyebrow: 'Opening battle', title: L.def ? L.name : L.name, text: 'You play ' + (L.side === 'w' ? 'White' : 'Black') + '. The coach follows the ' + (L.base ? L.base.name : L.name) + ' and makes one mistake somewhere in the opening. Find the move that punishes it.', meta: (S.battleStreak ? 'Streak ' + S.battleStreak + ' · ' : '') + 'Best streak ' + (S.battleBest || 0), cta: 'Start the battle' };
+  }
+  MODES.play.renderSpecIntro = function () {
+    var spec = PL.arg.spec, I = specIntro(spec);
+    setPanel('<button class="back" data-act="arena">← Arena</button><div class="spec-hero">' + (I.ava || '<span class="spec-ico">' + (spec.kind === 'battle' ? '⚔' : '★') + '</span>') + '<div><div class="eyebrow">' + esc(I.eyebrow) + '</div><h1 class="h1">' + esc(I.title) + '</h1><div class="muted small">' + esc(I.meta) + '</div></div></div>' +
+      '<p class="lede">' + esc(I.text) + '</p>' +
+      (spec.kind === 'boss' && S.bosses[spec.b.id] ? '<p class="placed-note"><span class="pn-ico">✓</span><span>You already beat ' + esc(spec.b.name) + '. A rematch is just for fun.</span></p>' : '') +
+      '<div class="actions"><button class="btn primary big" data-act="startGame">▶&nbsp; ' + esc(I.cta) + '</button></div>');
+    if (spec.kind === 'boss') Voice.say([V('boss_' + spec.b.id)]);
+    else if (spec.kind === 'challenge') Voice.say([V('challenge_start')], true);
+    else Voice.say([V('battle_start')], true);
+  };
+  function specBook(ids) { return ids.map(lineById).filter(Boolean); }
+  function specProgress() {
+    var sp = PL.spec; if (!sp) return '';
+    if (sp.kind === 'challenge') return sp.c.goal === 'survive' ? 'Move ' + PL.chN + ' of ' + sp.c.limit : 'Moves used ' + PL.chN + ' / ' + sp.c.limit;
+    if (sp.kind === 'battle') return PL.devDone ? 'The coach slipped. Punish it!' : 'Waiting for the slip…';
+    return sp.b.title;
+  }
+  function specFen(sp) { return sp.kind === 'boss' ? (sp.b.fen || Game.START) : sp.kind === 'challenge' ? sp.c.fen : Game.START; }
+  function specColor(sp) { return sp.kind === 'boss' ? 'w' : sp.kind === 'challenge' ? (sp.c.side || new Game(sp.c.fen).turn()) : sp.line.side; }
+  function endPanel(tag, html, cls) { MODES.play.say(tag, html, cls); MODES.play.render(); }
+  // Opening battle: did the player punish the slip?
+  MODES.play.battleEnd = function (a, fenBefore, uci, res) {
+    PL.judging = false;
+    var ok = !!a && a.loss <= 50 && a.bestScore >= 80;
+    PL.over = ok ? 'Mistake punished!' : 'The slip got away'; IX.enabled = false;
+    S.battleStreak = ok ? (S.battleStreak || 0) + 1 : 0; S.battleBest = Math.max(S.battleBest || 0, S.battleStreak); addXP(ok ? 30 : 10); save();
+    if (S.battleStreak >= 5) Badges.award('battle_5');
+    PL.battle = { ok: ok, fen: fenBefore, best: a && a.best, bestSan: a && a.bestSan, mine: uci, san: res.san };
+    if (ok) { Sound.play('win'); B3.burst(res.to); confetti(); Voice.say([V('battle_caught')]); }
+    else { Sound.play('bad'); if (a && a.best) B3.arrows([[a.best.from, a.best.to, 'g']]); Voice.say([V('battle_missed')]); }
+    PL.specActions = '<button class="btn primary" data-act="battleShow">▶ Show me the punishment</button><button class="btn" data-act="battle">⚔ Next battle</button><button class="btn ghost" data-act="arena">Arena</button>';
+    endPanel(ok ? 'Punished' : 'Missed', ok ? '<strong>' + esc(res.san) + '</strong> wins material or the initiative. Streak <strong>' + S.battleStreak + '</strong>.' : 'You played <strong>' + esc(res.san) + '</strong>. The punishment was <strong>' + esc(a && a.bestSan || '?') + '</strong> (green arrow).', ok ? 'good' : 'bad');
+  };
+  ACT.battleShow = function () {
+    var B = PL && PL.battle; if (!B || !B.best) return;
+    var after = new Game(B.fen); after.move(uciMv(B.best));
+    Eng.call('line', after.fen(), 3, 5, 500).then(function (line) {
+      if (!PL || current !== MODES.play) return;
+      Replay.run(B.fen, [uciMv(B.best)].concat(line || []), { me: PL.color, title: 'The punishment: ' + B.bestSan, actions: '<button class="mini-btn" data-act="battle">⚔ Next battle</button>' });
+    });
+  };
+  // Challenges finish here (bosses use the normal game end plus bossEnd)
+  MODES.play.specFinish = function (result, msg) {
+    var sp = PL.spec; PL.over = msg; IX.enabled = false;
+    if (sp.kind === 'battle') { PL.specActions = '<button class="btn primary" data-act="battle">⚔ Next battle</button><button class="btn ghost" data-act="arena">Arena</button>'; return endPanel('Battle over', esc(msg), ''); }
+    var c = sp.c, win = c.goal === 'survive' ? result !== 'loss' : result === 'win' && (c.goal !== 'mate' || /Checkmate/.test(msg));
+    var st = !win ? 0 : c.goal === 'survive' || PL.chN <= c.par ? 3 : PL.chN <= c.par + Math.ceil((c.limit - c.par) / 2) ? 2 : 1;
+    if (win) {
+      S.challenges[c.id] = Math.max(S.challenges[c.id] || 0, st); addXP(20 + st * 10); save();
+      if (st === 3) Badges.award('challenge_3');
+      Sound.play('win'); confetti(); Voice.say([V('challenge_done')]);
+    } else { Sound.play('bad'); Voice.say([V('challenge_fail')]); }
+    PL.specActions = '<button class="btn primary" data-act="challenge" data-id="' + c.id + '">↻ ' + (win && st < 3 ? 'Go for 3 stars' : win ? 'Play again' : 'Try again') + '</button><button class="btn" data-act="chWatch">▶ Watch the technique</button><button class="btn ghost" data-act="arena">Arena</button>';
+    endPanel(win ? 'Challenge complete' : 'Challenge failed', esc(msg) + (win ? ' ' + stars(st) + ' in ' + PL.chN + ' moves (3 stars in ≤ ' + c.par + ').' : c.goal === 'mate' && /Stalemate/.test(msg) ? ' Stalemate counts as a draw. Leave the king a square.' : ''), win ? 'good' : 'bad');
+  };
+  ACT.chWatch = function () {
+    var c = PL && PL.spec && PL.spec.c; if (!c) return;
+    toast('Calculating a clean finish…');
+    Eng.call('line', c.fen, Math.min(31, c.par * 2 + 1), 6, 350).then(function (line) {
+      if (!PL || current !== MODES.play) return;
+      Replay.run(c.fen, line || [], { me: PL.color, title: c.title + ': the technique', actions: '<button class="mini-btn" data-act="challenge" data-id="' + c.id + '">↻ Try it yourself</button>' });
+    });
+  };
+  MODES.play.bossEnd = function (result) {
+    var b = PL.spec.b;
+    if (result === 'win') {
+      var first = !S.bosses[b.id];
+      S.bosses[b.id] = true; S.cleared = S.cleared || {}; S.cleared[STAGES[b.stage].id] = true; save();
+      Badges.award('boss_first'); if (BOSSES.every(function (x) { return S.bosses[x.id]; })) Badges.award('boss_all');
+      if (first) Badges.award('stage_' + (b.stage + 1));
+      setTimeout(function () { Voice.say([V('boss_beaten')]); }, 1800);
+    } else setTimeout(function () { Voice.say([V('boss_lost')]); }, 1500);
+    PL.specActions = '<button class="btn primary" data-act="reviewGame">★ Review this game</button><button class="btn" data-act="boss" data-id="' + b.id + '">↻ ' + (result === 'win' ? 'Rematch' : 'Challenge ' + esc(b.name.split(' ')[1]) + ' again') + '</button>' + (result === 'win' && bossFor(b.stage + 1) && stageUnlocked(b.stage + 1) ? '<button class="btn" data-act="boss" data-id="' + bossFor(b.stage + 1).id + '">Next boss: ' + esc(bossFor(b.stage + 1).name) + '</button>' : '') + '<button class="btn ghost" data-act="arena">Arena</button>';
+  };
+  ACT.bossStage = function (d) { var b = bossFor(+d.i); if (b) ACT.boss({ id: b.id }); };
 
   // ================= Progress =================
   MODES.progress = {
@@ -2635,7 +3038,11 @@
     puzzles_25: { name: 'Puzzle Hunter', text: 'Solved 25 puzzles.', icon: 'b' },
     perfect_drill: { name: 'Book Worm', text: 'A perfect opening drill.', icon: 'b' },
     opening_master: { name: 'Repertoire', text: 'Mastered your first opening.', icon: 'q' },
-    rush_10: { name: 'Lightning', text: 'Scored 10 in Puzzle Rush.', icon: 'q' }
+    rush_10: { name: 'Lightning', text: 'Scored 10 in Puzzle Rush.', icon: 'q' },
+    boss_first: { name: 'Boss Slayer', text: 'Beat your first boss.', icon: 'k' },
+    boss_all: { name: 'Champion', text: 'Beat all five bosses.', icon: 'k' },
+    challenge_3: { name: 'Technician', text: 'Three stars in a Win this position challenge.', icon: 'r' },
+    battle_5: { name: 'Punisher', text: 'Won five opening battles in a row.', icon: 'b' }
   };
   var Badges = {
     award: function (id) {
@@ -2812,6 +3219,6 @@
     var sp = $('#splash');
     if (sp) requestAnimationFrame(function () { setTimeout(function () { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 700); }, 300); });
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
