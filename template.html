@@ -749,6 +749,11 @@ body.no-3d .dim-seg { display: none; }
 .an-op { display: grid; grid-template-columns: minmax(0, 1.2fr) 1fr 40px; gap: 10px; align-items: center; font-size: 13px; } .an-op-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .an-op-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--card-2); } .an-op-bar .w { background: #3ddc97; } .an-op-bar .d { background: #8a93a8; } .an-op-bar .l { background: #ff5d6c; }
 .an-entry { margin-top: 14px; }
+.an-home { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 4px; padding: 12px 14px; text-align: left; color: var(--fg); border-radius: 14px; border: 1px solid rgba(76,201,240,.45); background: linear-gradient(135deg, rgba(76,201,240,.14), rgba(255,210,63,.06)), var(--card); }
+.an-home:hover { border-color: #4cc9f0; }
+.an-home-ico { flex: 0 0 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; background: rgba(76,201,240,.18); }
+.an-home-t { display: grid; gap: 2px; flex: 1; min-width: 0; } .an-home-t span { font-size: 12.5px; color: var(--muted); }
+.locked-screen .an-home { margin-top: 18px; }
 /* coach missions */
 .jmission { display: flex; align-items: center; gap: 10px; width: calc(100% - 28px); margin: -2px 0 6px 28px; padding: 7px 12px; border-radius: 10px; border: 1px dashed rgba(255,210,63,.45); background: rgba(255,210,63,.06); color: var(--fg); font-size: 13.5px; text-align: left; }
 .jmission:hover { border-style: solid; }

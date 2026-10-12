@@ -1137,7 +1137,8 @@
       '<p class="lede">' + (mode === 'play' ? 'After your first lesson you will play full games against me, with tips on every move.' : 'After ' + UNLOCK_AT.openings + ' lessons you will learn real openings and traps, one move at a time.') + '</p>' +
       '<div class="lock-progress"><i style="width:' + Math.round(done / UNLOCK_AT[mode] * 100) + '%"></i></div><p class="muted small">' + done + ' of ' + UNLOCK_AT[mode] + ' lessons done</p>' +
       '<div class="actions"><button class="btn primary big" data-act="startNext">Continue learning</button></div>' +
-      '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button></div>');
+      '<button class="link small" data-act="peek" data-m="' + mode + '">I already know the basics, let me in</button>' +
+      (mode === 'play' ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze a chess.com game</b><span>Works right away, no lessons needed.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') + '</div>');
   }
   ACT.peek = function (d) { S.peek[d.m] = true; save(); go(d.m); };
   function go(mode, arg) {
@@ -1218,11 +1219,11 @@
   // Everything the app can do, visible from day one; locked items say exactly when they open.
   function exploreStrip() {
     var items = [
+      { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' },
       { m: 'arena', ico: 'q', t: 'Practice Arena', s: 'Quick games, bosses', act: 'arena' },
       { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
       { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
       { m: 'play', ico: 'k', t: 'Play the coach', s: '5 levels, live tips' },
-      { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' },
       { m: 'openings', ico: 'b', t: 'Openings', s: OPENINGS.length + ' lines & traps' },
       { m: 'progress', ico: 'r', t: 'Badges', s: 'Track your climb' }
     ];
@@ -1263,6 +1264,7 @@
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
+        '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
