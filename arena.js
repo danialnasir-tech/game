@@ -4,7 +4,7 @@
 var BOSSES = [
   { id: 'rex', stage: 0, name: 'Rookie Rex', title: 'The Rookie', icon: 'p', color: '#4cc9f0', level: 'novice', book: ['def-italian', 'anti-scholar'],
     intro: 'Rex knows how the pieces move and not much more. He leaves pieces hanging. Take them and checkmate him.' },
-  { id: 'tess', stage: 1, name: 'Trapper Tess', title: 'The Trapper', icon: 'n', color: '#ff4f8b', level: 'club', book: ['stafford', 'blackburne-shilling', 'englund', 'def-fried-liver'],
+  { id: 'tess', stage: 1, name: 'Trapper Tess', title: 'The Trapper', icon: 'n', color: '#ff4f8b', level: 'club', book: ['stafford', 'blackburne-shilling', 'englund'],
     intro: 'Tess only plays traps: the Stafford, the Shilling Gambit and the Englund. Spot the trick, refute it, and win the game.' },
   { id: 'tao', stage: 2, name: 'Tactics Tao', title: 'The Tactician', icon: 'b', color: '#ffd23f', level: 'strong', book: ['sicilian-dragon', 'def-kings-gambit', 'def-evans', 'def-danish'],
     intro: 'Tao loves sharp positions and forcing moves. Check every capture and every check before you move.' },

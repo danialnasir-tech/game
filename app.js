@@ -55,9 +55,9 @@
       { k: 'puzzles', label: 'Easy puzzles', sub: Math.min(d.puzzles, 3) + ' of 3', done: d.puzzles >= 3, act: 'goPuzzles' }
     ].concat(lessonsDone() >= 1 ? [{ k: 'game', label: 'Coach game', sub: 'Any length', done: !!d.game, act: 'goPlay' }] : []);
     return [
-      { k: 'lesson', label: 'Lesson', sub: '', done: !!d.lesson, act: 'startNext' },
+      { k: 'lesson', label: 'Lesson', sub: d.lesson ? 'Done today' : '', done: !!d.lesson, act: 'startNext' },
       { k: 'puzzles', label: 'Puzzles', sub: Math.min(d.puzzles, 5) + ' of 5', done: d.puzzles >= 5, act: 'goPuzzles' },
-      { k: 'opening', label: 'Opening', sub: (function () { var o = nextStop(); return o ? (o.def ? 'Defend: ' : '') + (o.base ? o.base.name : o.name) : 'One drill'; })(), done: !!d.opening, act: 'nextOpening' },
+      { k: 'opening', label: 'Opening', sub: d.opening ? 'Done today' : (function () { var o = nextStop(); return o ? (o.def ? 'Defend: ' : '') + (o.base ? o.base.name : o.name) : 'One drill'; })(), done: !!d.opening, act: 'nextOpening' },
       { k: 'game', label: 'Coach game', sub: 'Full game', done: !!d.game, act: 'goPlay' }
     ];
   }
@@ -212,7 +212,8 @@
       if (soft && (busy || Bubble.busy())) return;
       var hasClips = Object.keys(VOICE_FILES).length > 0;
       var spoken = parts.filter(function (p) { return typeof p === 'string' || !p.id || VOICE_FILES[p.id] || !hasClips; });
-      var words = spoken.map(function (p) { return typeof p === 'string' ? p : p.text; }).join(' ').replace(/\s+([.,!?])/g, '$1');
+      var words = spoken.map(function (p) { return typeof p === 'string' ? p : p.text; }).join(' ').replace(/\s+([.,!?])/g, '$1')
+        .replace(/\.\s+(with check|and that is checkmate|promoting)/g, ' $1').replace(/\b([A-H])([1-8])\b/g, function (m, f, r) { return f.toLowerCase() + r; });
       Bubble.show(words, S.voice ? null : 3200 + words.length * 45);
       if (!S.voice) return;
       stop(); last = parts; busy = true; document.body.classList.add('speaking'); var my = tok, seq = Promise.resolve();
@@ -277,7 +278,7 @@
     if (a.bestScore > 90000) return ['why_mate', 'It leads to a forced checkmate.'];
     if (b.captured && { n: 1, b: 1, r: 1, q: 1 }[b.captured]) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
     if (b.captured && a.loss > 60) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
-    if (a.reply && a.reply.captured && a.loss > 120) return ['why_safe', 'It keeps your ' + PIECE_NAME[a.reply.captured] + ' on ' + a.reply.to + ' safe.'];
+    if (a.reply && a.reply.captured && a.loss > 120) return ['why_safe', 'It does not give away your ' + PIECE_NAME[a.reply.captured] + '.'];
     if (/^O-O/.test(bestSan || '')) return ['why_castle', 'Castling gets your king to safety.'];
     if (/\+$/.test(bestSan || '')) return ['why_check', 'It is a forcing check.'];
     if (ply <= 16 && (b.piece === 'n' || b.piece === 'b') && /[18]$/.test(b.from)) return ['why_develop', 'It develops a new piece.'];
@@ -1049,6 +1050,13 @@
   }
   ACT.peek = function (d) { S.peek[d.m] = true; save(); go(d.m); };
   function go(mode, arg) {
+    if (current === MODES.play && PL && PL.g && !PL.over && PL.g.history().length >= 2 && !go.force) {
+      var m = $('#modal'); m.classList.remove('intro');
+      m.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true"><div class="eyebrow">Game in progress</div><h1 class="h1">Leave this game?</h1><p class="lede">The game ends here and is not saved.</p><div class="actions"><button class="btn primary" data-leave="stay">Keep playing</button><button class="btn ghost" data-leave="go">Leave the game</button></div></div>';
+      m.hidden = false;
+      m.onclick = function (e) { var b = e.target.closest('[data-leave]'); if (!b && e.target !== m) return; m.hidden = true; m.onclick = null; if (b && b.dataset.leave === 'go') { go.force = true; go(mode, arg); go.force = false; } };
+      return;
+    }
     if (isLocked(mode)) {
       if (current && current.leave) current.leave();
       Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
@@ -1058,7 +1066,9 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode || (mode === 'lesson' && b.dataset.go === 'path') || (mode === 'opening' && b.dataset.go === 'openings') || ((mode === 'rush' || mode === 'stagetest') && b.dataset.go === (mode === 'rush' ? 'puzzles' : 'path')) || ((mode === 'arena' || mode === 'vision') && b.dataset.go === 'puzzles') || ((mode === 'review' || mode === 'practice') && b.dataset.go === 'play')); });
+    var tab = { lesson: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    if (mode === 'play' && arg && arg.spec) tab = 'arena';
+    document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
     B3.idle(false);
     IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
@@ -1154,7 +1164,7 @@
           '<button class="btn primary big" data-act="goPlay">▶&nbsp; Play the ' + esc(levelById(levelForRating(S.puzzle.rating)).name) + ' coach</button>'
         : '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
           '<p class="lede">' + esc(L.goal) + '</p>' +
-          '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + L.minutes + ' min</button>') +
+          '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
@@ -1184,7 +1194,7 @@
               if (k === st.lessons.length - 1) stops.slice(Math.floor(st.lessons.length / 2)).forEach(function (sid) { stop += stopHtml(sid); }); // stops left over in short stages
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
-                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : L2.minutes + ' min') + '</span></button>' + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
+                '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) : isNext ? 'Up next' : skipped ? 'Review' : lessonMins(L2) + ' min') + '</span></button>' + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
       setPanel(html);
@@ -1353,7 +1363,8 @@
       }
       if (!accepted && !(step.anyMate && mates)) {
         LS.mistakes++; Sound.play('bad'); B3.flash('bad', [mv.to]); Voice.say([V('notquite', 'notquite')]);
-        setStatus('<strong>Not quite.</strong> ' + esc(step.hint || 'Look for a stronger move.'), 'bad');
+        setStatus('<strong>Not quite.</strong> ' + (whyNote(fenBefore, mv) || esc(step.hint || 'Look for a stronger move.')) + ' <button class="link" data-act="whyMove">▶ Show what happens</button>', 'bad');
+        WHY = { fen: fenBefore, mv: mv, me: g.turn() };
         IX.enabled = true; return;
       }
       return applyMove(g, mv).then(function () {
@@ -1380,7 +1391,7 @@
   };
   ACT.nextStep = function () {
     if (!LS) return;
-    if (LS.i < LS.L.steps.length - 1) { LS.i++; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
+    if (LS.i < LS.L.steps.length - 1) { LS.i++; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
     var stars = LS.mistakes === 0 ? 3 : LS.mistakes <= 2 ? 2 : 1;
     if (LS.stars) stars = Math.min(stars, LS.stars);
     if (LS.finished) return;
@@ -1434,7 +1445,8 @@
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
-  ACT.resetStep = function () { if (LS) { MODES.lesson.render(); MODES.lesson.loadStep(); } };
+  ACT.resetStep = function () { if (LS) { LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
+  function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
     var step = LS.L.steps[LS.i];
     if (step.t === 'collect') { setStatus('Click the piece to see where it can go. Plan so each move lands on a star or sets up the next one.'); return; }
@@ -1548,7 +1560,7 @@
   };
   function recommendedOpenings() {
     var R = S.puzzle.rating;
-    var ids = R < 800 ? ['italian', 'london', 'caro', 'scandi', 'qga'] : R < 1400 ? ['ruy', 'qgd', 'french', 'sicilian-dragon', 'scotch', 'evans'] : ['sicilian-najdorf', 'kid', 'nimzo', 'english', 'slav', 'kings-gambit'];
+    var ids = R < 800 ? ['anti-scholar', 'italian', 'london', 'caro', 'scandi', 'qga'] : R < 1400 ? ['ruy', 'qgd', 'french', 'sicilian-dragon', 'scotch', 'evans'] : ['sicilian-najdorf', 'kid', 'nimzo', 'english', 'slav', 'kings-gambit'];
     var list = ids.map(function (id) { return OPENINGS.filter(function (o) { return o.id === id; })[0]; }).filter(function (o) { return o && mastery(o.id) < 3; });
     return list.slice(0, 3);
   }
@@ -1556,11 +1568,11 @@
   ACT.openOp = function (d) { go('opening', { id: d.id, mode: 'learn' }); };
 
   var OD = null;
-  function moveListHtml(moves, upto, clickAct) {
+  function moveListHtml(moves, upto, clickAct, hideFuture) {
     var out = '';
     for (var i = 0; i < moves.length; i++) {
       if (i % 2 === 0) out += '<span class="mn">' + (i / 2 + 1) + '.</span>';
-      out += '<button class="mv ' + (i === upto - 1 ? 'cur' : '') + (i >= upto ? ' future' : '') + '" ' + (clickAct ? 'data-act="' + clickAct + '" data-i="' + (i + 1) + '"' : 'disabled') + '>' + esc(moves[i]) + '</button>';
+      out += '<button class="mv ' + (i === upto - 1 ? 'cur' : '') + (i >= upto ? ' future' : '') + '" ' + (clickAct ? 'data-act="' + clickAct + '" data-i="' + (i + 1) + '"' : 'disabled') + '>' + (hideFuture && i >= upto ? '?' : esc(moves[i])) + '</button>';
     }
     return '<div class="movelist mono">' + out + '</div>';
   }
@@ -1622,7 +1634,7 @@
         sideSwitch(o) + '<div class="seg"><button data-act="learnOp">Learn</button><button class="on">Drill</button></div>' +
         '<div class="drill-stats"><span><b>' + Math.floor(OD.ply / 2) + '</b> / ' + Math.ceil(o.moves.length / 2) + ' moves</span><span><b>' + OD.errors + '</b> mistakes</span><span>Mastery <b>' + mastery(o.id) + '</b>/3</span></div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + msg + '</div>' +
-        moveListHtml(o.moves, OD.ply, null) +
+        moveListHtml(o.moves, OD.ply, null, true) +
         '<div class="actions"><button class="btn ghost" data-act="drillHint">Show me</button><button class="btn" data-act="drillOp">Restart</button></div>');
     },
     drillContinue: function () {
@@ -1649,9 +1661,10 @@
           });
         }
         OD.errors++; OD.misses[OD.ply] = (OD.misses[OD.ply] || 0) + 1; Voice.say([V('drillwrong', 'drillwrong')]);
+        var trap = whyNote(g.fen(), mv); WHY = { fen: g.fen(), mv: mv, me: o.side };
         Sound.play('bad'); B3.flash('bad', [mv.to]);
         if (OD.misses[OD.ply] >= 2) B3.arrows([[exp.from, exp.to, 'g']]);
-        MODES.opening.renderDrill('<strong>Not this line.</strong> ' + (OD.misses[OD.ply] >= 2 ? 'The book move is <span class="mono">' + esc(exp.san) + '</span>: ' + esc(o.notes[OD.ply]) : 'Think about the idea: ' + esc(o.idea)), 'bad');
+        MODES.opening.renderDrill('<strong>Not this line.</strong> ' + (trap ? trap + ' ' : '') + '<button class="link" data-act="whyMove">▶ Show what happens</button> ' + (OD.misses[OD.ply] >= 2 ? 'The book move is <span class="mono">' + esc(exp.san) + '</span>: ' + esc(o.notes[OD.ply]) : 'Think about the idea: ' + esc(o.idea)), 'bad');
         IX.enabled = true;
       };
     },
@@ -1776,7 +1789,7 @@
       if (c.failed || c.hinted) { today().puzzles++; save(); }
       Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
       B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
-      MODES.puzzles.render('<strong>Solved!</strong> ' + (d ? 'Rating +' + d + '.' : c.failed ? 'Solved after a miss, no rating gain.' : ''), 'good');
+      MODES.puzzles.render('<strong>Solved!</strong> ' + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
       renderTop();
     }
   };
@@ -1847,7 +1860,7 @@
     if (!c.hinted) { MODES.puzzles.grade(false); c.failed = true; }
     c.hinted++;
     Voice.say([V('hint')]);
-    if (c.hinted === 1) { B3.markers('hint', [u.slice(0, 2)]); setStatus('Move the highlighted piece.'); }
+    if (c.hinted === 1) { B3.markers('hint', [u.slice(0, 2)]); setStatus('Move the highlighted piece. A hint means no rating points for this puzzle.'); }
     else { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); setStatus('Play the arrow.'); }
   };
   ACT.pzShow = function () {
@@ -2044,7 +2057,8 @@
       setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
         '<div class="play-btns"><button class="icon-btn" data-act="pHint" title="Hint" aria-label="Hint">?</button><button class="icon-btn" data-act="pUndo" title="Take back" aria-label="Take back">↶</button><button class="icon-btn" data-act="pResign" title="Resign" aria-label="Resign">⚑</button></div></div>' +
         '<div class="feed">' + (PL.feed.length ? PL.feed.slice(-6).reverse().map(function (f, k) {
-          var n = PL.feed.length - 1 - k, open = k === 0 || PL.feedOpen === n;
+          var lastBad = -1; for (var q = PL.feed.length - 1; q >= Math.max(0, PL.feed.length - 3); q--) if (/^(bad|warn)$/.test(PL.feed[q].cls) && /Retry/.test(PL.feed[q].html)) { lastBad = q; break; }
+          var n = PL.feed.length - 1 - k, open = k === 0 || PL.feedOpen === n || n === lastBad;
           if (open) return '<div class="feed-item ' + f.cls + '"><span class="fi-tag">' + esc(f.tag) + '</span><p>' + f.html + '</p></div>';
           var tmp = document.createElement('div'); tmp.innerHTML = f.html; var line = (tmp.textContent || '').split(/(?<=[.!?])\s/)[0];
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
@@ -2114,6 +2128,19 @@
       }
     },
     userMove: function (mv, uci) {
+      if (PL.style === 'teach' && !PL.spec && S.puzzle.rating < 1000 && !PL.guardOk) {
+        var gfen = PL.g.fen(), g0 = PL.g;
+        return Eng.call('analyzeMove', gfen, uci, 30, 800).then(function (a) {
+          if (!PL || PL.g !== g0) return;
+          if (a && a.loss >= 250 && a.playedScore < 90000) {
+            var why = a.reply && a.reply.score > 90000 ? esc(a.replySan) + ' would be checkmate.' : a.reply && a.reply.captured ? 'Then ' + esc(a.replySan) + ' wins your ' + PIECE_NAME[a.reply.captured] + '.' : 'It loses material.';
+            PL.guard = { mv: mv, uci: uci };
+            MODES.play.say('Wait!', '<strong>' + esc((new Game(gfen).move(mv) || {}).san || uci) + '?</strong> ' + why + '<span class="fi-actions"><button class="mini-btn" data-act="pGuardBack">Pick another move</button><button class="mini-btn ghost" data-act="pGuardGo">Play it anyway</button></span>', 'warn');
+            MODES.play.render(); IX.enabled = true; return;
+          }
+          PL.guardOk = true; var r = MODES.play.userMove(mv, uci); PL.guardOk = false; return r;
+        });
+      }
       var g = PL.g, fenBefore = g.fen(), moveNo = g.history().length;
       PL.retryArrow = null;
       PL.log[moveNo] = {};
@@ -2203,6 +2230,8 @@
     },
     coachTip: function () {
       if (!PL || PL.over || PL.style !== 'teach') return;
+      var lastMine = PL.log.filter(function (l) { return l && l.cls; }).pop();
+      if (lastMine && /^(bad|warn)$/.test(lastMine.cls)) return; // no pep talk right after a mistake: the explanation matters more
       var g = PL.g, me = PL.color, moveNo = Math.floor(g.history().length / 2) + 1, tip = null, once = PL.tips || (PL.tips = {});
       var board = g.boardArray(), mat = { w: 0, b: 0 }, minors = 0, queens = 0, total = 0;
       board.forEach(function (row) { row.forEach(function (p) { if (!p) return; mat[p.color] += VAL[p.type]; if (p.type !== 'p' && p.type !== 'k') total += VAL[p.type]; if (p.type === 'q') queens++; if (p.color === me && (p.type === 'n' || p.type === 'b') && p.square[1] === (me === 'w' ? '1' : '8')) minors++; }); });
@@ -2280,12 +2309,14 @@
   ACT.startGame = function () { MODES.play.start(); };
   ACT.newGame = function () { go('play'); };
   ACT.pResign = function () { if (PL && !PL.over && PL.g) MODES.play.finish('loss', 'You resigned.'); };
+  ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; };
+  ACT.pGuardGo = function () { if (!PL || !PL.guard) return; var gd = PL.guard; PL.guard = null; PL.feed.pop(); PL.guardOk = true; IX.enabled = false; MODES.play.userMove(gd.mv, gd.uci); PL.guardOk = false; };
   ACT.pUndo = function () {
     if (!PL || !PL.g || PL.thinking || PL.over) return;
     if (PL.spec) { toast('No takebacks in arena games.'); return; }
     var g = PL.g, n = 0;
     while (g.history().length && n < 2) { g.undo(); n++; if (g.turn() === PL.color) break; }
-    PL.log.length = g.history().length;
+    PL.log.length = g.history().length; PL.minEval = null;
     deselect(); B3.sync(g.fen()); B3.markers('last', []); B3.arrows([]); showCheck(g);
     MODES.play.say('Takeback', 'Position restored. Find a better move.', '');
     Voice.say([V('takeback')]);
@@ -2297,7 +2328,7 @@
     var idx = +d.i, g = PL.g, lg = PL.log[idx];
     if (PL.over) { PL.over = false; }
     while (g.history().length > idx) g.undo();
-    PL.log.length = idx;
+    PL.log.length = idx; PL.minEval = null;
     deselect(); B3.sync(g.fen()); B3.markers('last', []); showCheck(g);
     PL.retryArrow = lg && lg.best ? [lg.best.from, lg.best.to, 'g'] : null;
     if (lg && lg.best) { B3.arrows([[lg.best.from, lg.best.to, 'g']]); B3.flash('hint', [lg.best.from, lg.best.to], 2200); }
@@ -2465,8 +2496,8 @@
         if (my !== tok) return;
         if (i >= moves.length || g.gameOver()) {
           var d = material(g, me) - m0, mate = g.inCheckmate(), loser = mate ? (g.turn() === me ? 'you' : 'them') : null;
-          var sum = mate ? (loser === 'you' ? 'and that is checkmate against you.' : 'and that is checkmate.') : d <= -1 ? 'You end up ' + (-d) + ' point' + (-d > 1 ? 's' : '') + ' of material down.' : d >= 1 ? 'You end up ' + d + ' point' + (d > 1 ? 's' : '') + ' of material ahead.' : 'Material stays level.';
-          bar('<span class="rb-tag">Result</span><span class="rb-text">' + esc(sum) + '</span><span class="rb-actions">' + (opts.actions || '') + '<button class="mini-btn ghost" data-act="replayAgain">↻ Again</button></span>');
+          var sum = (opts.missedMate && !(mate && loser === 'them') ? 'No checkmate this way. ' : '') + (mate ? (loser === 'you' ? 'and that is checkmate against you.' : 'and that is checkmate.') : d <= -1 ? 'You end up ' + (-d) + ' point' + (-d > 1 ? 's' : '') + ' of material down.' : d >= 1 ? 'You end up ' + d + ' point' + (d > 1 ? 's' : '') + ' of material ahead.' : 'Material stays level.');
+          bar('<span class="rb-tag">Result</span><span class="rb-text">' + esc(sum) + '</span><span class="rb-actions">' + (opts.actions || '') + '<button class="mini-btn ghost" data-act="replayAgain">↻ Watch again</button></span>');
           Replay.last = { fen: fen, moves: moves, opts: opts };
           if (opts.done) opts.done(sum, g);
           return;
@@ -2483,6 +2514,21 @@
     }
     return { run: run, stop: function () { tok++; bar(null); }, bar: bar, last: null };
   })();
+  // A wrong move in a lesson or drill: what does it allow?
+  var WHY = null;
+  function whyNote(fen, mv) {
+    var g = new Game(fen), m = g.move(mv); if (!m) return '';
+    var mate = g.moves().filter(function (x) { return /#$/.test(x.san); })[0];
+    if (mate) return 'That allows <strong>' + esc(mate.san) + '</strong>, checkmate!';
+    return '';
+  }
+  ACT.whyMove = function () {
+    var W = WHY; if (!W) return;
+    var after = new Game(W.fen); after.move(W.mv);
+    Eng.call('line', after.fen(), 2, 5, 500).then(function (line) {
+      Replay.run(W.fen, [uciMv(W.mv)].concat(line || []), { me: W.me, firstIsMine: true, title: 'What your move allows', actions: '<button class="mini-btn" data-act="replayBack">Try again</button>' });
+    });
+  };
   ACT.replayAgain = function () { var L = Replay.last; if (L) Replay.run(L.fen, L.moves, L.opts); };
   function uciMv(u) { return typeof u === 'string' ? uciObj(u) : { from: u.from, to: u.to, promotion: u.promotion || undefined }; }
   // Coach game: show how the mistake is punished, then offer to rewind
@@ -2504,6 +2550,7 @@
     if (current === MODES.play && PL && PL.g) { PL.replaying = false; B3.sync(PL.g.fen()); B3.arrows([]); showCheck(PL.g); IX.enabled = !PL.over && PL.g.turn() === PL.color && !PL.thinking; }
     else if (current === MODES.puzzles && IX.game) { B3.sync(IX.game.fen()); B3.arrows([]); IX.enabled = !PZ.cur.done; }
     else if (current === MODES.review && RV) MODES.review.goto(RV.ply);
+    else if ((current === MODES.lesson || current === MODES.opening) && IX.game) { B3.sync(IX.game.fen()); B3.arrows([]); B3.markers('last', []); IX.enabled = true; }
   };
   // Puzzles: why does my wrong move fail?
   ACT.pzWhy = function () {
@@ -2511,7 +2558,7 @@
     var after = new Game(w.fen); after.move(uciMv(w.uci));
     Eng.call('line', after.fen(), 2, 5, 600).then(function (line) {
       if (current !== MODES.puzzles) return;
-      Replay.run(w.fen, [uciMv(w.uci)].concat(line || []), { me: new Game(w.fen).turn(), firstIsMine: true, title: 'Why ' + w.san + ' does not work',
+      Replay.run(w.fen, [uciMv(w.uci)].concat(line || []), { me: new Game(w.fen).turn(), firstIsMine: true, missedMate: !!PZ.cur.p.mate, title: 'Why ' + w.san + ' does not work',
         actions: '<button class="mini-btn" data-act="replayBack">Try again</button>' });
     });
   };
@@ -2700,6 +2747,9 @@
     finish: function () {
       if (!VG.running) return;
       VG.running = false; clearInterval(MODES.vision.timer); IX.tap = null; IX.enabled = false; B3.arrows([]);
+      var missed = '';
+      if (VG.id === 'hanging' && VG.targets) { var mt = Object.keys(VG.targets).filter(function (q) { return !VG.found[q]; }); if (mt.length) { B3.markers('hint', mt); missed = 'Still free in the last position: ' + mt.map(function (q) { return 'the ' + PIECE_NAME[VG.targets[q]] + ' on ' + q; }).join(', ') + ' (green).'; } }
+      if (VG.id === 'checks' && VG.checks) { var mc = Object.keys(VG.checks).filter(function (q) { return !VG.found[q]; }); if (mc.length) { B3.arrows(mc.map(function (q) { return [q.slice(0, 2), q.slice(2, 4), 'g']; })); missed = 'Checks you did not find in the last position: ' + mc.map(function (q) { return VG.checks[q]; }).join(', ') + ' (green arrows).'; } }
       var prev = S.arena[VG.id] || 0, best = VG.score > prev && VG.score > 0;
       if (best) S.arena[VG.id] = VG.score;
       addXP(Math.min(40, VG.score * 2)); save();
@@ -2707,7 +2757,7 @@
       Voice.say([best && prev ? V('arena_best') : V('arena_end')]);
       document.body.dataset.layout = 'browse';
       setPanel('<button class="back" data-act="arena">← Arena</button><div class="eyebrow">' + esc(VG.meta.name) + ' · time</div><h1 class="h1">' + (best && prev ? 'New best!' : 'Round over') + '</h1>' +
-        '<div class="rush-final"><div class="rating">' + VG.score + '</div><span class="muted">' + (best && prev ? 'previous best ' + prev : 'best ' + Math.max(prev, VG.score)) + '</span></div>' +
+        '<div class="rush-final"><div class="rating">' + VG.score + '</div><span class="muted">' + (best && prev ? 'previous best ' + prev : 'best ' + Math.max(prev, VG.score)) + '</span></div>' + (missed ? '<p class="muted small">' + esc(missed) + '</p>' : '') +
         '<div class="actions"><button class="btn primary big" data-act="vgAgain">▶&nbsp; Play again</button></div>' +
         '<div class="ar-grid small">' + VISION_GAMES.filter(function (v) { return v.id !== VG.id; }).map(function (v) { return '<button class="ar-tile" data-act="vision" data-id="' + v.id + '"><b>' + esc(v.name) + '</b><span class="ar-best">' + (S.arena[v.id] ? 'Best ' + S.arena[v.id] : v.secs + ' sec') + '</span></button>'; }).join('') + '</div>');
     },
@@ -2755,7 +2805,7 @@
     if (ok) { Sound.play('win'); B3.burst(res.to); confetti(); Voice.say([V('battle_caught')]); }
     else { Sound.play('bad'); if (a && a.best) B3.arrows([[a.best.from, a.best.to, 'g']]); Voice.say([V('battle_missed')]); }
     PL.specActions = '<button class="btn primary" data-act="battleShow">▶ Show me the punishment</button><button class="btn" data-act="battle">⚔ Next battle</button><button class="btn ghost" data-act="arena">Arena</button>';
-    endPanel(ok ? 'Punished' : 'Missed', ok ? '<strong>' + esc(res.san) + '</strong> wins material or the initiative. Streak <strong>' + S.battleStreak + '</strong>.' : 'You played <strong>' + esc(res.san) + '</strong>. The punishment was <strong>' + esc(a && a.bestSan || '?') + '</strong> (green arrow).', ok ? 'good' : 'bad');
+    endPanel(ok ? 'Punished' : 'Missed', ok ? '<strong>' + esc(res.san) + '</strong> ' + (a.playedScore > 90000 ? 'leads to checkmate.' : 'puts you about ' + Math.max(1, Math.round(a.playedScore / 100)) + ' pawn' + (Math.round(a.playedScore / 100) > 1 ? 's' : '') + ' ahead.') + ' Streak <strong>' + S.battleStreak + '</strong>.' : 'You played <strong>' + esc(res.san) + '</strong>. The punishment was <strong>' + esc(a && a.bestSan || '?') + '</strong> (green arrow).', ok ? 'good' : 'bad');
   };
   ACT.battleShow = function () {
     var B = PL && PL.battle; if (!B || !B.best) return;
