@@ -407,12 +407,12 @@ function ENGINE_FACTORY(Game) {
     return out;
   }
   // Moves that look natural but are clearly worse, for opening battles: a realistic mistake.
-  function mistake(fen) {
+  function mistake(fen, loose) {
     var r = rootSearch(fen, 4, 1500, 450);
     if (!r.moves.length) return null;
-    var best = r.moves[0].score;
-    if (best < -60) return null;
-    var pool = r.moves.filter(function (m) { return best - m.score >= 120 && m.score <= -100 && m.score > -700 && m.piece !== 'k'; });
+    var best = r.moves[0].score, gap = loose ? 80 : 120, worst = loose ? -40 : -100;
+    if (best < (loose ? -150 : -60)) return null;
+    var pool = r.moves.filter(function (m) { return best - m.score >= gap && m.score <= worst && m.score > -700 && m.piece !== 'k'; });
     if (!pool.length) return null;
     var m = pool[Math.floor(Math.random() * Math.min(pool.length, 4))];
     return { from: m.from, to: m.to, promotion: m.promotion || null, score: m.score, best: best };

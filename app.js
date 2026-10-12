@@ -407,7 +407,7 @@
       }
       var TOP = { p: 0.78, n: 1.1, b: 1.07, r: 0.79, q: 1.25, k: 1.33 };
       var decal = new THREE.Mesh(GEO.decal, glyphMat(type, color));
-      decal.rotation.x = -Math.PI / 2; decal.position.y = TOP[type] + 0.02; decal.renderOrder = 2;
+      decal.rotation.x = -Math.PI / 2; decal.rotation.z = orient === 'b' ? Math.PI : 0; decal.position.y = TOP[type] + 0.02; decal.renderOrder = 2;
       decal.userData.decal = true; decal.visible = false;
       g.add(decal); g.userData.decalMesh = decal;
       g.userData.type = type; g.userData.color = color;
@@ -613,7 +613,7 @@
 
     function fitDist() {
       var w = container.clientWidth || 1, h = container.clientHeight || 1, aspect = w / h;
-      var base = viewMode === 'top' ? 13.5 : 12.6;
+      var base = viewMode === 'top' ? (aspect < 1.3 ? 15 : 13.5) : 12.6; // top view on phones: keep the corner squares clear of the menu button
       // narrow / square boards (phones): pull back so all eight files, both rooks and the labels stay in view
       return base * Math.max(1, Math.pow(1.15 / aspect, 0.85)) * (aspect < 1.3 ? 1.14 : 1);
     }
@@ -660,6 +660,7 @@
     api.setOrientation = function (c, animate) {
       if (c === orient && performance.now() < introUntil) return Promise.resolve(); // let the opening shot finish
       orient = c; placeLabels();
+      pieceGroup.children.forEach(function (pc) { if (pc.userData.decalMesh) pc.userData.decalMesh.rotation.z = c === 'b' ? Math.PI : 0; });
       return moveCamera(animate !== false);
     };
     api.orientation = function () { return orient; };
@@ -1268,9 +1269,9 @@
       var p = ST.list[ST.k], g = IX.game, t = new Game(g.fen()); t.move(mv);
       var ok = uci === p.sol[ST.ply] || (ST.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
       if (!ok) {
-        ST.busy = true; Sound.play('bad'); B3.flash('bad', [mv.to]); Voice.say([V('puzzlemiss', 'puzzlemiss')], true);
+        ST.busy = true; Sound.play('bad'); B3.flash('bad', [mv.to]);
         var u = p.sol[ST.ply]; B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]);
-        return MODES.stagetest.result(false, 'Missed. The green arrow shows the winning move.');
+        return MODES.stagetest.result(false, '<strong>Missed.</strong> The winning move was ' + esc((new Game(g.fen()).move(uciObj(u)) || {}).san || u) + ' (green arrow). Next puzzle coming up.');
       }
       return applyMove(g, mv).then(function () {
         ST.ply++;
@@ -1288,7 +1289,7 @@
       var okN = ST.res.filter(Boolean).length, missN = ST.res.length - okN, left = ST.list.length - ST.res.length;
       MODES.stagetest.render(msg, ok ? 'good' : 'bad');
       if (okN >= ST.need || missN > ST.list.length - ST.need || !left) return B3.wait(1600).then(function () { if (current === MODES.stagetest) MODES.stagetest.finish(okN >= ST.need); });
-      return B3.wait(1600).then(function () { if (current === MODES.stagetest) { ST.k++; MODES.stagetest.load(); } });
+      return B3.wait(ok ? 1600 : 2800).then(function () { if (current === MODES.stagetest) { ST.k++; MODES.stagetest.load(); } });
     },
     finish: function (pass) {
       var st = STAGES[ST.i], okN = ST.res.filter(Boolean).length;
@@ -1682,6 +1683,12 @@
             MODES.opening.drillContinue();
           });
         }
+        var alt = bookMoves(g.fen()), altName = alt && alt[mv.from + mv.to];
+        if (altName) {
+          Sound.play('move');
+          MODES.opening.renderDrill('<strong>Also a real move</strong>' + (altName !== 'many' && altName !== o.name && altName !== (o.base && o.base.name) ? ' (' + esc(altName) + ')' : '') + '. This drill follows the main line of the ' + esc(o.base ? o.base.name : o.name) + ': try the move it plays here. No mistake counted.', '');
+          IX.enabled = true; return;
+        }
         OD.errors++; OD.misses[OD.ply] = (OD.misses[OD.ply] || 0) + 1; Voice.say([V('drillwrong', 'drillwrong')]);
         var trap = whyNote(g.fen(), mv); WHY = { fen: g.fen(), mv: mv, me: o.side };
         Sound.play('bad'); B3.flash('bad', [mv.to]);
@@ -1813,7 +1820,7 @@
     win: function (sq) {
       var c = PZ.cur; c.done = true; IX.enabled = false;
       var d = c.failed || c.hinted ? 0 : MODES.puzzles.grade(true);
-      if (c.failed || c.hinted) { today().puzzles++; save(); }
+      if (c.failed || c.hinted) { today().puzzles++; S.puzzle.solved[c.p.id] = Date.now(); save(); }
       Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
       B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
       MODES.puzzles.render('<strong>Solved!</strong> ' + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
@@ -1980,8 +1987,8 @@
     if (ply <= 14 && !(a.reply && a.reply.captured) && Math.abs(a.bestScore) < 200) drop /= 1.6; // quiet opening moves: judge gently
     var isBest = a.loss <= 6 || (a.best.from + a.best.to) === uci.slice(0, 4);
     if (isBest) {
-      var offered = a.reply && a.reply.to === res.to && a.reply.captured && VAL[res.piece] >= 3 && VAL[res.piece] > (res.captured ? VAL[res.captured] : 0);
-      if (offered && a.playedScore > -80) return { c: CLASS.brilliant };
+      var offered = a.reply && a.reply.to === res.to && a.reply.captured && VAL[res.piece] >= 3 && VAL[res.piece] - (res.captured ? VAL[res.captured] : 0) >= 2;
+      if (offered && a.playedScore >= 150 && a.bestScore < 900 && (a.secondScore == null || a.bestScore - a.secondScore >= 80)) return { c: CLASS.brilliant };
       if (a.secondScore != null && winChance(a.bestScore) - winChance(a.secondScore) >= 0.15 && a.bestScore > -250) return { c: CLASS.great };
       return { c: CLASS.best };
     }
@@ -2055,7 +2062,7 @@
       if (sp && sp.kind === 'battle') { // the ply (coach to move) where the coach will slip
         var coach = color === 'w' ? 'b' : 'w', at = 3 + Math.floor(Math.random() * Math.max(1, Math.min(sp.line.moves.length, 12) - 4));
         if ((at % 2 === 0) !== (coach === 'w')) at++;
-        PL.devAt = at;
+        PL.devAt = at; PL.devAt0 = at;
       }
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
@@ -2091,10 +2098,10 @@
           return '<button class="feed-mini ' + f.cls + '" data-act="feedOpen" data-i="' + n + '"><span class="fi-tag">' + esc(f.tag) + '</span><span class="fm-line">' + esc(line) + '</span></button>';
         }).join('') : '<div class="feed-item"><span class="fi-tag">' + esc(PL.spec ? (PL.spec.kind === 'boss' ? PL.spec.b.name : 'Goal') : S.settings.coachName) + '</span><p>' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.intro : PL.spec.kind === 'challenge' ? PL.spec.c.text : 'Play your opening. The coach will slip once: find the move that punishes it.') : PL.style === 'quiet' ? 'I will stay quiet and review the game with you at the end.' : PL.style === 'key' ? 'I will speak up for brilliant moves, mistakes and real threats.' : 'Develop your pieces, control the centre, castle early. I will comment on each move.') + '</p></div>') + '</div>' +
         '<div class="sect-head"><h2>Moves</h2></div><div class="score mono">' + (rows || '<span class="muted" style="grid-column:1/-1">No moves yet</span>') + '</div>' +
-        (PL.over && PL.specActions ? '<div class="actions over-actions">' + PL.specActions + '</div>' : PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn to defend the ' + esc(L.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
+        (PL.over && PL.specActions ? '<div class="actions over-actions">' + PL.specActions + '</div>' : PL.over ? '<div class="actions over-actions"><button class="btn primary" data-act="reviewGame">★ Review this game</button>' + (PL.bookSaid ? (function () { var L = PL.book, id = L.def ? L.id : DEFENCES[L.id] ? 'def-' + L.id : L.id, t = lineById(id); return '<button class="btn" data-act="openOp" data-id="' + id + '">' + (t.def && !L.def ? 'Learn: ' + esc(t.name) : L.def ? 'Study how to meet the ' + esc(L.base.name) : 'Study the ' + esc(t.name)) + '</button>'; })() : '') + '<button class="btn" data-act="rematch">Rematch</button>' + (PL.result === 'win' && nextLevel(PL.level) ? '<button class="btn" data-act="harder">Try ' + nextLevel(PL.level).name + ' (~' + nextLevel(PL.level).elo + ')</button>' : PL.result === 'loss' && prevLevel(PL.level) ? '<button class="btn" data-act="easier">Try ' + prevLevel(PL.level).name + ' (~' + prevLevel(PL.level).elo + ')</button>' : '') + '<button class="btn ghost" data-act="newGame">New setup</button></div>' : ''));
       var sc = $('.score'); if (sc) sc.scrollTop = sc.scrollHeight;
     },
-    say: function (tag, html, cls) { PL.feed.push({ tag: tag, html: html, cls: cls || '' }); },
+    say: function (tag, html, cls, once) { PL.feed.push({ tag: tag, html: html, cls: cls || '', once: !!once }); },
     // Tell the player which line the coach is playing, once it is recognisable (the coach's 2nd book move)
     bookNote: function (g) {
       var L = PL.book, n = g.history().length;
@@ -2121,7 +2128,7 @@
             PL.lastThreat = tkey;
             B3.arrows([PL.retryArrow, [t.from, t.to, 'r']].filter(Boolean));
             Voice.say([t.kind === 'mate' ? V('threat_mate', 'threatmate') : V('threat_piece', 'threatpiece')], t.kind !== 'mate');
-            MODES.play.say('Threat', t.kind === 'mate' ? 'Your opponent threatens <strong>checkmate</strong> on ' + t.to + '. Deal with it first.' : 'Your ' + PIECE_NAME[t.piece] + ' on ' + t.to + ' is under attack and not safe.', 'warn');
+            MODES.play.say('Threat', t.kind === 'mate' ? 'Your opponent threatens <strong>checkmate</strong> on ' + t.to + '. Deal with it first.' : 'Your ' + PIECE_NAME[t.piece] + ' on ' + t.to + ' is under attack and not safe.', 'warn', true);
             MODES.play.render();
           });
         }
@@ -2130,7 +2137,7 @@
         if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
         IX.enabled = false; PL.thinking = true; MODES.play.render();
         var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
-        var job = slip ? Eng.call('mistake', fen).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
+        var job = slip ? Eng.call('mistake', fen, g.history().length >= PL.devAt0 + 4).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
           : bm ? Promise.resolve({ move: bm, score: null, book: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
         job.then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
@@ -2169,7 +2176,7 @@
         });
       }
       var g = PL.g, fenBefore = g.fen(), moveNo = g.history().length;
-      PL.retryArrow = null;
+      PL.retryArrow = null; PL.feed = PL.feed.filter(function (f) { return !f.once; });
       PL.log[moveNo] = {};
       var res;
       return applyMove(g, mv).then(function (r) {
@@ -2179,6 +2186,10 @@
           PL.chN++;
           if (sp.c.goal === 'promote' && r.promotion) { MODES.play.render(); return MODES.play.finish('win', 'Promoted in ' + PL.chN + ' moves!'); }
           if (sp.c.goal === 'survive' && PL.chN >= sp.c.limit && !g.inCheckmate()) { MODES.play.render(); return MODES.play.finish(material(g, PL.color) >= PL.chMat0 - 1 ? 'win' : 'loss', material(g, PL.color) >= PL.chMat0 - 1 ? 'You held the position for ' + sp.c.limit + ' moves.' : 'You survived, but lost material.'); }
+        }
+        if (sp && sp.kind === 'battle' && !PL.devDone && !PL.leftBook) {
+          var hh = g.history(), cl = function (x) { return x.replace(/[+#!?]/g, ''); };
+          if (hh.some(function (m, i) { return !sp.line.moves[i] || cl(m) !== cl(sp.line.moves[i]); })) { PL.leftBook = true; toast('You left the ' + (sp.line.base ? sp.line.base.name : sp.line.name) + '. The coach will still slip soon.'); }
         }
         if (sp && sp.kind === 'battle' && PL.devDone && moveNo === PL.devPly + 1) {
           PL.judging = true; MODES.play.render();
@@ -2197,7 +2208,7 @@
       var uci = res.from + res.to + (res.promotion || '');
       var gr = grade(a, res, fenBefore, uci), c = gr.c;
       if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
-      PL.log[idx] = { cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan };
+      PL.log[idx] = { drop: c.positive ? 0 : Math.max(0, winChance(a.bestScore) - winChance(a.playedScore)) * 100, cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan };
       if (c.key === 'brilliant') Badges.award('brilliant');
       var style = PL.style, quiet = style === 'quiet', keyOnly = style === 'key';
       var ply = idx + 1, best = a.best;
@@ -2296,11 +2307,17 @@
       if (PL.spec && PL.spec.kind !== 'boss') return MODES.play.specFinish(result, msg);
       PL.over = msg; IX.enabled = false;
       var mine = PL.log.filter(function (l) { return l && l.cls; });
-      var acc = mine.length ? Math.round(mine.reduce(function (s, l) { return s + 100 * Math.exp(-Math.max(0, l.loss) / 220); }, 0) / mine.length) : null;
+      var accs = mine.map(function (l) { return Math.max(0, Math.min(100, 103.17 * Math.exp(-0.04354 * (l.drop || 0)) - 3.17)); });
+      var mean = accs.reduce(function (s, x) { return s + x; }, 0) / (accs.length || 1), harm = accs.length / accs.reduce(function (s, x) { return s + 1 / Math.max(5, x); }, 0);
+      var acc = mine.length ? Math.round((mean + harm) / 2) : null;
       var count = function (k) { return mine.filter(function (l) { return l.label === k; }).length; };
       S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length });
       if (S.games.length > 200) S.games.shift();
-      today().game = true; addXP(result === 'win' ? 60 : 30); save();
+      var plies = PL.g.history().length, real = plies >= 20 || result !== 'loss' || /Checkmate/.test(msg) || beginnerMode();
+      if (real) today().game = true;
+      var GR = S.grating || Math.max(100, S.band), E = 1 / (1 + Math.pow(10, (PL.level.elo - GR) / 400)), sc = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
+      PL.gdelta = plies >= 6 ? Math.round(32 * (sc - E)) : 0; S.grating = Math.max(100, GR + PL.gdelta);
+      addXP(result === 'win' ? 60 : 30); save();
       if (result === 'win') Badges.award('beat_' + PL.level.id);
       if (PL.toldComeback && result === 'win') Badges.award('comeback');
       PL.result = result; PL.acc = acc;
@@ -2309,7 +2326,8 @@
       if (endLine) Voice.say([V(endLine, endLine)]);
       else Voice.say([V('resign')]);
       if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
-      MODES.play.say('Game over', esc(msg) + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
+      Celebrate.flush();
+      MODES.play.say('Game over', esc(msg) + ' Game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
     leave: function () { PL = null; }
@@ -2323,6 +2341,8 @@
     $('#evalbar').classList.toggle('flip', flipped);
     lab.textContent = Math.abs(cpWhite) > 90000 ? 'M' : (cpWhite > 0 ? '+' : '') + (cpWhite / 100).toFixed(1);
   }
+  function prevLevel(l) { var i = COACH_LEVELS.indexOf(l); return i > 0 ? COACH_LEVELS[i - 1] : null; }
+  ACT.easier = function () { var n = prevLevel(PL.level); if (n) { S.coach.level = n.id; save(); } ACT.rematch(); };
   function nextLevel(l) { var i = COACH_LEVELS.indexOf(l); return i >= 0 && i < COACH_LEVELS.length - 1 ? COACH_LEVELS[i + 1] : null; }
   ACT.rematch = function () { var keep = PL; go('play', keep.from ? { fen: keep.startFen, color: keep.color, from: keep.from } : null); MODES.play.start(); };
   ACT.harder = function () { var n = nextLevel(PL.level); if (n) { S.coach.level = n.id; save(); } ACT.rematch(); };
@@ -2335,7 +2355,13 @@
   ACT.setColor = function (d) { S.coach.color = d.c; save(); if (d.c !== 'r') B3.setOrientation(d.c); MODES.play.renderSetup(); };
   ACT.startGame = function () { MODES.play.start(); };
   ACT.newGame = function () { go('play'); };
-  ACT.pResign = function () { if (PL && !PL.over && PL.g) MODES.play.finish('loss', 'You resigned.'); };
+  ACT.pResign = function () {
+    if (!PL || PL.over || !PL.g) return;
+    var m = $('#modal'); m.classList.remove('intro');
+    m.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true"><div class="eyebrow">Resign</div><h1 class="h1">Give up this game?</h1><p class="lede">It counts as a loss.</p><div class="actions"><button class="btn primary" data-rs="no">Keep playing</button><button class="btn danger" data-rs="yes">Resign</button></div></div>';
+    m.hidden = false;
+    m.onclick = function (e) { var b = e.target.closest('[data-rs]'); if (!b && e.target !== m) return; m.hidden = true; m.onclick = null; if (b && b.dataset.rs === 'yes' && PL && !PL.over) MODES.play.finish('loss', 'You resigned.'); };
+  };
   ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; };
   ACT.pGuardGo = function () { if (!PL || !PL.guard) return; var gd = PL.guard; PL.guard = null; PL.feed.pop(); PL.guardOk = true; IX.enabled = false; MODES.play.userMove(gd.mv, gd.uci); PL.guardOk = false; };
   ACT.pUndo = function () {
@@ -2345,7 +2371,7 @@
     while (g.history().length && n < 2) { g.undo(); n++; if (g.turn() === PL.color) break; }
     PL.log.length = g.history().length; PL.minEval = null;
     deselect(); B3.sync(g.fen()); B3.markers('last', []); B3.arrows([]); showCheck(g);
-    MODES.play.say('Takeback', 'Position restored. Find a better move.', '');
+    MODES.play.say('Takeback', 'Position restored. Find a better move.', '', true);
     Voice.say([V('takeback')]);
     MODES.play.render(); MODES.play.turn();
   };
@@ -2359,7 +2385,7 @@
     deselect(); B3.sync(g.fen()); B3.markers('last', []); showCheck(g);
     PL.retryArrow = lg && lg.best ? [lg.best.from, lg.best.to, 'g'] : null;
     if (lg && lg.best) { B3.arrows([[lg.best.from, lg.best.to, 'g']]); B3.flash('hint', [lg.best.from, lg.best.to], 2200); }
-    MODES.play.say('Retry', 'Rewound to before your move. ' + (lg && lg.bestSan ? 'Try <strong>' + esc(lg.bestSan) + '</strong>, shown by the green arrow.' : ''), 'good');
+    MODES.play.say('Retry', 'Rewound to before your move. ' + (lg && lg.bestSan ? 'Try <strong>' + esc(lg.bestSan) + '</strong>, shown by the green arrow.' : ''), 'good', true);
     Voice.say([pickPool('retry_intro')]);
     MODES.play.render(); MODES.play.turn();
   };
@@ -2379,7 +2405,7 @@
       PL.hinting = false;
       if (!r || !r.move || PL.g !== g) return;
       B3.arrows([[r.move.from, r.move.to, 'g']]);
-      MODES.play.say('Hint', 'Consider moving the ' + PIECE_NAME[r.move.piece] + ' on ' + r.move.from + '. The arrow shows the move.', 'good');
+      MODES.play.say('Hint', 'Consider moving the ' + PIECE_NAME[r.move.piece] + ' on ' + r.move.from + '. The arrow shows the move.', 'good', true);
       MODES.play.render();
     });
   };
@@ -2634,7 +2660,7 @@
         '<p class="lede">Quick board-vision games, endgames to win against perfect defence, opening battles and the five bosses.</p>' +
         '<div class="sect-head"><h2>Quick games</h2><span class="muted small">beat your best</span></div><div class="ar-grid">' + vis + '</div>' +
         (beginnerMode() ? '<div class="placed-note"><span class="pn-ico">★</span><span><b>More unlocks as you learn.</b> Opening battles and the endgame challenges open once you finish Foundations. The quick games and Rookie Rex are ready now.</span></div>' : '<div class="sect-head"><h2>Opening battle</h2>' + (S.battleBest ? '<span class="pill-count">best streak ' + S.battleBest + '</span>' : '') + '</div>' +
-        '<button class="battle-cta" data-act="battle"><span class="bc-ico">⚔</span><span><b>The coach slips once. Punish it.</b><span>A real opening from your repertoire. Somewhere in it the coach makes a mistake: find the move that wins.</span></span><span class="to-go">→</span></button>' +
+        '<button class="battle-cta" data-act="battle"><span class="bc-ico">⚔</span><span><b>The coach slips once. Punish it.</b><span>Pick an opening you play. Somewhere in it the coach makes a mistake: find the move that wins.</span></span><span class="to-go">→</span></button>' +
         '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against perfect defence</span></div><div class="ch-list">' + ch + '</div>') +
         '<div class="sect-head"><h2>Boss battles</h2><span class="muted small">beat one to clear its stage</span></div><div class="boss-list">' + bosses + '</div>');
     },
@@ -2644,11 +2670,13 @@
   ACT.vision = function (d) { go('vision', d.id); };
   ACT.challenge = function (d) { var c = CHALLENGES.filter(function (x) { return x.id === d.id; })[0]; if (c) go('play', { spec: { kind: 'challenge', c: c, back: current === MODES.arena || (current === MODES.play && PL && PL.spec) ? 'arena' : 'goPath' } }); };
   ACT.boss = function (d) { var b = BOSSES.filter(function (x) { return x.id === d.id; })[0]; if (!b) return; if (!bossOpen(b.stage) && !S.bosses[b.id]) { toast('Finish ' + bossNeed(b.stage) + ' more lesson' + (bossNeed(b.stage) > 1 ? 's' : '') + ' in ' + STAGES[b.stage].name + ' first.'); return; } go('play', { spec: { kind: 'boss', b: b, back: current === MODES.arena ? 'arena' : 'goPath' } }); };
-  ACT.battle = function () {
-    var R = S.puzzle.rating, tier = openingTier(R), lines = allLines().filter(function (L) { return TIER[L.level] <= tier + 1 && L.moves.length >= 8 && !(L.family === 'Traps' && !L.def); });
-    var L = lines[Math.floor(Math.random() * lines.length)];
+  function battleLines() { var tier = openingTier(S.puzzle.rating); return allLines().filter(function (L) { return TIER[L.level] <= tier && L.moves.length >= 8 && !(L.family === 'Traps' && !L.def); }); }
+  ACT.battle = function (d) {
+    var lines = battleLines(), pick = d && d.id ? lineById(d.id) : S.battlePick ? lineById(S.battlePick) : null;
+    var L = pick && lines.indexOf(pick) >= 0 ? pick : lines[Math.floor(Math.random() * lines.length)];
     go('play', { spec: { kind: 'battle', line: L } });
   };
+  ACT.battlePick = function (d) { S.battlePick = d.id === 'random' ? null : d.id; save(); ACT.battle(d.id === 'random' ? null : d); };
 
   // ================= Quick vision games =================
   var VG = null;
@@ -2770,6 +2798,7 @@
         if (left <= 0) MODES.vision.finish();
       }, 100);
       GAMES[VG.id].next();
+      VG.end = Date.now() + VG.meta.secs * 1000 + 600;
     },
     render: function () {
       if (!VG.running) return;
@@ -2805,12 +2834,13 @@
   function specIntro(spec) {
     if (spec.kind === 'boss') { var b = spec.b; return { eyebrow: 'Boss battle · ' + STAGES[b.stage].name, title: b.name, text: b.intro, ava: bossAvatar(b, 64), meta: b.title + ' · ~' + levelById(b.level).elo, cta: 'Fight ' + b.name.split(' ')[1] }; }
     if (spec.kind === 'challenge') { var c = spec.c; return { eyebrow: 'Win this position', title: c.title, text: c.text, meta: (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit + ' moves' : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit + ' moves' : 'Survive ' + c.limit + ' moves') + ' · 3 stars in ≤ ' + c.par, cta: 'Start the challenge' }; }
-    var L = spec.line; return { eyebrow: 'Opening battle', title: L.def ? L.name : L.name, text: 'You play ' + (L.side === 'w' ? 'White' : 'Black') + '. The coach follows the ' + (L.base ? L.base.name : L.name) + ' and makes one mistake somewhere in the opening. Find the move that punishes it.', meta: (S.battleStreak ? 'Streak ' + S.battleStreak + ' · ' : '') + 'Best streak ' + (S.battleBest || 0), cta: 'Start the battle' };
+    var L = spec.line; return { eyebrow: 'Opening battle', title: L.def ? L.name : L.name, text: 'You play ' + (L.side === 'w' ? 'White' : 'Black') + '. The coach follows the ' + (L.base ? L.base.name : L.name) + ' and makes one mistake somewhere in the opening. Find the move that punishes it. Play the moves of the line; if you leave it, the coach still slips.', meta: (S.battleStreak ? 'Streak ' + S.battleStreak + ' · ' : '') + 'Best streak ' + (S.battleBest || 0), cta: 'Start the battle' };
   }
   MODES.play.renderSpecIntro = function () {
     var spec = PL.arg.spec, I = specIntro(spec);
     setPanel('<button class="back" data-act="' + (spec.back || 'arena') + '">← ' + (spec.back === 'goPath' ? 'Path' : 'Arena') + '</button><div class="spec-hero">' + (I.ava || '<span class="spec-ico">' + (spec.kind === 'battle' ? '⚔' : '★') + '</span>') + '<div><div class="eyebrow">' + esc(I.eyebrow) + '</div><h1 class="h1">' + esc(I.title) + '</h1><div class="muted small">' + esc(I.meta) + '</div></div></div>' +
       '<p class="lede">' + esc(I.text) + '</p>' +
+      (spec.kind === 'battle' ? '<div class="sect-head"><h2>Your opening</h2><span class="muted small">pick the one you play</span></div><div class="chips battle-chips">' + battleLines().map(function (L) { return '<button class="chip ' + (L === spec.line ? 'on' : '') + '" data-act="battlePick" data-id="' + L.id + '">' + (L.side === 'w' ? '♙ ' : '♟ ') + esc(L.def ? L.base.name + ' (' + (L.side === 'w' ? 'White' : 'Black') + ')' : L.name) + '</button>'; }).join('') + '<button class="chip" data-act="battlePick" data-id="random">Surprise me</button></div>' : '') +
       (spec.kind === 'boss' && S.bosses[spec.b.id] ? '<p class="placed-note"><span class="pn-ico">✓</span><span>You already beat ' + esc(spec.b.name) + '. A rematch is just for fun.</span></p>' : '') +
       '<div class="actions"><button class="btn primary big" data-act="startGame">▶&nbsp; ' + esc(I.cta) + '</button></div>');
     if (spec.kind === 'boss') Voice.say([V('boss_' + spec.b.id)]);
@@ -2829,7 +2859,7 @@
   function endPanel(tag, html, cls) { MODES.play.say(tag, html, cls); MODES.play.render(); }
   // Opening battle: did the player punish the slip?
   MODES.play.battleEnd = function (a, fenBefore, uci, res) {
-    PL.judging = false;
+    PL.judging = false; Celebrate.flush();
     var ok = !!a && a.loss <= 50 && a.bestScore >= 80;
     PL.over = ok ? 'Mistake punished!' : 'The slip got away'; IX.enabled = false;
     S.battleStreak = ok ? (S.battleStreak || 0) + 1 : 0; S.battleBest = Math.max(S.battleBest || 0, S.battleStreak); addXP(ok ? 30 : 10); save();
@@ -2850,7 +2880,7 @@
   };
   // Challenges finish here (bosses use the normal game end plus bossEnd)
   MODES.play.specFinish = function (result, msg) {
-    var sp = PL.spec; PL.over = msg; IX.enabled = false;
+    var sp = PL.spec; PL.over = msg; IX.enabled = false; Celebrate.flush();
     if (sp.kind === 'battle') { PL.specActions = '<button class="btn primary" data-act="battle">⚔ Next battle</button><button class="btn ghost" data-act="arena">Arena</button>'; return endPanel('Battle over', esc(msg), ''); }
     var c = sp.c, win = c.goal === 'survive' ? result !== 'loss' : result === 'win' && (c.goal !== 'mate' || /Checkmate/.test(msg));
     var st = !win ? 0 : c.goal === 'survive' || PL.chN <= c.par ? 3 : PL.chN <= c.par + Math.ceil((c.limit - c.par) / 2) ? 2 : 1;
@@ -2910,7 +2940,7 @@
         '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
         '<div class="stat-grid">' +
         stat('Lessons', (lessonsDone + placedN) + '/' + Object.keys(LESSONS).length + (placedN ? ' <span class="muted small">' + placedN + ' skipped</span>' : '')) + stat('Openings mastered', opsMastered + '/' + OPENINGS.length) +
-        stat('Puzzles solved', solved + '/' + PUZZLES.length) + stat('Coach games', games.length + (games.length ? ' · ' + wins + ' won' : '')) +
+        stat('Puzzles solved', solved + '/' + PUZZLES.length) + stat('Coach games', games.length + (games.length ? ' · ' + wins + ' won' : '')) + stat('Game rating', S.grating || '–') + stat('Bosses beaten', Object.keys(S.bosses || {}).length + '/' + BOSSES.length) +
         stat('Avg accuracy', avgAcc != null ? avgAcc + '%' : '–') + stat('Best win', bestWinLevel ? bestWinLevel.name + ' ~' + bestWinLevel.elo : '–') +
         '</div>' +
         '<div class="sect-head"><h2>30-day plan</h2><span class="muted small">missions per day</span></div><div class="cal">' + cells + '</div>' +
@@ -3140,6 +3170,7 @@
     var queue = [], open = false;
     function next() {
       if (open || !queue.length) return;
+      if (current === MODES.play && PL && PL.g && !PL.over) return; // never cover the board mid-game
       var c = queue.shift(); open = true;
       var m = document.createElement('div'); m.className = 'celebrate';
       m.innerHTML = '<div class="cel-card" role="dialog" aria-modal="true" aria-label="' + esc(c.title) + '"><div class="cel-ray" aria-hidden="true"></div>' +
@@ -3150,7 +3181,7 @@
       Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
       m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]')) { m.remove(); open = false; setTimeout(next, 250); } });
     }
-    return { show: function (c) { queue.push(c); setTimeout(next, 500); }, pending: function () { return open || queue.length > 0; } };
+    return { show: function (c) { queue.push(c); setTimeout(next, 500); }, flush: function () { setTimeout(next, 1200); }, pending: function () { return open || queue.length > 0; } };
   })();
 
   // ================= Welcome tour =================
