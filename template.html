@@ -718,6 +718,37 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 body.no-3d .dim-seg { display: none; }
 .stage-top .dim-seg { margin-left: auto; }
 .b2-lab.on-dark { color: #f3dfba; }
+/* game analysis */
+.an-tabs { margin: 12px 0; }
+.an-form { display: grid; gap: 10px; }
+.an-lab { display: grid; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.an-in { width: 100%; box-sizing: border-box; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; color: var(--fg); font: 15px var(--f-body, inherit); }
+.an-in:focus { outline: none; border-color: var(--brass-hi); box-shadow: 0 0 0 3px rgba(255,210,63,.15); }
+.an-ta { min-height: 130px; resize: vertical; font: 12.5px var(--f-mono); line-height: 1.45; }
+.an-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.an-games, .an-hist, .an-probs, .an-ops, .an-phases { display: grid; gap: 8px; }
+.an-game { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--fg); min-width: 0; }
+.an-game:hover { border-color: var(--brass); }
+.an-res { flex: 0 0 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font: 800 14px var(--f-mono); background: var(--card-2); }
+.an-game.win .an-res { background: rgba(61,220,151,.2); color: #3ddc97; } .an-game.loss .an-res { background: rgba(255,93,108,.18); color: #ff5d6c; } .an-game.draw .an-res { color: var(--muted); }
+.an-gt { display: grid; gap: 2px; min-width: 0; flex: 1; } .an-gt > span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.an-go { color: var(--brass-hi); }
+.an-h { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 8px 12px; border-radius: 10px; background: var(--card); } .an-h span { color: var(--muted); text-align: right; }
+.an-prog { margin-top: 14px; padding: 14px; border-radius: 14px; border: 1px solid rgba(255,210,63,.35); background: linear-gradient(135deg, rgba(255,210,63,.1), rgba(76,201,240,.05)), var(--card); display: grid; gap: 10px; }
+.an-prog-top { display: flex; justify-content: space-between; gap: 8px; }
+.an-dots { display: flex; flex-wrap: wrap; gap: 4px; min-height: 12px; } .an-dots .cdot { position: static; margin: 0; }
+.an-last { margin: 0; color: var(--muted); }
+.an-ph { display: grid; grid-template-columns: 92px 1fr 42px; align-items: center; gap: 10px; font-size: 13.5px; }
+.an-ph-bar { height: 10px; border-radius: 99px; background: var(--card-2); overflow: hidden; } .an-ph-bar i { display: block; height: 100%; border-radius: inherit; background: var(--muted); }
+.an-ph-bar i.good { background: #3ddc97; } .an-ph-bar i.warn { background: var(--brass-hi); } .an-ph-bar i.bad { background: #ff5d6c; }
+.an-prob { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); }
+.an-prob.first { border-color: rgba(255,93,108,.5); background: linear-gradient(135deg, rgba(255,93,108,.1), transparent 70%), var(--card); }
+.an-prob-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; } .an-n { font: 700 12px var(--f-mono); color: var(--muted); white-space: nowrap; }
+.an-prob p { margin: 6px 0 8px; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.an-ex { display: flex; flex-wrap: wrap; gap: 6px; }
+.an-op { display: grid; grid-template-columns: minmax(0, 1.2fr) 1fr 40px; gap: 10px; align-items: center; font-size: 13px; } .an-op-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-op-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--card-2); } .an-op-bar .w { background: #3ddc97; } .an-op-bar .d { background: #8a93a8; } .an-op-bar .l { background: #ff5d6c; }
+.an-entry { margin-top: 14px; }
 /* coach missions */
 .jmission { display: flex; align-items: center; gap: 10px; width: calc(100% - 28px); margin: -2px 0 6px 28px; padding: 7px 12px; border-radius: 10px; border: 1px dashed rgba(255,210,63,.45); background: rgba(255,210,63,.06); color: var(--fg); font-size: 13.5px; text-align: left; }
 .jmission:hover { border-style: solid; }

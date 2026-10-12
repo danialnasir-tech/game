@@ -299,3 +299,22 @@ function QUIZ_LINES(data) {
   return out;
 }
 if (typeof module !== 'undefined') { module.exports.QUIZ_OF = QUIZ_OF; module.exports.QUIZ_LINES = QUIZ_LINES; }
+
+// ===== Batch 8: game analysis (chess.com / PGN imports) =====
+Object.assign(MORE_POOLS, {
+  an_start: ["Let's see how that game went.", "Okay, I'm going through your moves now.", "Let me check every move you played.", "Game received. Analysing it move by move."],
+  an_done: ["Done. Here's what I found.", "Analysis finished. Let's look at the problems.", "All checked. Here's your report.", "That's every move. Let's go through it."],
+  an_clean: ["No real problems in this game. Well played.", "Honestly, a clean game. Nice work."],
+  an_patterns: ["Here are the habits that cost you the most points.", "I found your patterns. Fix the top one first.", "This is what keeps coming back in your games."],
+  pr_trap: ["You fell into a known opening trap. Learn the defence once and it won't happen again.", "That was a trap, and you took the bait. Let's learn how to meet it."],
+  pr_allowedmate: ["The biggest problem: you missed a mating threat. Always check your opponent's checks first.", "You walked into a mate threat. Before each move, look at every check your opponent has."],
+  pr_hung: ["The main problem: pieces left undefended. After every move, check that your pieces are still safe.", "You left material hanging. Ask yourself: is the piece I just moved protected?"],
+  pr_missedmate: ["You had a checkmate and missed it. When their king is short of squares, look at every check.", "There was a mate on the board. Checks first, always."],
+  pr_missedfork: ["You missed a fork. Look for moves that attack two pieces at once.", "A fork was there for you. Knights and queens love double attacks."],
+  pr_missedwin: ["You missed free material. Scan for undefended enemy pieces every move.", "Your opponent left something hanging, and you didn't take it."],
+  pr_slipped: ["You were winning, then let it slip. When ahead, trade pieces and keep it simple.", "That game was won at one point. Converting is a skill we can train."],
+  pr_kingcentre: ["Your king stayed in the centre too long. Castle early.", "Your king never got to safety. Castle in the first ten moves."],
+  pr_earlyqueen: ["Your queen came out too early and got chased around.", "Too many early queen moves. Develop the knights and bishops first."],
+  pr_slowdev: ["Too many pieces stayed at home. Develop everything before you attack.", "Your knights and bishops were slow to come out."],
+  pr_missedbetter: ["You missed some stronger moves. Compare two or three candidates before you play.", "Several moves had a better option. Slow down at the critical moments."]
+});

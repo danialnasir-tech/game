@@ -20,7 +20,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `dist/voice-pack-1..19.mp3` | All 1932 voice clips, packed (32 kbps mono). Packs 1-2 are the start packs (first-session lines) the launch screen downloads; the rest load on demand. `dist/voice-manifest.json` = generator hash per clip (stale clips stay silent). |
 | `pack-voice.js`, `unpack-voice.js`, `ingest.sh` | Turn a voice zip (or a folder) from the user into packs: `sh ingest.sh chess-voice-v4.zip` (needs ffmpeg). It may hold only the new clips: `unpack-voice.js` restores the already packed ones first. A .rar must be extracted to a folder first (e.g. with the free `node-unrar-js`). |
 | `build-kit.js` | Rebuilds `voice-kit-v4/generate-v4-voices.js` from `voice-kit-v4/generate-v4-voices.template.js` with every line (male voice, eleven_v4 only) and prints how many clips are new. `voice-kit/` is the old female template and is no longer used. |
-| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 1997 lines (1932 packed, 65 waiting to be recorded). |
+| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 2032 lines (1932 packed, 100 waiting to be recorded). |
 | `website/` | Download version: `serve.js` + `Start-Chess-Ascent.bat` (index.html = dist/site.html, plus the 15 packs). |
 | `tests/` | `perft.js`, `validate.js` (checks every lesson/opening/puzzle), `bench.js` (engine match + tactics), `mine.js` (puzzle miner), Playwright scripts (`smoke.py`, `mob.py` phone screenshots, etc.). |
 
@@ -89,7 +89,13 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - Novice coach in teaching mode leaves a minor piece or rook loose up to 3 times a game (`teachSlip`), and `onPurpose` says so ("I left my knight on c6 loose on purpose…"). Beating Novice/Club gets a "I play like a beginner on purpose" message instead of looking like a broken bot.
 - The home board previews the next lesson; tapping it starts the lesson.
 
+## Game analysis (chess.com / PGN)
+- `MODES.analyze` (app.js, "Analyze a game" in Explore and at the top of the Coach setup). Sources: chess.com username → recent games list; username + game link → that game (the free public API finds games by player and month, so the link alone is not enough; archives are searched newest first, up to 36 months); or a pasted PGN (`parsePGN`, first game only, clocks/comments/variations skipped).
+- Every move of the player's side runs `analyzeMove` (900 ms; 300 ms in pattern scans), graded with the same `grade()` as coach games, then `gameReport()` builds: problems (`PROBLEMS`: trap, allowedMate, hung, missedMate, missedFork, missedWin, slipped, kingCentre, earlyQueen, slowDev, missedBetter) with example moves and a "Fix it" lesson, phase accuracy, and the opening line it matched. The result opens in the normal review with the report on top.
+- "Find my patterns": the last 6 games are scanned, problems summed, plus results by opening and colour from up to 40 games. `S.ccUser` remembers the username, `S.anHist` the last 30 analyses.
+- Not testable from the build container (chess.com is blocked there); tests mock `api.chess.com`. Whether the claude.ai artifact page may call chess.com depends on its network policy; if blocked, the app says so and points to PGN paste. The self-hosted site build has no such limit.
+
 ## Open items
-1. Voice: 1932 clips packed. 65 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
+1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.
 3. Ideas offered: Stockfish (WASM, GPL) for the website build; accounts / cloud save on Hostinger.

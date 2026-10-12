@@ -1157,7 +1157,7 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -1222,6 +1222,7 @@
       { m: 'puzzles', ico: 'n', t: 'Puzzles', s: PUZZLES.length + ' tactics' },
       { m: 'rush', ico: 'q', t: 'Puzzle Rush', s: '3 lives, beat the clock', act: 'rushStart' },
       { m: 'play', ico: 'k', t: 'Play the coach', s: '5 levels, live tips' },
+      { m: 'analyze', ico: 'b', t: 'Analyze a game', s: 'From chess.com or PGN', act: 'goAnalyze' },
       { m: 'openings', ico: 'b', t: 'Openings', s: OPENINGS.length + ' lines & traps' },
       { m: 'progress', ico: 'r', t: 'Badges', s: 'Track your climb' }
     ];
@@ -2164,6 +2165,7 @@
       var c = S.coach, from = PL.arg && PL.arg.from;
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
+        '<button class="test-out an-entry" data-act="goAnalyze"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
         '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">Your level</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your colour</h2></div>' +
@@ -2619,9 +2621,10 @@
         curHtml = '<div class="feed-item ' + cur.cls + '"><span class="fi-tag">Move ' + Math.ceil(r.ply / 2) + ' · ' + esc(cur.label) + '</span><p><strong>' + esc(cur.san) + '</strong>' +
           (CLASS[cur.key] && !CLASS[cur.key].positive ? ' Best was <strong>' + esc(cur.bestSan) + '</strong> (green arrow).' + (cur.reply ? ' After your move, ' + esc(cur.reply) + ' was strong for your opponent.' : '') + ' <button class="link" data-act="rvShow" data-n="' + r.ply + '">▶ Show me</button> · <button class="link" data-act="rvSay" data-n="' + r.ply + '">🔊 Explain</button>' : ' Well played.') + '</p></div>';
       }
-      setPanel('<button class="back" data-act="goPlay">← New game</button><div class="eyebrow">Game review · vs ' + esc(r.level.name) + '</div>' +
+      setPanel((r.back === 'analyze' ? '<button class="back" data-act="goAnalyze">← Analyze another game</button>' : '<button class="back" data-act="goPlay">← New game</button>') + '<div class="eyebrow">Game review · vs ' + esc(r.level.name) + '</div>' +
         '<h1 class="h1">' + esc(r.over || 'Game review') + '</h1>' +
         '<div class="rv-hero"><div><div class="muted small">Your accuracy</div><div class="rating">' + (r.acc != null ? r.acc + '%' : '–') + '</div></div><div class="summary-row">' + chips + '</div></div>' +
+        (r.report ? reportHtml(r) : '') +
         (r.moments.length ? '<div class="sect-head"><h2>Moments that decided the game</h2></div><div class="moments">' + r.moments.map(function (m, k) {
           return '<button class="moment ' + m.cls + '" data-act="rvMoment" data-k="' + k + '"><span class="mo-n">' + (k + 1) + '</span><span><b>Move ' + Math.ceil((m.i + 1) / 2) + ': ' + esc(m.san) + '</b><span class="mo-sub">' + esc(m.label) + (m.bestSan && CLASS[m.key] && !CLASS[m.key].positive ? ' · best was ' + esc(m.bestSan) : '') + '</span></span><span class="mo-go">▶</span></button>';
         }).join('') + '</div>' + (r.moments.some(function (m) { return !CLASS[m.key].positive; }) ? '<button class="btn primary big" data-act="rvPractice">Practise these positions</button>' : '') : '<p class="lede">No big mistakes this game. Impressive!</p>') +
@@ -2801,6 +2804,358 @@
     var id = MS && MS.lesson, nl = nextLesson();
     if (nl && nl !== id) go('lesson', nl); else go('path');
   };
+
+  // ================= Analyze a game from chess.com (or any PGN) =================
+  // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
+  function parsePGN(text) {
+    text = String(text || '').replace(/\r/g, '');
+    var headers = {}, m, re = /^\s*\[(\w+)\s+"((?:[^"\\]|\\.)*)"\]\s*$/gm;
+    while ((m = re.exec(text))) headers[m[1]] = m[2];
+    var body = text.replace(/^\s*\[[^\]]*\]\s*$/gm, ' ');
+    var next = body.search(/\n\s*\[Event /); if (next > 0) body = body.slice(0, next); // only the first game of a paste
+    body = body.replace(/\{[^}]*\}/g, ' ').replace(/;[^\n]*/g, ' ');
+    var depth = 0, out = '';
+    for (var i = 0; i < body.length; i++) { var ch = body[i]; if (ch === '(') depth++; else if (ch === ')') depth = Math.max(0, depth - 1); else if (!depth) out += ch; }
+    var toks = out.replace(/\$\d+/g, ' ').replace(/\d+\.(\.\.)?/g, ' ').split(/\s+/).filter(function (t) { return t && !/^(1-0|0-1|1\/2-1\/2|\*)$/.test(t); });
+    var startFen = headers.FEN && headers.SetUp !== '0' ? headers.FEN : Game.START, g = new Game(startFen), sans = [];
+    for (var k = 0; k < toks.length; k++) {
+      var t = toks[k].replace(/[!?]+$/, '').replace(/^\.+/, '');
+      if (!t) continue;
+      var mv = g.move(t);
+      if (!mv) return { error: 'Move ' + (Math.floor(sans.length / 2) + 1) + ' ("' + toks[k] + '") is not legal here. Is this standard chess?', headers: headers, sans: sans };
+      sans.push(mv.san);
+    }
+    if (!sans.length) return { error: 'No moves found. Paste the full PGN, including the moves.' };
+    return { headers: headers, sans: sans, startFen: startFen };
+  }
+  // chess.com public API: free, no key, no account. It finds games by player and month, so a game link needs the player too.
+  var CC = {
+    base: 'https://api.chess.com/pub/player/',
+    get: function (url) {
+      return fetch(url, { headers: { Accept: 'application/json' } }).then(function (r) {
+        if (r.status === 404) throw { code: 'nouser' };
+        if (!r.ok) throw { code: 'http', status: r.status };
+        return r.json();
+      }, function () { throw { code: 'offline' }; });
+    },
+    archives: function (u) { return CC.get(CC.base + encodeURIComponent(u.toLowerCase()) + '/games/archives').then(function (j) { return (j.archives || []).slice().reverse(); }); },
+    recent: function (u, n) {
+      return CC.archives(u).then(function (list) {
+        var out = [], k = 0;
+        function step() {
+          if (out.length >= n || k >= Math.min(list.length, 4)) return out.slice(0, n);
+          return CC.get(list[k++]).then(function (j) { out = out.concat((j.games || []).filter(ccStandard).reverse()); return step(); });
+        }
+        return step();
+      });
+    },
+    find: function (u, id) {
+      return CC.archives(u).then(function (list) {
+        var k = 0;
+        function step() {
+          if (k >= Math.min(list.length, 36)) throw { code: 'notfound' };
+          return CC.get(list[k++]).then(function (j) { var hit = (j.games || []).filter(function (x) { return String(x.url || '').split('/').pop() === id; })[0]; return hit || step(); });
+        }
+        return step();
+      });
+    }
+  };
+  function ccStandard(x) { return x && x.pgn && (x.rules || 'chess') === 'chess'; }
+  function ccUser(s) { s = String(s || '').trim(); var m = /chess\.com\/member\/([\w-]+)/i.exec(s); return (m ? m[1] : s).replace(/^@/, ''); }
+  function ccLinkId(s) { var m = /chess\.com\/.*?(?:live|daily)\/(?:game\/)?(\d+)/i.exec(String(s || '')); return m ? m[1] : null; }
+  function ccError(e) {
+    var c = e && e.code;
+    if (c === 'nouser') return 'chess.com has no player with that username. Check the spelling.';
+    if (c === 'notfound') return 'That game is not in this player\'s archive. Make sure the username is one of the two players, or paste the PGN instead.';
+    if (c === 'offline') return 'This page could not reach chess.com (no connection, or this host blocks it). Paste the PGN instead: on chess.com open the game, tap Share, then PGN, then Copy.';
+    return 'chess.com did not answer (' + (e && e.status || 'error') + '). Try again in a minute, or paste the PGN.';
+  }
+  function openingName(h) {
+    if (h.ECOUrl) { var n = decodeURIComponent(h.ECOUrl.split('/').pop()).replace(/-/g, ' ').replace(/\s\d.*$/, ''); return n.length > 60 ? n.slice(0, 60) + '…' : n; }
+    return h.Opening || h.ECO || '';
+  }
+  // what the moved piece attacks right after a move (for fork detection): captures it could make if it moved again
+  function forkTargets(fen, mv) {
+    var g = new Game(fen); var r = g.move(mv); if (!r) return 0;
+    var check = g.inCheck() ? 1 : 0, parts = g.fen().split(' '); parts[1] = parts[1] === 'w' ? 'b' : 'w'; parts[3] = '-';
+    var h = new Game(parts.join(' '));
+    var hits = h.moves({ square: r.to }).filter(function (x) { return x.captured && VAL[x.captured] >= 3; }).length;
+    return hits + check;
+  }
+  var PROBLEMS = {
+    trap: { t: 'Fell into an opening trap', fix: 'Your opponent played a known trap and you took the bait. Learn the line once and it will never catch you again.', lesson: [], v: 'pr_trap' },
+    allowedMate: { t: 'Missed your opponent\'s mating threat', fix: 'Before every move, ask: can my opponent give check, and is any of those checks mate?', lesson: ['l-backrank', 'l-cct'], v: 'pr_allowedmate' },
+    hung: { t: 'Left pieces undefended', fix: 'After choosing a move, check that the piece you moved, and the ones it was guarding, are still safe.', lesson: ['l-values', 'l-cct'], v: 'pr_hung' },
+    missedMate: { t: 'Missed a checkmate', fix: 'When the enemy king is short of squares, look at every check first.', lesson: ['l-patterns', 'l-qmate'], v: 'pr_missedmate' },
+    missedFork: { t: 'Missed a fork', fix: 'Look for one move that attacks two valuable pieces at once, especially knight jumps and queen checks.', lesson: ['l-forks'], v: 'pr_missedfork' },
+    missedWin: { t: 'Missed free material', fix: 'Every move, scan your opponent\'s pieces: is any of them attacked and not defended?', lesson: ['l-values', 'l-defender'], v: 'pr_missedwin' },
+    slipped: { t: 'Let a winning position slip', fix: 'When you are ahead, trade pieces, stop counterplay and keep it simple.', lesson: ['l-convert'], v: 'pr_slipped' },
+    kingCentre: { t: 'King stayed in the centre', fix: 'Castle in the first ten moves, before the position opens up.', lesson: ['l-special', 'l-principles'], v: 'pr_kingcentre' },
+    earlyQueen: { t: 'Queen came out too early', fix: 'Develop knights and bishops first; an early queen gets chased and you lose time.', lesson: ['l-principles', 'l-traps'], v: 'pr_earlyqueen' },
+    slowDev: { t: 'Pieces left at home', fix: 'Get every knight and bishop off the back rank before starting an attack.', lesson: ['l-principles'], v: 'pr_slowdev' },
+    missedBetter: { t: 'Missed stronger moves', fix: 'In sharp positions, compare two or three candidate moves before you play.', lesson: ['l-calc', 'l-cct'], v: 'pr_missedbetter' }
+  };
+  function problemOf(l) {
+    if (!l || !l.cls || (CLASS[l.key] && CLASS[l.key].positive) || l.key === 'inacc') return null;
+    if (l.rs > 90000 || (l.ps < -90000 && l.bs > -90000)) return 'allowedMate';
+    if (l.bs > 90000 && l.ps < 90000) return 'missedMate';
+    if (l.rc && VAL[l.rc] >= 3 && l.loss >= 150) return 'hung';
+    if (l.fork) return 'missedFork';
+    if (l.best && l.best.captured && VAL[l.best.captured] >= 3 && l.loss >= 150) return 'missedWin';
+    return 'missedBetter';
+  }
+  // Whole-game report: problems with examples, phase accuracy, opening.
+  function gameReport(job) {
+    var color = job.color, log = job.log, sans = job.sans, probs = {}, phase = { open: [], mid: [], end: [] };
+    function add(k, ply) { (probs[k] = probs[k] || []).push(ply); }
+    var g = new Game(job.startFen), castledAt = null, queenMoves = 0, peak = -Infinity, slipAt = null;
+    for (var i = 0; i < sans.length; i++) {
+      var mover = g.turn(), mv = g.move(sans[i]), myMoveNo = Math.floor(i / 2) + 1, l = log[i];
+      if (mover !== color) continue;
+      if (/^O-O/.test(mv.san) && castledAt == null) castledAt = myMoveNo;
+      if (mv.piece === 'q' && myMoveNo <= 8) queenMoves++;
+      if (myMoveNo === 10) {
+        var home = 0; ['b', 'c', 'f', 'g'].forEach(function (f) { var p = g.get(f + (color === 'w' ? '1' : '8')); if (p && p.color === color && (p.type === 'n' || p.type === 'b')) home++; });
+        if (home >= 2) add('slowDev', i);
+      }
+      if (myMoveNo === 12 && castledAt == null) { var k = g.get(color === 'w' ? 'e1' : 'e8'); var queens = /q/i.test(g.fen().split(' ')[0]); if (k && k.type === 'k' && queens) add('kingCentre', i); }
+      if (!l || !l.cls) continue;
+      var pk = problemOf(l); if (pk) add(pk, i);
+      var nonPawn = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p && p.type !== 'p' && p.type !== 'k') nonPawn += VAL[p.type]; }); });
+      var acc = Math.max(0, Math.min(100, 103.17 * Math.exp(-0.04354 * (l.drop || 0)) - 3.17));
+      (myMoveNo <= 12 ? phase.open : nonPawn <= 26 ? phase.end : phase.mid).push(acc);
+      if (l.ps != null && l.ps < 90000) { if (l.ps > peak) peak = l.ps; if (peak >= 300 && l.ps < 80 && slipAt == null) slipAt = i; }
+    }
+    if (queenMoves >= 3) add('earlyQueen', 0);
+    if (slipAt != null && job.result !== 'win') add('slipped', slipAt);
+    var avg = function (a) { return a.length ? Math.round(a.reduce(function (s, x) { return s + x; }, 0) / a.length) : null; };
+    var list = Object.keys(probs).map(function (k) { return { k: k, plies: probs[k], n: probs[k].length }; });
+    var order = Object.keys(PROBLEMS);
+    list.sort(function (a, b) { return (b.n - a.n) || (order.indexOf(a.k) - order.indexOf(b.k)); });
+    // opening: how far the game followed a line the app teaches
+    var best = null, cl = function (x) { return x.replace(/[+#!?]/g, ''); };
+    if (job.startFen === Game.START) allLines().forEach(function (L) { var n = 0; while (n < L.moves.length && n < sans.length && cl(L.moves[n]) === cl(sans[n])) n++; if (n >= 4 && (!best || n > best.n)) best = { L: L, n: n }; });
+    var book = best ? { id: best.L.id, name: best.L.base ? best.L.base.name : best.L.name, n: best.n, full: best.n >= best.L.moves.length, theirs: best.L.side !== color } : null;
+    if (book && book.theirs) book.defId = best.L.def ? best.L.base.id : DEFENCES[best.L.id] ? 'def-' + best.L.id : best.L.id;
+    if (book && book.theirs && (best.L.family === 'Traps' || best.L.gambit) && best.n >= best.L.moves.length - 1) {
+      var D2 = lineById(book.defId), at = -1;
+      if (D2 && D2.def) { var q = 0; while (q < D2.moves.length && q < sans.length && cl(D2.moves[q]) === cl(sans[q])) q++; if (q < sans.length && q < D2.moves.length) at = q; }
+      if (at < 0) for (var z = Math.min(best.n, sans.length) - 1; z >= 0; z--) if ((new Game(job.startFen).turn() === 'w' ? z % 2 === 0 : z % 2 === 1) === (color === 'w')) { at = z; break; }
+      list.unshift({ k: 'trap', plies: [Math.max(0, at)], n: 1 });
+    }
+    return { problems: list, phase: { open: avg(phase.open), mid: avg(phase.mid), end: avg(phase.end) }, opening: openingName(job.headers), book: book };
+  }
+  function lessonFor(p) { var ls = PROBLEMS[p].lesson; if (!ls.length) return null; return ls.filter(function (id) { return LESSONS[id] && !lessonDone(id); })[0] || ls.filter(function (id) { return LESSONS[id]; })[0]; }
+  function resultFor(h, color) { var r = h.Result; if (r === '1/2-1/2') return 'draw'; if (r === '1-0') return color === 'w' ? 'win' : 'loss'; if (r === '0-1') return color === 'b' ? 'win' : 'loss'; return null; }
+  function sideOf(h, user) { user = String(user || '').toLowerCase(); if (!user) return null; if (String(h.White || '').toLowerCase() === user) return 'w'; if (String(h.Black || '').toLowerCase() === user) return 'b'; return null; }
+
+  var AN = null;
+  MODES.analyze = {
+    label: 'Analyze a game',
+    enter: function (arg) {
+      arg = arg || {};
+      AN = { tab: arg.tab || 'cc', user: S.ccUser || '', games: null, busy: null, err: null, pgn: '', side: null, link: '' };
+      if (!AN.job) setupBoard(Game.START, { orient: 'w' });
+      MODES.analyze.render();
+      if (arg.pgn) MODES.analyze.fromPgn(arg.pgn, arg.color);
+    },
+    render: function () {
+      if (AN.job && !AN.job.done) return MODES.analyze.renderJob();
+      if (AN.pat) return MODES.analyze.renderPatterns();
+      var tab = AN.tab, hist = (S.anHist || []).slice(-4).reverse();
+      var html = '<div class="eyebrow">Game analysis</div><h1 class="h1">Analyze a game</h1>' +
+        '<p class="lede">Bring a game from chess.com, or any PGN. I check every one of your moves, then tell you what went wrong, why, and which lesson fixes it.</p>' +
+        '<div class="seg an-tabs"><button class="' + (tab === 'cc' ? 'on' : '') + '" data-act="anTab" data-t="cc">chess.com</button><button class="' + (tab === 'pgn' ? 'on' : '') + '" data-act="anTab" data-t="pgn">Paste PGN</button></div>';
+      if (tab === 'cc') {
+        html += '<div class="an-form"><label class="an-lab">Your chess.com username<input id="an-user" class="an-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. MagnusCarlsen" value="' + esc(AN.user) + '"></label>' +
+          '<label class="an-lab">Game link <span class="muted">(optional)</span><input id="an-link" class="an-in" autocomplete="off" spellcheck="false" placeholder="https://www.chess.com/game/live/…" value="' + esc(AN.link) + '"></label>' +
+          '<div class="actions"><button class="btn primary" data-act="anFetch">' + (AN.busy === 'fetch' ? 'Loading…' : 'Find my games') + '</button><button class="btn" data-act="anPatterns">Find my patterns</button></div></div>';
+        if (AN.games) html += '<div class="sect-head"><h2>Recent games</h2><span class="muted small">tap one to analyze</span></div><div class="an-games">' + (AN.games.length ? AN.games.map(function (x, k) {
+          var me = String(x.white.username).toLowerCase() === AN.user.toLowerCase() ? 'w' : 'b', opp = me === 'w' ? x.black : x.white, mine = me === 'w' ? x.white : x.black;
+          var res = mine.result === 'win' ? 'win' : /agreed|repetition|stalemate|insufficient|50move|timevsinsufficient/.test(mine.result) ? 'draw' : 'loss';
+          var h = parsePGNHeaders(x.pgn), d = x.end_time ? new Date(x.end_time * 1000) : null;
+          return '<button class="an-game ' + res + '" data-act="anPick" data-k="' + k + '"><span class="an-res">' + (res === 'win' ? 'W' : res === 'draw' ? '½' : 'L') + '</span><span class="an-gt"><b>vs ' + esc(opp.username) + ' <span class="muted">(' + (opp.rating || '?') + ')</span></b><span>' + (me === 'w' ? '♙ White' : '♟ Black') + ' · ' + esc(x.time_class || '') + (d ? ' · ' + d.toLocaleDateString() : '') + (openingName(h) ? ' · ' + esc(openingName(h)) : '') + '</span></span><span class="an-go">→</span></button>';
+        }).join('') : '<p class="muted">No standard games found in the last few months.</p>') + '</div>';
+      } else {
+        var h = AN.pgn ? parsePGNHeaders(AN.pgn) : {};
+        html += '<div class="an-form"><label class="an-lab">PGN<textarea id="an-pgn" class="an-in an-ta" spellcheck="false" placeholder="[Event &quot;Live Chess&quot;]&#10;…&#10;1. e4 e5 2. Nf3 Nc6 …">' + esc(AN.pgn) + '</textarea></label>' +
+          '<p class="muted small">On chess.com: open the game, tap <b>Share</b>, then <b>PGN</b>, then <b>Copy</b>.</p>' +
+          '<div class="an-side"><span class="muted small">You played</span><div class="seg">' + [['w', 'White' + (h.White ? ' (' + esc(h.White) + ')' : '')], ['b', 'Black' + (h.Black ? ' (' + esc(h.Black) + ')' : '')]].map(function (x) { var on = (AN.side || sideOf(h, S.ccUser) || 'w') === x[0]; return '<button class="' + (on ? 'on' : '') + '" data-act="anSide" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+          '<div class="actions"><button class="btn primary wide" data-act="anPgn">Analyze this game</button></div></div>';
+      }
+      if (AN.err) html += '<div class="status bad">' + esc(AN.err) + '</div>';
+      if (hist.length) html += '<div class="sect-head"><h2>Analyzed before</h2></div><div class="an-hist">' + hist.map(function (x) { return '<div class="an-h"><b>vs ' + esc(x.opp) + '</b><span>' + (x.acc != null ? x.acc + '% · ' : '') + esc(x.top ? PROBLEMS[x.top].t : 'No big problems') + '</span></div>'; }).join('') + '</div>';
+      setPanel(html);
+      var u = $('#an-user'); if (u) u.oninput = function () { AN.user = ccUser(u.value); };
+      var lk = $('#an-link'); if (lk) lk.oninput = function () { AN.link = lk.value.trim(); };
+      var ta = $('#an-pgn'); if (ta) ta.oninput = function () { AN.pgn = ta.value; };
+    },
+    fromPgn: function (text, color) {
+      var P = parsePGN(text);
+      if (P.error) { AN.err = P.error; AN.tab = 'pgn'; MODES.analyze.render(); return; }
+      color = color || sideOf(P.headers, S.ccUser) || AN.side || 'w';
+      MODES.analyze.run({ sans: P.sans, startFen: P.startFen, headers: P.headers, color: color });
+    },
+    run: function (job) {
+      AN.err = null; if (!job.fast) AN.pat = null;
+      job.log = []; job.i = 0; job.done = false; job.tok = (AN.jtok = (AN.jtok || 0) + 1);
+      job.result = resultFor(job.headers, job.color);
+      job.opp = (job.color === 'w' ? job.headers.Black : job.headers.White) || 'Opponent';
+      job.oppElo = job.color === 'w' ? job.headers.BlackElo : job.headers.WhiteElo;
+      job.mine = job.sans.filter(function (s, i) { return (new Game(job.startFen).turn() === 'w' ? i % 2 === 0 : i % 2 === 1) === (job.color === 'w'); }).length;
+      job.checked = 0;
+      AN.job = job;
+      setupBoard(job.startFen, { orient: job.color });
+      if (!job.fast) { Voice.say([V('an_start')]); MODES.analyze.renderJob(); }
+      var g = new Game(job.startFen);
+      function step() {
+        if (!AN || AN.job !== job || job.tok !== AN.jtok) return;
+        if (job.i >= job.sans.length) return MODES.analyze.finish(job);
+        var i = job.i, fenBefore = g.fen(), mover = g.turn(), res = g.move(job.sans[i]);
+        job.i++;
+        B3.sync(g.fen()); B3.markers('last', [res.from, res.to]);
+        if (mover !== job.color) { job.log[i] = {}; return setTimeout(step, 0); }
+        var uci = res.from + res.to + (res.promotion || '');
+        Eng.call('analyzeMove', fenBefore, uci, 30, job.fast ? 300 : 900).then(function (a) {
+          if (!AN || AN.job !== job) return;
+          job.checked++;
+          if (a) {
+            var gr = grade(a, res, fenBefore, uci), c = gr.c;
+            if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
+            var e = { drop: c.positive ? 0 : Math.max(0, winChance(a.bestScore) - winChance(a.playedScore)) * 100, cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan,
+              bs: a.bestScore, ps: a.playedScore, rs: a.reply ? a.reply.score : null, rc: a.reply && a.reply.captured || null };
+            if (!c.positive) { var wb = whyBest(a, a.bestSan, i + 1, fenBefore); e.why = wb[0]; e.whyText = wb[1]; if (!a.best.captured && a.loss >= 150 && forkTargets(fenBefore, { from: a.best.from, to: a.best.to, promotion: a.best.promotion || undefined }) >= 2) e.fork = true; }
+            job.log[i] = e;
+          } else job.log[i] = {};
+          if (!job.fast) MODES.analyze.renderJob();
+          step();
+        }, function () { job.log[i] = {}; step(); });
+      }
+      step();
+    },
+    renderJob: function () {
+      document.body.dataset.layout = 'board';
+      var job = AN.job, pct = job.mine ? Math.round(job.checked / job.mine * 100) : 0;
+      var dots = job.log.map(function (l, i) { return l && l.cls ? '<i class="cdot ' + l.cls + '" title="' + esc(job.sans[i] + ' · ' + l.label) + '"></i>' : ''; }).join('');
+      var last = job.log.filter(function (l) { return l && l.cls; }).pop();
+      setPanel('<div class="eyebrow">Game analysis</div><h1 class="h1">vs ' + esc(job.opp) + '</h1>' +
+        '<p class="muted">' + esc([openingName(job.headers), job.headers.Date && job.headers.Date.replace(/\./g, '-'), job.result ? { win: 'you won', loss: 'you lost', draw: 'draw' }[job.result] : ''].filter(Boolean).join(' · ')) + '</p>' +
+        '<div class="an-prog"><div class="an-prog-top"><b>Checking move ' + Math.min(job.checked + 1, job.mine) + ' of ' + job.mine + '</b><span class="mono">' + pct + '%</span></div><div class="ms-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="an-dots">' + dots + '</div>' + (last ? '<p class="small an-last"><b>' + esc(last.san) + '</b> · ' + esc(last.label) + '</p>' : '') + '</div>' +
+        '<div class="actions"><button class="btn ghost" data-act="anCancel">Cancel</button></div>');
+    },
+    finish: function (job) {
+      job.done = true;
+      var mine = job.log.filter(function (l) { return l && l.cls; });
+      var accs = mine.map(function (l) { return Math.max(0, Math.min(100, 103.17 * Math.exp(-0.04354 * (l.drop || 0)) - 3.17)); });
+      var mean = accs.reduce(function (s, x) { return s + x; }, 0) / (accs.length || 1), harm = accs.length / accs.reduce(function (s, x) { return s + 1 / Math.max(5, x); }, 0);
+      job.acc = mine.length ? Math.round((mean + harm) / 2) : null;
+      job.report = gameReport(job);
+      if (job.onDone) return job.onDone(job);
+      var top = job.report.problems[0];
+      S.anHist = (S.anHist || []).concat([{ d: dayKey(), opp: job.opp, acc: job.acc, top: top ? top.k : null, res: job.result }]).slice(-30);
+      addXP(15); save();
+      var title = (job.result === 'win' ? 'You won' : job.result === 'loss' ? 'You lost' : job.result === 'draw' ? 'Draw' : 'Your game') + (job.report.opening ? ' · ' + job.report.opening : '');
+      Voice.say([V('an_done'), top ? V(PROBLEMS[top.k].v) : V('an_clean')]);
+      go('review', { log: job.log, startFen: job.startFen, moves: job.sans, color: job.color, result: job.result, acc: job.acc, level: { name: job.opp + (job.oppElo ? ' (' + job.oppElo + ')' : '') }, over: title, report: job.report, back: 'analyze' });
+    },
+    // Patterns across the last few games: problems found by the engine, plus results by opening and colour.
+    patterns: function (user) {
+      AN.busy = 'pat'; AN.err = null; MODES.analyze.render();
+      AN.pat = { user: user, status: 'Downloading your games…', n: 0, total: 0, agg: {}, games: [], per: [] };
+      MODES.analyze.renderPatterns();
+      var tok = AN.tok = (AN.tok || 0) + 1;
+      CC.recent(user, 40).then(function (list) {
+        if (!AN || AN.tok !== tok) return;
+        var P = AN.pat; P.games = list; P.total = Math.min(6, list.length);
+        if (!list.length) { P.status = 'No standard games found.'; P.done = true; return MODES.analyze.renderPatterns(); }
+        var k = 0;
+        function next() {
+          if (!AN || AN.tok !== tok) return;
+          if (k >= P.total) { P.done = true; AN.busy = null; Voice.say([V('an_patterns')]); return MODES.analyze.renderPatterns(); }
+          var x = list[k++], parsed = parsePGN(x.pgn), color = String(x.white.username).toLowerCase() === user.toLowerCase() ? 'w' : 'b';
+          if (parsed.error) return next();
+          P.status = 'Checking game ' + k + ' of ' + P.total + ' (vs ' + (color === 'w' ? x.black.username : x.white.username) + ')';
+          MODES.analyze.renderPatterns();
+          var job = { sans: parsed.sans, startFen: parsed.startFen, headers: parsed.headers, color: color, fast: true, onDone: function (j) {
+            j.report.problems.forEach(function (p) { P.agg[p.k] = (P.agg[p.k] || 0) + p.n; });
+            P.per.push({ opp: j.opp, acc: j.acc, res: j.result, top: j.report.problems[0] && j.report.problems[0].k, pgn: x.pgn, color: color });
+            AN.job = null; next();
+          } };
+          MODES.analyze.run(job);
+        }
+        next();
+      }, function (e) { if (!AN) return; AN.pat = null; AN.busy = null; AN.err = ccError(e); MODES.analyze.render(); });
+    },
+    renderPatterns: function () {
+      var P = AN.pat, html = '<button class="back" data-act="anBack">← Analyze a game</button><div class="eyebrow">Your patterns · ' + esc(P.user) + '</div><h1 class="h1">What keeps costing you games</h1>';
+      if (!P.done) {
+        var pct = P.total ? Math.round(P.per.length / P.total * 100) : 3;
+        html += '<div class="an-prog"><div class="an-prog-top"><b>' + esc(P.status) + '</b><span class="mono">' + pct + '%</span></div><div class="ms-bar"><i style="width:' + pct + '%"></i></div><p class="muted small">This takes a minute or two: every one of your moves in your last ' + (P.total || 6) + ' games is checked.</p></div><div class="actions"><button class="btn ghost" data-act="anCancel">Cancel</button></div>';
+        return setPanel(html);
+      }
+      var agg = Object.keys(P.agg).map(function (k) { return { k: k, n: P.agg[k] }; }).sort(function (a, b) { return b.n - a.n; }), n = P.per.length || 1;
+      var accs = P.per.filter(function (x) { return x.acc != null; }).map(function (x) { return x.acc; });
+      html += '<div class="rv-hero"><div><div class="muted small">Average accuracy (' + P.per.length + ' games)</div><div class="rating">' + (accs.length ? Math.round(accs.reduce(function (s, x) { return s + x; }, 0) / accs.length) + '%' : '–') + '</div></div></div>';
+      html += agg.length ? '<div class="sect-head"><h2>Your top problems</h2></div><div class="an-probs">' + agg.slice(0, 4).map(function (p, i) { var P2 = PROBLEMS[p.k], L = lessonFor(p.k); return '<div class="an-prob' + (i === 0 ? ' first' : '') + '"><div class="an-prob-h"><b>' + esc(P2.t) + '</b><span class="an-n">' + p.n + '× · ' + (p.n / n).toFixed(1) + ' per game</span></div><p>' + esc(P2.fix) + '</p>' + (p.k === 'trap' ? '<button class="mini-btn" data-act="goMode" data-m="openings">Fix it: learn the trap defences →</button>' : L ? '<button class="mini-btn" data-act="lesson" data-id="' + L + '">Fix it: ' + esc(LESSONS[L].title) + ' →</button>' : '') + '</div>'; }).join('') + '</div>'
+        : '<p class="lede">No repeated problems found. Clean chess!</p>';
+      // openings and colours from all downloaded games (no engine needed)
+      var ops = {}, col = { w: [0, 0], b: [0, 0] };
+      P.games.forEach(function (x) {
+        var me = String(x.white.username).toLowerCase() === P.user.toLowerCase() ? 'w' : 'b', r = (me === 'w' ? x.white : x.black).result, win = r === 'win', draw = /agreed|repetition|stalemate|insufficient|50move|timevsinsufficient/.test(r);
+        var name = openingName(parsePGNHeaders(x.pgn)) || 'Unknown'; name = name.split(' ').slice(0, 3).join(' ');
+        var o = ops[name] = ops[name] || { w: 0, d: 0, l: 0 }; if (win) o.w++; else if (draw) o.d++; else o.l++;
+        col[me][0]++; if (win) col[me][1]++;
+      });
+      var opl = Object.keys(ops).map(function (k) { var o = ops[k]; return { k: k, n: o.w + o.d + o.l, o: o }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 5);
+      html += '<div class="sect-head"><h2>Your openings</h2><span class="muted small">last ' + P.games.length + ' games</span></div><div class="an-ops">' + opl.map(function (x) { var s = Math.round((x.o.w + x.o.d / 2) / x.n * 100); return '<div class="an-op"><span class="an-op-n">' + esc(x.k) + '</span><span class="an-op-bar"><i class="w" style="width:' + (x.o.w / x.n * 100) + '%"></i><i class="d" style="width:' + (x.o.d / x.n * 100) + '%"></i><i class="l" style="width:' + (x.o.l / x.n * 100) + '%"></i></span><span class="mono small">' + s + '%</span></div>'; }).join('') + '</div>' +
+        '<p class="muted small">As White you won ' + col.w[1] + ' of ' + col.w[0] + ', as Black ' + col.b[1] + ' of ' + col.b[0] + '.</p>';
+      html += '<div class="sect-head"><h2>Games checked</h2><span class="muted small">tap for the full review</span></div><div class="an-games">' + P.per.map(function (x, k) { return '<button class="an-game ' + (x.res || '') + '" data-act="anPatGame" data-k="' + k + '"><span class="an-res">' + (x.res === 'win' ? 'W' : x.res === 'draw' ? '½' : 'L') + '</span><span class="an-gt"><b>vs ' + esc(x.opp) + '</b><span>' + (x.acc != null ? x.acc + '% accuracy' : '') + (x.top ? ' · ' + esc(PROBLEMS[x.top].t) : '') + '</span></span><span class="an-go">→</span></button>'; }).join('') + '</div>';
+      setPanel(html);
+    },
+    leave: function () { AN = null; }
+  };
+  function parsePGNHeaders(text) { var h = {}, m, re = /\[(\w+)\s+"((?:[^"\\]|\\.)*)"\]/g; while ((m = re.exec(text || ''))) h[m[1]] = m[2]; return h; }
+  function readAnInputs() { var u = $('#an-user'), lk = $('#an-link'), ta = $('#an-pgn'); if (u) AN.user = ccUser(u.value); if (lk) AN.link = lk.value.trim(); if (ta) AN.pgn = ta.value; }
+  ACT.goAnalyze = function () { go('analyze'); };
+  ACT.anTab = function (d) { readAnInputs(); AN.tab = d.t; AN.err = null; MODES.analyze.render(); };
+  ACT.anSide = function (d) { readAnInputs(); AN.side = d.c; MODES.analyze.render(); };
+  ACT.anPgn = function () { readAnInputs(); if (!AN.pgn.trim()) { AN.err = 'Paste a PGN first.'; return MODES.analyze.render(); } var P = parsePGN(AN.pgn); MODES.analyze.fromPgn(AN.pgn, AN.side || (P.headers && sideOf(P.headers, S.ccUser)) || 'w'); };
+  ACT.anFetch = function () {
+    readAnInputs();
+    var u = AN.user, id = ccLinkId(AN.link);
+    if (!u) { AN.err = 'Type your chess.com username first' + (id ? ': chess.com finds games by player, so the link alone is not enough.' : '.'); return MODES.analyze.render(); }
+    S.ccUser = u; save(); AN.err = null; AN.busy = 'fetch'; MODES.analyze.render();
+    var tok = AN.tok = (AN.tok || 0) + 1;
+    (id ? CC.find(u, id).then(function (x) { return [x]; }) : CC.recent(u, 15)).then(function (list) {
+      if (!AN || AN.tok !== tok) return;
+      AN.busy = null;
+      if (id) { var x = list[0], P = parsePGN(x.pgn); if (P.error) { AN.err = P.error; return MODES.analyze.render(); } return MODES.analyze.run({ sans: P.sans, startFen: P.startFen, headers: P.headers, color: String(x.white.username).toLowerCase() === u.toLowerCase() ? 'w' : 'b' }); }
+      AN.games = list; MODES.analyze.render();
+    }, function (e) { if (!AN || AN.tok !== tok) return; AN.busy = null; AN.err = ccError(e); MODES.analyze.render(); });
+  };
+  ACT.anPick = function (d) { var x = AN.games[+d.k]; if (!x) return; var P = parsePGN(x.pgn); if (P.error) { AN.err = P.error; return MODES.analyze.render(); } MODES.analyze.run({ sans: P.sans, startFen: P.startFen, headers: P.headers, color: String(x.white.username).toLowerCase() === AN.user.toLowerCase() ? 'w' : 'b' }); };
+  ACT.anPatterns = function () { readAnInputs(); if (!AN.user) { AN.err = 'Type your chess.com username first.'; return MODES.analyze.render(); } S.ccUser = AN.user; save(); MODES.analyze.patterns(AN.user); };
+  ACT.anPatGame = function (d) { var x = AN.pat && AN.pat.per[+d.k]; if (!x) return; AN.pat = null; MODES.analyze.fromPgn(x.pgn, x.color); };
+  ACT.anCancel = function () { if (!AN) return; AN.tok = (AN.tok || 0) + 1; AN.jtok = (AN.jtok || 0) + 1; AN.job = null; AN.pat = null; AN.busy = null; setupBoard(Game.START, { orient: 'w' }); MODES.analyze.render(); };
+  ACT.anBack = function () { ACT.anCancel(); };
+  ACT.rvJump = function (d) { MODES.review.goto(+d.n); };
+  // The report shown at the top of a review of an imported game
+  function reportHtml(r) {
+    var R = r.report, ph = R.phase;
+    var bar = function (label, v) { return '<div class="an-ph"><span>' + label + '</span><span class="an-ph-bar"><i style="width:' + (v || 0) + '%" class="' + (v == null ? '' : v >= 80 ? 'good' : v >= 60 ? 'warn' : 'bad') + '"></i></span><span class="mono small">' + (v == null ? '–' : v + '%') + '</span></div>'; };
+    var html = '<div class="sect-head"><h2>Problems in this game</h2><span class="muted small">' + (R.problems.length ? 'worst first' : '') + '</span></div>';
+    html += !R.problems.length ? '<p class="lede">No real problems found. Well played!</p>' : '<div class="an-probs">' + R.problems.slice(0, 5).map(function (p, i) {
+      var P = PROBLEMS[p.k], L = lessonFor(p.k);
+      return '<div class="an-prob' + (i === 0 ? ' first' : '') + '"><div class="an-prob-h"><b>' + esc(P.t) + '</b><span class="an-n">' + (p.n > 1 ? p.n + '×' : '') + '</span></div><p>' + esc(P.fix) + '</p><div class="an-ex">' +
+        p.plies.slice(0, 4).map(function (ply) { return ply > 0 || p.k !== 'earlyQueen' ? '<button class="mini-btn ghost" data-act="rvJump" data-n="' + (ply + 1) + '">Move ' + (Math.floor(ply / 2) + 1) + (r.moves[ply] ? ': ' + esc(r.moves[ply]) : '') + '</button>' : ''; }).join('') +
+        (p.k === 'trap' && R.book ? '<button class="mini-btn" data-act="openOp" data-id="' + esc(R.book.defId) + '">Fix it: learn the defence →</button>' : L ? '<button class="mini-btn" data-act="lesson" data-id="' + L + '">Fix it: ' + esc(LESSONS[L].title) + ' →</button>' : '') + '</div></div>';
+    }).join('') + '</div>';
+    if (R.book) html += '<p class="placed-note"><span class="pn-ico">📖</span><span>' + (R.book.theirs ? 'Your opponent played the ' + esc(R.book.name) + (R.book.full ? ' all the way.' : ' for ' + Math.ceil(R.book.n / 2) + ' moves.') + ' <button class="link" data-act="openOp" data-id="' + esc(R.book.defId) + '">Learn how to meet it</button>'
+      : (R.book.full ? 'You played the whole ' + esc(R.book.name) + ' line I teach.' : 'You followed the ' + esc(R.book.name) + ' for ' + Math.ceil(R.book.n / 2) + ' moves, then left the line.') + ' <button class="link" data-act="openOp" data-id="' + esc(R.book.id) + '">Study it</button>') + '</span></p>';
+    return html + '<div class="sect-head"><h2>Accuracy by phase</h2></div><div class="an-phases">' + bar('Opening', ph.open) + bar('Middlegame', ph.mid) + bar('Endgame', ph.end) + '</div>';
+  }
+
 
   // ================= Show me: replay what happens on the board =================
   function material(g, color) { var v = 0; g.boardArray().forEach(function (row) { row.forEach(function (p) { if (p) v += (p.color === color ? 1 : -1) * VAL[p.type]; }); }); return v; }
