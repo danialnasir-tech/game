@@ -2,6 +2,16 @@ const fs=require('fs');
 let js=['chesscore.js','engine.js','data.js','puzzles2.js','defences.js','arena.js','voicelines.js','icons.js','board2d.js','app.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
 const t=fs.readFileSync('template.html','utf8');
 const vf=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
+// A clip whose line text has changed since it was recorded stays silent (text only) until it is re-recorded.
+// dist/voice-manifest.json holds the generator's hash (voice id + text) for every recorded clip.
+(function(){ if(!fs.existsSync('dist/voice-manifest.json')) return;
+  const crypto=require('crypto'), man=JSON.parse(fs.readFileSync('dist/voice-manifest.json','utf8'));
+  const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'));const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);const V=require('./voicelines.js');
+  const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(),V.VARIANT_LINES(),V.MOVE_LINES(),V.MORE_LINES(D),X.DEFENCE_LINES());
+  const h=t=>crypto.createHash('sha1').update('B52raBK48m23qWYbwchQ'+t).digest('hex').slice(0,12); let stale=[];
+  lines.forEach(l=>{ if(vf[l.id]&&man[l.id]&&man[l.id]!==h(l.text)){ delete vf[l.id]; stale.push(l.id); } });
+  if(stale.length) console.log('clips waiting for a new recording (text changed):',stale.length,stale.join(' '));
+})();
 js=js.replace('/*__VOICEFILES__*/{}', JSON.stringify(vf)).replace('/*__VOICEPACKS__*/2', fs.existsSync('dist/voice-packs.json')?fs.readFileSync('dist/voice-packs.json','utf8'):'2'); console.log('voice clips', Object.keys(vf).length);
 const OUT=process.env.OUT||'dist'; // e.g. OUT=/tmp/preview node build.js to build somewhere else
 fs.mkdirSync(OUT,{recursive:true});

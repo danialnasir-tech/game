@@ -38,7 +38,35 @@ function ENGINE_FACTORY(Game) {
     if (bw >= 2) s += 30;
     if (bb >= 2) s -= 30;
     s += structure(b, endgame);
+    if (!endgame) s += development(b);
+    s += mopUp(b);
     return g.side ? -s : s;
+  }
+  // Opening sense: knights and bishops still at home cost a little, and so does a queen out before them.
+  function development(b) {
+    var uw = (b[113] === 2) + (b[118] === 2) + (b[114] === 3) + (b[117] === 3);
+    var ub = (b[1] === 10) + (b[6] === 10) + (b[2] === 11) + (b[5] === 11);
+    var s = -10 * uw + 10 * ub;
+    if (b[115] !== 5 && uw >= 2) s -= 18;
+    if (b[3] !== 13 && ub >= 2) s += 18;
+    return s;
+  }
+  // Lone king: the winning side wants it on the edge and the kings close; the defender wants the opposite.
+  function mopUp(b) {
+    var wm = 0, bm = 0, wp = 0, bpn = 0, wk = -1, bk = -1;
+    for (var i = 0; i < 120; i++) {
+      if (i & 0x88) { i += 7; continue; }
+      var p = b[i]; if (!p) continue;
+      var t = p & 7;
+      if (t === 6) { if (p & 8) bk = i; else wk = i; continue; }
+      if (p & 8) { bm += TV[t]; if (t === 1) bpn++; } else { wm += TV[t]; if (t === 1) wp++; }
+    }
+    if (wk < 0 || bk < 0) return 0;
+    var cd = function (k) { var f = k & 7, r = k >> 4; return Math.max(3 - f, f - 4) + Math.max(3 - r, r - 4); };
+    var kd = Math.max(Math.abs((wk & 7) - (bk & 7)), Math.abs((wk >> 4) - (bk >> 4)));
+    if (bm === 0 && wm - wp * 100 >= 500) return 12 * cd(bk) + 5 * (7 - kd);
+    if (wm === 0 && bm - bpn * 100 >= 500) return -(12 * cd(wk) + 5 * (7 - kd));
+    return 0;
   }
 
 
@@ -410,9 +438,15 @@ function ENGINE_FACTORY(Game) {
   function mistake(fen, loose) {
     var r = rootSearch(fen, 4, 1500, 450);
     if (!r.moves.length) return null;
-    var best = r.moves[0].score, gap = loose ? 80 : 120, worst = loose ? -40 : -100;
+    var best = r.moves[0].score, gap = loose ? 80 : 100, worst = loose ? -40 : -80;
     if (best < (loose ? -150 : -60)) return null;
-    var pool = r.moves.filter(function (m) { return best - m.score >= gap && m.score <= worst && m.score > -700 && m.piece !== 'k'; });
+    // a realistic slip, not a piece left hanging: costs about one to two and a half pawns
+    var g = new Game(fen), pool = r.moves.filter(function (m) {
+      if (!(best - m.score >= gap && m.score <= worst && m.score >= (loose ? -400 : -280) && m.piece !== 'k')) return false;
+      var mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined }); if (!mv) return false;
+      var hang = g.moves().some(function (x) { return x.to === m.to && x.captured && x.captured !== 'p'; }) && !g.attacked(Game.sqIdx(m.to), g.side ^ 8);
+      g.undo(); return !hang;
+    });
     if (!pool.length) return null;
     var m = pool[Math.floor(Math.random() * Math.min(pool.length, 4))];
     return { from: m.from, to: m.to, promotion: m.promotion || null, score: m.score, best: best };

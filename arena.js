@@ -8,15 +8,15 @@ var BOSSES = [
     intro: 'Tess only plays traps: the Stafford, the Shilling Gambit and the Englund. Spot the trick, refute it, and win the game.' },
   { id: 'tao', stage: 2, name: 'Tactics Tao', title: 'The Tactician', icon: 'b', color: '#ffd23f', level: 'strong', book: ['sicilian-dragon', 'def-kings-gambit', 'def-evans', 'def-danish'],
     intro: 'Tao loves sharp positions and forcing moves. Check every capture and every check before you move.' },
-  { id: 'greta', stage: 3, name: 'Grinder Greta', title: 'The Grinder', icon: 'r', color: '#3ddc97', level: 'expert', fen: '8/8/3k4/4p3/P1K1P3/8/8/8 w - - 0 1', book: [],
-    intro: 'Greta skips the opening. You start in an endgame with an outside passed pawn. Convert it against perfect defence.' },
+  { id: 'greta', stage: 3, name: 'Grinder Greta', title: 'The Grinder', icon: 'r', color: '#3ddc97', level: 'expert', fen: '8/5pk1/6p1/8/5P2/6P1/1R4KP/r7 w - - 0 1', book: [],
+    intro: 'Greta skips the opening. You start in a rook endgame with an extra pawn, the most common ending in real games. Activate your king and rook and convert it.' },
   { id: 'gus', stage: 4, name: 'Grandmaster Gus', title: 'The Final Boss', icon: 'k', color: '#c9a36b', level: 'master', book: ['def-ruy', 'def-qgd', 'def-london', 'def-italian', 'french', 'caro'],
     intro: 'Gus plays at full strength with real grandmaster openings. Beat him and the course is complete.' }
 ];
 // goal: 'mate' within `limit` of your moves, 'promote' a pawn within `limit`, or 'survive' `limit` moves without losing material.
 var CHALLENGES = [
   { id: 'queen', title: 'Queen Finish', after: 'l-qmate', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', goal: 'mate', limit: 12, par: 9, level: 'master',
-    text: 'King and queen against a lone king that defends perfectly. Checkmate within 12 moves, and never stalemate.' },
+    text: 'King and queen against a lone king that runs for the centre. Checkmate within 12 moves, and never stalemate.' },
   { id: 'rook', title: 'Rook Roller', after: 'l-rookmate', fen: '8/8/8/4k3/8/8/8/R3K3 w - - 0 1', goal: 'mate', limit: 20, par: 16, level: 'master',
     text: 'Push the king to the edge with your rook and mate it within 20 moves.' },
   { id: 'pawn', title: 'Pawn to Queen', after: 'l-king-pawn', fen: '4k3/8/4K3/4P3/8/8/8/8 w - - 0 1', goal: 'promote', limit: 7, par: 5, level: 'master',

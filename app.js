@@ -276,8 +276,10 @@
   function whyBest(a, bestSan, ply, fenBefore) {
     var b = a.best;
     if (a.bestScore > 90000) return ['why_mate', 'It leads to a forced checkmate.'];
-    if (b.captured && { n: 1, b: 1, r: 1, q: 1 }[b.captured]) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
-    if (b.captured && a.loss > 60) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
+    var winning = a.bestScore >= 150;
+    if (b.captured && winning && { n: 1, b: 1, r: 1, q: 1 }[b.captured]) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
+    if (b.captured && winning && a.loss > 60) return ['why_wins', 'It wins the ' + PIECE_NAME[b.captured] + ' on ' + b.to + '.'];
+    if (b.captured) return ['why_general', 'It captures on ' + b.to + ' and keeps the balance.'];
     if (a.reply && a.reply.captured && a.loss > 120) return ['why_safe', 'It does not give away your ' + PIECE_NAME[a.reply.captured] + '.'];
     if (/^O-O/.test(bestSan || '')) return ['why_castle', 'Castling gets your king to safety.'];
     if (/\+$/.test(bestSan || '')) return ['why_check', 'It is a forcing check.'];
@@ -1121,7 +1123,7 @@
   // ================= Path (home) =================
   // Placement: the stage that matches the level picked at the start. Stages below it count as cleared,
   // and so does any stage the player tested out of.
-  function placementStage(band) { var k = 0; STAGES.forEach(function (st, i) { if ((band == null ? S.band : band) >= st.min) k = i; }); return k; }
+  function placementStage(band) { var k = 0; STAGES.forEach(function (st, i) { if ((band == null ? S.band : band) >= st.min) k = i; }); return Math.min(k, 3); } // endgames are never skipped by placement
   function lessonDone(id) { return !!(S.lessons[id] && S.lessons[id].done); }
   function placedOut(i) { return i < placementStage() || !!(S.cleared && S.cleared[STAGES[i].id]); }
   function stageComplete(i) { return STAGES[i].lessons.every(lessonDone); }
@@ -1202,14 +1204,15 @@
           var open = stageUnlocked(i), expanded = i === openStage && open;
           var doneN = st.lessons.filter(lessonDone).length, skipped = placedOut(i) && doneN < st.lessons.length;
           var state = doneN === st.lessons.length ? 'done' : skipped ? 'done placed' : i === cur && !allClear ? 'current' : open ? 'open' : 'locked';
-          var how = skipped ? (i < placed ? 'Cleared · you placed above it' : 'Cleared · passed the stage test') : doneN + '/' + st.lessons.length + ' lessons';
+          var how = skipped ? (i < placed ? 'Cleared · you placed above it' : S.bosses[(bossFor(i) || {}).id] ? 'Cleared · boss beaten' : 'Cleared · passed the stage test') : doneN + '/' + st.lessons.length + ' lessons';
           return '<li class="jstage ' + state + (expanded ? ' expanded' : '') + '">' +
             '<button class="jhead" data-act="toggleStage" data-i="' + i + '" ' + (open ? '' : 'disabled') + ' aria-expanded="' + expanded + '">' +
             '<span class="jdot" aria-hidden="true">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : i + 1) + '</span>' +
             '<span class="jtext"><span class="jname">' + esc(st.name) + (skipped ? ' <em class="clear-pill">Cleared</em>' : '') + '</span><span class="jband">' + st.band + ' · ' + how + '</span></span>' +
             '<span class="jchev" aria-hidden="true">' + (open ? (expanded ? '−' : '+') : '') + '</span></button>' +
             (expanded ? '<p class="jblurb">' + esc(st.blurb) + '</p>' +
-              (!stageCleared(i) && open && testPool(i).length >= 3 ? '<button class="test-out" data-act="stageTest" data-i="' + i + '"><span class="to-ico" aria-hidden="true">⚡</span><span><b>Know this already?</b><span>Solve 3 of 4 puzzles at ' + st.band + ' to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
+              (!stageCleared(i) && open && i < 3 && testPool(i).length >= 3 ? '<button class="test-out" data-act="stageTest" data-i="' + i + '"><span class="to-ico" aria-hidden="true">⚡</span><span><b>Know this already?</b><span>Solve 3 of 4 puzzles at ' + st.band + ' to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>'
+                : !stageCleared(i) && open && i >= 3 && bossFor(i) ? '<button class="test-out" data-act="boss" data-id="' + bossFor(i).id + '"><span class="to-ico" aria-hidden="true">⚔</span><span><b>Know this already?</b><span>Beat ' + esc(bossFor(i).name) + ' in a real game to clear the stage.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
               '<div class="jlessons">' + st.lessons.map(function (id, k) {
               var L2 = LESSONS[id], rec = S.lessons[id], isNext = id === nl && !allClear, stops = stageStops(i);
               // after every second lesson (and at the end of the stage) an opening stop
@@ -1268,6 +1271,13 @@
     onMove: function (mv, uci) {
       var p = ST.list[ST.k], g = IX.game, t = new Game(g.fen()); t.move(mv);
       var ok = uci === p.sol[ST.ply] || (ST.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
+      if (!ok && p.mate > 1 && !ST.altChecked) {
+        IX.enabled = false;
+        return altMate(t, p.mate - Math.floor(ST.ply / 2)).then(function (yes) {
+          if (yes) return applyMove(g, mv).then(function () { B3.burst(mv.to); Sound.play('good'); return MODES.stagetest.result(true, '<strong>Solved.</strong> Your move forces mate too.'); });
+          ST.altChecked = true; var r = MODES.stagetest.onMove(mv, uci); ST.altChecked = false; return r;
+        });
+      }
       if (!ok) {
         ST.busy = true; Sound.play('bad'); B3.flash('bad', [mv.to]);
         var u = p.sol[ST.ply]; B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]);
@@ -1313,6 +1323,14 @@
     leave: function () { ST = ST && Object.assign(ST, { gone: true }); }
   };
   ACT.stageTest = function (d) { go('stagetest', +d.i); };
+
+  // Does the position (opponent to move) still lose to a forced mate within n of our moves?
+  function altMate(gAfter, n) {
+    if (gAfter.inCheckmate()) return Promise.resolve(true);
+    return Eng.call('rootSearch', gAfter.fen(), Math.min(2 * n + 2, 14), 3000, 0).then(function (r) {
+      return !!(r && r.moves && r.moves.length && r.moves[0].score <= -(100000 - 2 * n - 1));
+    });
+  }
 
   // ================= Lesson =================
   var LS = null;
@@ -1414,6 +1432,7 @@
   };
   ACT.nextStep = function () {
     if (!LS) return;
+    LS.lineTok = (LS.lineTok || 0) + 1;
     if (LS.i < LS.L.steps.length - 1) { LS.i++; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
     var stars = LS.mistakes === 0 ? 3 : LS.mistakes <= 2 ? 2 : 1;
     if (LS.stars) stars = Math.min(stars, LS.stars);
@@ -1447,7 +1466,7 @@
     if (!isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
-    if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against perfect defence.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
+    if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against the engine.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
     var stB = bossFor(stageOf(id));
     if (stB && stageComplete(stageOf(id)) && !S.bosses[stB.id]) cards.push({ k: 'boss', ico: stB.icon, t: 'Boss battle: ' + stB.name, s: 'Stage done. Now beat its boss in a real game.', act: 'data-act="boss" data-id="' + stB.id + '"' });
     var ns = nextStop();
@@ -1468,7 +1487,7 @@
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
-  ACT.resetStep = function () { if (LS) { LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
+  ACT.resetStep = function () { if (LS) { LS.lineTok = (LS.lineTok || 0) + 1; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
   function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
     var step = LS.L.steps[LS.i];
@@ -1479,12 +1498,12 @@
     LS.mistakes += 0.5;
   };
   ACT.playLine = function () {
-    var step = LS.L.steps[LS.i];
+    var step = LS.L.steps[LS.i], my = LS.i, tok = LS.lineTok = (LS.lineTok || 0) + 1;
     var g = setupBoard(step.fen, {});
     var i = 0;
     setStatus('Watch the plan unfold…');
     (function nextMove() {
-      if (i >= step.line.length || current !== MODES.lesson) return;
+      if (i >= step.line.length || current !== MODES.lesson || LS.i !== my || LS.lineTok !== tok) return;
       var san = step.line[i];
       applyMove(g, san).then(function (r) {
         if (!r) return;
@@ -1503,7 +1522,7 @@
     if (/^def-/.test(id)) {
       var base = lineById(id.slice(4)), d = base && DEFENCES[base.id];
       if (!d) return null;
-      return d._o || (d._o = { id: id, base: base, def: true, name: d.name, eco: base.eco, side: d.side, family: base.family, level: base.level, gambit: false, idea: d.idea, moves: d.moves, notes: d.notes, vp: 'D-' + base.id });
+      return d._o || (d._o = { id: id, base: base, def: true, name: d.name, eco: d.eco || base.eco, side: d.side, family: base.family, level: base.level, gambit: false, idea: d.idea, moves: d.moves, notes: d.notes, vp: 'D-' + base.id });
     }
     return OPENINGS.filter(function (o) { return o.id === id; })[0] || null;
   }
@@ -1536,7 +1555,7 @@
   function bossNode(i) {
     var b = bossFor(i); if (!b) return '';
     var beat = S.bosses[b.id], open = bossOpen(i), need = bossNeed(i);
-    return '<button class="jlesson jboss' + (beat ? ' done' : '') + (open ? '' : ' locked') + '" data-act="boss" data-id="' + b.id + '" ' + (open || beat ? '' : 'disabled') + '>' + bossAvatar(b, 30) + '<span class="jl-title"><em class="op-kind boss">Boss</em> ' + esc(b.name) + '</span><span class="jl-meta">' + (beat ? '✓ Beaten' : open ? 'Beat to clear' : '🔒 after ' + need + ' more') + '</span></button>';
+    return '<button class="jlesson jboss' + (beat ? ' done' : '') + (open ? '' : ' locked') + '" data-act="boss" data-id="' + b.id + '" ' + (open || beat ? '' : 'disabled') + '>' + bossAvatar(b, 30) + '<span class="jl-title"><em class="op-kind boss">Boss</em> ' + esc(b.name) + '</span><span class="jl-meta">' + (beat ? '✓ Beaten' : !open ? '🔒 after ' + need + ' more' : stageCleared(i) ? 'Beat for the badge' : 'Beat to clear') + '</span></button>';
   }
   ACT.nextOpening = function () { var o = nextStop(); if (o) go('opening', { id: o.id, mode: 'learn' }); else go('openings'); };
   MODES.openings = {
@@ -1799,6 +1818,13 @@
       var expected = p.sol[c.ply];
       var t = new Game(g.fen()); t.move(mv);
       var ok = uci === expected || (c.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || t.inCheckmate();
+      if (!ok && p.mate > 1 && !c.altChecked) {
+        IX.enabled = false;
+        return altMate(t, p.mate - Math.floor(c.ply / 2)).then(function (yes) {
+          if (yes) return applyMove(g, mv).then(function () { c.alt = true; MODES.puzzles.win(mv.to); });
+          c.altChecked = true; var r = MODES.puzzles.onMove(mv, uci); c.altChecked = false; return r;
+        });
+      }
       if (!ok) {
         Sound.play('bad'); B3.flash('bad', [mv.to]);
         var d = !c.failed ? MODES.puzzles.grade(false) : 0; Voice.say([V('puzzlemiss', 'puzzlemiss')]);
@@ -1823,7 +1849,7 @@
       if (c.failed || c.hinted) { today().puzzles++; S.puzzle.solved[c.p.id] = Date.now(); save(); }
       Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
       B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
-      MODES.puzzles.render('<strong>Solved!</strong> ' + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
+      MODES.puzzles.render('<strong>Solved!</strong> ' + (c.alt ? 'Your move forces mate too. ' : '') + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
       renderTop();
     }
   };
@@ -2104,8 +2130,11 @@
     say: function (tag, html, cls, once) { PL.feed.push({ tag: tag, html: html, cls: cls || '', once: !!once }); },
     // Tell the player which line the coach is playing, once it is recognisable (the coach's 2nd book move)
     bookNote: function (g) {
-      var L = PL.book, n = g.history().length;
+      var L = PL.book, h = g.history(), n = h.length, cl = function (x) { return x.replace(/[+#!?]/g, ''); };
       if (!L || PL.bookSaid || n < 3) return;
+      var still = allLines().filter(function (o) { return o.moves.length > n - 1 && h.every(function (m, i) { return cl(m) === cl(o.moves[i]); }); });
+      var names = {}; still.forEach(function (o) { names[o.base ? o.base.name : o.name] = 1; });
+      if (Object.keys(names).length > 1) return; // e.g. 1...c5 could still be the Dragon or the Najdorf
       PL.bookSaid = true;
       var trap = !L.def && (L.family === 'Traps' || L.gambit);
       MODES.play.say('Opening', L.def ? 'You are playing the <strong>' + esc(L.base.name) + '</strong>. Watch how I meet it: this is ' + esc(L.name) + ', and it is in Openings with every move explained.'
@@ -2638,7 +2667,7 @@
   S.arena = S.arena || {}; S.bosses = S.bosses || {}; S.challenges = S.challenges || {};
   function bossOpen(i) {
     if (!stageUnlocked(i)) return false;
-    if (stageCleared(i) || (i > 0 && S.band >= STAGES[i].min)) return true;
+    if (stageCleared(i) || (i > 0 && S.band >= STAGES[i].min) || placementStage() >= i) return true;
     return STAGES[i].lessons.filter(lessonDone).length >= Math.ceil(STAGES[i].lessons.length / 2);
   }
   function bossNeed(i) { return Math.max(0, Math.ceil(STAGES[i].lessons.length / 2) - STAGES[i].lessons.filter(lessonDone).length); }
@@ -2657,11 +2686,11 @@
       var ch = CHALLENGES.map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="ch-card' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="ch-top"><b>' + esc(c.title) + '</b>' + stars(st) + '</span><span class="ar-sub">' + esc(c.text) + '</span><span class="ch-goal">' + (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit : 'Survive ' + c.limit + ' moves') + '</span></button>'; }).join('');
       var bosses = BOSSES.map(function (b) { var open = bossOpen(b.stage), beat = S.bosses[b.id], need = bossNeed(b.stage); return '<button class="boss-row' + (beat ? ' beat' : '') + '" data-act="boss" data-id="' + b.id + '" ' + (open ? '' : 'disabled') + '>' + bossAvatar(b, 40) + '<span class="br-txt"><b>' + esc(b.name) + '</b><span>' + esc(STAGES[b.stage].name) + ' · ~' + levelById(b.level).elo + (!open && stageUnlocked(b.stage) && need ? ' · after ' + need + ' more lesson' + (need > 1 ? 's' : '') : '') + '</span></span><span class="br-state">' + (beat ? '✓ Beaten' : open ? 'Fight →' : '🔒') + '</span></button>'; }).join('');
       setPanel('<div class="eyebrow">Practice Arena</div><h1 class="h1">Play it, don\'t read it</h1>' +
-        '<p class="lede">Quick board-vision games, endgames to win against perfect defence, opening battles and the five bosses.</p>' +
+        '<p class="lede">Quick board-vision games, endgames to win against the engine, opening battles and the five bosses.</p>' +
         '<div class="sect-head"><h2>Quick games</h2><span class="muted small">beat your best</span></div><div class="ar-grid">' + vis + '</div>' +
         (beginnerMode() ? '<div class="placed-note"><span class="pn-ico">★</span><span><b>More unlocks as you learn.</b> Opening battles and the endgame challenges open once you finish Foundations. The quick games and Rookie Rex are ready now.</span></div>' : '<div class="sect-head"><h2>Opening battle</h2>' + (S.battleBest ? '<span class="pill-count">best streak ' + S.battleBest + '</span>' : '') + '</div>' +
         '<button class="battle-cta" data-act="battle"><span class="bc-ico">⚔</span><span><b>The coach slips once. Punish it.</b><span>Pick an opening you play. Somewhere in it the coach makes a mistake: find the move that wins.</span></span><span class="to-go">→</span></button>' +
-        '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against perfect defence</span></div><div class="ch-list">' + ch + '</div>') +
+        '<div class="sect-head"><h2>Win this position</h2><span class="muted small">against the engine</span></div><div class="ch-list">' + ch + '</div>') +
         '<div class="sect-head"><h2>Boss battles</h2><span class="muted small">beat one to clear its stage</span></div><div class="boss-list">' + bosses + '</div>');
     },
     leave: function () { B3.idle(false); }
@@ -2840,7 +2869,7 @@
     var spec = PL.arg.spec, I = specIntro(spec);
     setPanel('<button class="back" data-act="' + (spec.back || 'arena') + '">← ' + (spec.back === 'goPath' ? 'Path' : 'Arena') + '</button><div class="spec-hero">' + (I.ava || '<span class="spec-ico">' + (spec.kind === 'battle' ? '⚔' : '★') + '</span>') + '<div><div class="eyebrow">' + esc(I.eyebrow) + '</div><h1 class="h1">' + esc(I.title) + '</h1><div class="muted small">' + esc(I.meta) + '</div></div></div>' +
       '<p class="lede">' + esc(I.text) + '</p>' +
-      (spec.kind === 'battle' ? '<div class="sect-head"><h2>Your opening</h2><span class="muted small">pick the one you play</span></div><div class="chips battle-chips">' + battleLines().map(function (L) { return '<button class="chip ' + (L === spec.line ? 'on' : '') + '" data-act="battlePick" data-id="' + L.id + '">' + (L.side === 'w' ? '♙ ' : '♟ ') + esc(L.def ? L.base.name + ' (' + (L.side === 'w' ? 'White' : 'Black') + ')' : L.name) + '</button>'; }).join('') + '<button class="chip" data-act="battlePick" data-id="random">Surprise me</button></div>' : '') +
+      (spec.kind === 'battle' ? '<div class="sect-head"><h2>Your opening</h2><span class="muted small">pick the one you play</span></div><div class="chips battle-chips">' + (function () { var t = openingTier(S.puzzle.rating), ls = battleLines().filter(function (L) { return !L.def; }); ls.sort(function (x, y) { return Math.abs(TIER[x.level] - t) - Math.abs(TIER[y.level] - t); }); ls = ls.slice(0, 12); if (ls.indexOf(spec.line) < 0) ls.unshift(spec.line); return ls; })().map(function (L) { return '<button class="chip ' + (L === spec.line ? 'on' : '') + '" data-act="battlePick" data-id="' + L.id + '">' + (L.side === 'w' ? '♙ ' : '♟ ') + esc(L.def ? L.base.name + ' (' + (L.side === 'w' ? 'White' : 'Black') + ')' : L.name) + '</button>'; }).join('') + '<button class="chip" data-act="battlePick" data-id="random">Surprise me</button></div>' : '') +
       (spec.kind === 'boss' && S.bosses[spec.b.id] ? '<p class="placed-note"><span class="pn-ico">✓</span><span>You already beat ' + esc(spec.b.name) + '. A rematch is just for fun.</span></p>' : '') +
       '<div class="actions"><button class="btn primary big" data-act="startGame">▶&nbsp; ' + esc(I.cta) + '</button></div>');
     if (spec.kind === 'boss') Voice.say([V('boss_' + spec.b.id)]);
@@ -3109,6 +3138,7 @@
       }
       var v = +b.dataset.band;
       S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = v;
+      S.xp = Math.max(S.xp || 0, { 800: 300, 1200: 800, 1600: 1600 }[v] || 0);
       S.coach.level = levelForRating(v); PATHUI.open = null;
       S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
       save(); m.hidden = true; m.onclick = null; m.classList.remove('intro');

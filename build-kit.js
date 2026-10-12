@@ -8,5 +8,7 @@ const ids=new Set();lines.forEach(l=>{if(ids.has(l.id))throw new Error('duplicat
 const t=fs.readFileSync('voice-kit-v4/generate-v4-voices.template.js','utf8').replace('/*__LINES__*/[]',()=>JSON.stringify(lines,null,0).replace(/\},\{/g,'},\n  {'));
 fs.writeFileSync('voice-kit-v4/generate-v4-voices.js',t);
 const have=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
-const missing=lines.filter(l=>!have[l.id]);
+const crypto=require('crypto'),man=fs.existsSync('dist/voice-manifest.json')?JSON.parse(fs.readFileSync('dist/voice-manifest.json','utf8')):{};
+const h=t=>crypto.createHash('sha1').update('B52raBK48m23qWYbwchQ'+t).digest('hex').slice(0,12);
+const missing=lines.filter(l=>!have[l.id]||(man[l.id]&&man[l.id]!==h(l.text))); // new lines, plus lines whose text changed
 console.log('lines',lines.length,'already packed',lines.length-missing.length,'new',missing.length,'new characters',missing.reduce((s,l)=>s+l.text.length,0));
