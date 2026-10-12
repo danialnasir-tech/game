@@ -17,7 +17,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `app.js` | The whole app (modes, voice, 3D board, layout, coaching, badges…). |
 | `template.html` | All CSS + markup. Phone layout = `@media (max-width:880px) and (orientation:portrait)`; body gets `data-mode` and `data-layout="board"|"browse"`. |
 | `build.js` | Concatenates sources into `dist/chess-ascent.html` (artifact), `dist/site.html` (website, has viewport meta) and `dist/test.html` (THREE stub for headless tests). Needs `dist/voice-index.json` + `dist/voice-packs.json`. |
-| `dist/voice-pack-1..18.mp3` | All 1877 voice clips, packed (32 kbps mono). Loaded on demand. |
+| `dist/voice-pack-1..19.mp3` | All 1932 voice clips, packed (32 kbps mono). Packs 1-2 are the start packs (first-session lines) the launch screen downloads; the rest load on demand. `dist/voice-manifest.json` = generator hash per clip (stale clips stay silent). |
 | `pack-voice.js`, `unpack-voice.js`, `ingest.sh` | Turn a voice zip (or a folder) from the user into packs: `sh ingest.sh chess-voice-v4.zip` (needs ffmpeg). It may hold only the new clips: `unpack-voice.js` restores the already packed ones first. A .rar must be extracted to a folder first (e.g. with the free `node-unrar-js`). |
 | `build-kit.js` | Rebuilds `voice-kit-v4/generate-v4-voices.js` from `voice-kit-v4/generate-v4-voices.template.js` with every line (male voice, eleven_v4 only) and prints how many clips are new. `voice-kit/` is the old female template and is no longer used. |
 | `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 1410 lines, all generated and packed. |
@@ -35,7 +35,7 @@ sh ingest.sh <voice-zip>      # add new voice clips, then rebuild
 Tests reference `../chesscore.js` etc. from a `scratch/` folder — run them from a `scratch/` copy or fix the paths.
 
 ## Publishing
-Publish `dist/chess-ascent.html` as an artifact and pass the 18 packs as supporting files
+Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as supporting files
 (`voice-pack-N.mp3` → `dist/voice-pack-N.mp3`). The page fetches them by relative path.
 
 ## Rules the user cares about
@@ -72,6 +72,10 @@ Publish `dist/chess-ascent.html` as an artifact and pass the 18 packs as support
 - Bosses, challenges and opening battles are coach games with `PL.spec` (`kind` boss / challenge / battle): see `specFen`, `specColor`, `battleEnd`, `specFinish`, `bossEnd`. Bosses pick a favourite book line that fits your moves (`PL.bookPool`).
 - "Show me" replays (`Replay.run`) play out the engine's line (`line()` in engine.js) after a mistake in games, puzzles, review and battles; `mistake()` in engine.js chooses the coach's slip in battles.
 - 55 voice lines for these modes (`MORE_POOLS` batch 6) are in the generator; until generated they are silent and the text still shows.
+
+## Launch screen
+- `#splash` in template.html with an inline script (sparkles canvas, progress ring and bar, piece row, tips) exposed as `window.__splash`.
+- First visit: `Voice.preloadStart` downloads the start packs with byte progress, then a Start tap (unlocks sound). `S.voiceReady` skips this later. Keep `START_CLIP` (app.js) and `START` (pack-voice.js) in sync.
 
 ## Open items
 1. All 1410 voice lines are generated and packed (15 packs). If lines are added later: `node build-kit.js`, re-apply the v4 settings to the generator (see `voice-kit-v4/`), user runs it, then `sh ingest.sh <zip>`.

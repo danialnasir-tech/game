@@ -182,6 +182,26 @@
       if (!packCache[i]) packCache[i] = fetch('voice-pack-' + (i + 1) + '.mp3').then(function (r) { if (!r.ok) throw new Error('pack'); return r.arrayBuffer(); }).catch(function () { delete packCache[i]; return null; });
       return packCache[i];
     }
+    // First launch: download the start packs (lines the first session needs) with byte-level progress.
+    var START_CLIP = /^(T-|C-)|^V-(correct|notquite|keepgoing|lesson_next|allstars|lessondone|welcome_back|mission_done|badge|level_up)-|^(L|K)-l-(rook|bishop-queen|knight)\b/; // keep in sync with pack-voice.js
+    function preloadStart(onProgress) {
+      var size = {}, list = [];
+      Object.keys(VOICE_FILES).forEach(function (id) { var e = VOICE_FILES[id]; size[e[0]] = Math.max(size[e[0]] || 0, e[1] + e[2]); if (START_CLIP.test(id) && list.indexOf(e[0]) < 0) list.push(e[0]); });
+      var total = list.reduce(function (t, i) { return t + size[i]; }, 0), got = {};
+      var report = function () { var g = 0; list.forEach(function (i) { g += got[i] || 0; }); onProgress(total ? g / total : 1, g, total); };
+      return Promise.all(list.map(function (i) {
+        if (packCache[i]) { got[i] = size[i]; report(); return packCache[i]; }
+        packCache[i] = fetch('voice-pack-' + (i + 1) + '.mp3').then(function (r) {
+          if (!r.ok) throw new Error('pack');
+          if (!r.body || !r.body.getReader) return r.arrayBuffer().then(function (b) { got[i] = size[i]; report(); return b; });
+          var rd = r.body.getReader(), chunks = [], n = 0;
+          return (function pump() { return rd.read().then(function (c) {
+            if (c.done) { var out = new Uint8Array(n), o = 0; chunks.forEach(function (ch) { out.set(ch, o); o += ch.length; }); got[i] = size[i]; report(); return out.buffer; }
+            chunks.push(c.value); n += c.value.length; got[i] = Math.min(n, size[i]); report(); return pump(); }); })();
+        }).catch(function () { delete packCache[i]; got[i] = size[i]; report(); return null; });
+        return packCache[i];
+      })).then(function () { return total; });
+    }
     function within(p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(function () { r('late'); }, ms); })]); }
     function clip(id, text) {
       var ent = VOICE_FILES[id];
@@ -228,7 +248,7 @@
       });
       seq.then(function () { if (my === tok) { busy = false; document.body.classList.remove('speaking'); Bubble.hideSoon(); } });
     }
-    return { say: say, stop: stop, prefetch: prefetch, replay: function () { if (last) say(last); }, hasClips: function () { return Object.keys(VOICE_FILES).length > 0; } };
+    return { say: say, stop: stop, prefetch: prefetch, preloadStart: preloadStart, replay: function () { if (last) say(last); }, hasClips: function () { return Object.keys(VOICE_FILES).length > 0; } };
   })();
   Object.keys(MORE_POOLS).forEach(function (k) { VARIANTS[k] = MORE_POOLS[k]; });
   function C(k) { return { id: 'C-' + k, text: COACH_LINES[k] }; }
@@ -3362,8 +3382,21 @@
     });
     if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
     else { go('path'); if (!S.toured) setTimeout(Tour.start, 1500); }
-    var sp = $('#splash');
-    if (sp) requestAnimationFrame(function () { setTimeout(function () { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 700); }, 300); });
+    // Launch screen: on the first visit download the coach's starter voice with real progress, then a Start tap
+    // (which also unlocks sound); later visits just fade in.
+    var SP = window.__splash;
+    if (SP && $('#splash')) {
+      SP.pieces(['p', 'n', 'b', 'r', 'q', 'k'].map(function (t) { return '<span>' + pieceSVG(t, 'w', 28) + '</span>'; }).join(''));
+      var first = !S.voiceReady && Voice.hasClips(), mb = function (b) { return (b / 1048576).toFixed(1); }, finished = false;
+      SP.set(14, '3D board ready');
+      if (first) {
+        var t0 = Date.now();
+        setTimeout(function () { if (!finished) SP.skip(function () { finished = true; SP.done(false); }); }, 6000);
+        Voice.preloadStart(function (f, got, tot) { if (!finished) SP.set(14 + f * 80, 'Loading Coach Leo\'s voice · ' + mb(got) + ' / ' + mb(tot) + ' MB'); })
+          .then(function () { return document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(function (r) { setTimeout(r, 1500); })]) : null; })
+          .then(function () { if (finished) return; finished = true; S.voiceReady = true; save(); setTimeout(function () { SP.done(true, function () { Sound.unlock(); }); }, Math.max(0, 900 - (Date.now() - t0))); });
+      } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
+    }
   }
   window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
