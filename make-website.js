@@ -44,5 +44,12 @@ fs.writeFileSync(OUT + '/READ-ME-FIRST.txt', [
   'Updating later: upload the new files over the old ones. Players keep their progress.',
   ''].join('\n'));
 const mb = packs.reduce((s, f) => s + fs.statSync(OUT + '/' + f).size, fs.statSync(OUT + '/index.html').size) / 1048576;
-try { execSync('cd out && rm -f chess-ascent-website.zip && zip -qr chess-ascent-website.zip chess-ascent-website'); } catch (e) { console.log('zip not available; upload the folder itself'); }
+// one zip of everything, plus two smaller parts (each under 30 MB) that unzip into the same folder
+try {
+  const packs = fs.readdirSync(OUT).filter(f => /^voice-pack-\d+\.mp3$/.test(f)).sort((a, b) => parseInt(a.slice(11)) - parseInt(b.slice(11)));
+  const half = Math.ceil(packs.length / 2);
+  execSync('cd out && rm -f chess-ascent-website*.zip && zip -qr chess-ascent-website.zip chess-ascent-website');
+  execSync('cd ' + OUT + ' && zip -qX ../chess-ascent-website-part1.zip index.html .htaccess READ-ME-FIRST.txt chess-ascent-config.js ' + packs.slice(0, half).join(' '));
+  execSync('cd ' + OUT + ' && zip -qX ../chess-ascent-website-part2.zip ' + packs.slice(half).join(' '));
+} catch (e) { console.log('zip not available; upload the folder itself'); }
 console.log('website folder', OUT, '| files', fs.readdirSync(OUT).length + 1, '| size', mb.toFixed(1) + ' MB');
