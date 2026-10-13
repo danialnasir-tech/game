@@ -1234,6 +1234,7 @@
     B3.idle(false);
     IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
     current = MODES[mode];
+    if (panel) panel.classList.remove('show-all');
     document.body.dataset.mode = mode;
     S.visited = S.visited || {}; if (!S.visited[tab]) { S.visited[tab] = 1; save(); } markNewTabs(); firstHint(mode);
     PANEL_ANIM = true;
@@ -1400,6 +1401,7 @@
         '<div class="mchips">' + missionList(d).map(function (m, i) { return chip(m.done, m.label, m.sub || esc(L.title), m.act, String(i + 1)); }).join('') + '</div>' +
         (fresh ? '' : exploreStrip()) +
         (fresh ? '' : (function () { var pool = MORE_POOLS.tip_day, i = (dayNumber() - 1 + (S.startDate ? S.startDate.length : 0)) % pool.length; return '<button class="tipday" data-act="sayTip" data-i="' + i + '"><span class="tip-ico" aria-hidden="true">▶</span><span>' + esc(pool[i]) + '</span></button>'; })()) +
+        '<button class="home-more" data-act="homeMore"><span>🗺</span><b>Course map, today\'s goals and your rating</b><span class="an-go" aria-hidden="true">→</span></button>' +
         '<div class="sect-head"><h2>Your journey</h2><button class="link" data-act="tour">Replay tour</button></div>' +
         '<ol class="journey">' + STAGES.map(function (st, i) {
           var open = stageUnlocked(i), expanded = i === openStage && open;
@@ -1429,6 +1431,7 @@
     },
     leave: function () { B3.idle(false); }
   };
+  ACT.homeMore = function () { panel.classList.add('show-all'); panel.scrollTop = 0; var b = $('.home-more'); if (b) b.remove(); };
   ACT.startNext = function () { var nl = nextLesson(); if (nl) { var pf = current === MODES.path && pendingFlow(nl); if (pf) { S.flowSkip = S.flowSkip || {}; S.flowSkip[pf.lid] = 1; save(); } go('lesson', nl); } else go('play'); };
   ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
   ACT.toggleStage = function (d) { var i = +d.i, nl0 = nextLesson(), cur = PATHUI.open == null ? (nl0 ? stageOf(nl0) : STAGES.length - 1) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
@@ -4639,8 +4642,50 @@
   function webglOK() { try { var c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } }
 
   // ================= Boot =================
+  // Phone: use the height the player can actually see (100dvh is wrong inside some in-app browsers),
+  // keep enough room under the board for the instructions, and move the board tools into the top bar.
+  function phoneFit() {
+    var root = document.documentElement, mq = window.matchMedia && matchMedia('(max-width: 880px) and (orientation: portrait)');
+    try { if (window.self !== window.top) root.classList.add('framed'); } catch (e) { root.classList.add('framed'); }
+    function place() {
+      var st = $('.stage-top'), phone = mq && mq.matches;
+      if (phone && st.parentNode !== $('.top-stats')) $('.top-stats').insertBefore(st, $('#voice-btn'));
+      else if (!phone && st.parentNode !== $('.stage')) $('.stage').insertBefore(st, $('#toast'));
+    }
+    function size() {
+      var h = Math.round((window.visualViewport && window.visualViewport.height) || window.innerHeight);
+      root.style.setProperty('--app-h', h + 'px');
+      // room the panel needs below the board: top bar + tab bar + about four lines of instructions and a button row
+      root.style.setProperty('--below', Math.max(330, Math.min(420, Math.round(h * 0.47))) + 'px');
+      place();
+    }
+    size(); window.addEventListener('resize', function () { size(); fitBoard(); }); if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { size(); fitBoard(); });
+    if (mq && mq.addEventListener) mq.addEventListener('change', function () { size(); fitBoard(); });
+    // On board screens the board takes whatever room the instructions leave, so nothing under it ever needs scrolling.
+    var st = $('.stage'), raf = 0, last = 0;
+    function fitBoard() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(function () {
+        if (!(mq && mq.matches) || document.body.dataset.layout !== 'board') { if (last) { st.style.removeProperty('height'); last = 0; } return; }
+        var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight;
+        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * 0.31), maxB);
+        // start from the biggest board, then give back exactly what the panel is missing
+        st.style.setProperty('height', maxB + 'px', 'important'); last = maxB; void panel.offsetHeight;
+        for (var k = 0; k < 3; k++) {
+          var cur = last, need = panel.scrollHeight - panel.clientHeight;
+          var next = Math.round(Math.max(minB, Math.min(maxB, cur - need)));
+          if (Math.abs(next - cur) < 2) break;
+          st.style.setProperty('height', next + 'px', 'important'); last = next; void panel.offsetHeight;
+        }
+      });
+    }
+    phoneFit.fit = fitBoard;
+    new MutationObserver(fitBoard).observe(panel, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode'] });
+  }
   function boot() {
     panel = $('#panel');
+    phoneFit();
     $('.brand-mark').innerHTML = pieceSVG('n', 'b', 24);
     document.addEventListener('click', function (e) {
       var a = e.target.closest('[data-act]');
@@ -4653,6 +4698,7 @@
     $('#replay-btn').onclick = function () { Voice.replay(); };
     $('#sound-btn').onclick = function () { S.sound = !S.sound; save(); renderTop(); if (S.sound) Sound.play('move'); };
     $('#dim-btn').onclick = function () { Board.toggle(); };
+    $('#dim2-btn').onclick = function () { Board.toggle(); this.textContent = Board.is2D() ? '3D board' : '2D board'; $('.board-tools').classList.remove('open'); };
     $('#view-btn').onclick = function () { var v = B3.toggleView(); $('#view-btn').textContent = v === '3d' ? 'Top view' : '3D view'; };
     $('#flip-btn').onclick = function () { B3.setOrientation(B3.orientation() === 'w' ? 'b' : 'w'); };
     $('#center-btn').onclick = function () { B3.recenter(); };

@@ -390,7 +390,7 @@ button:disabled { cursor: not-allowed; }
     <div class="stage-top"><div id="mode-label">Training path</div>
       <button id="tools-btn" class="tools-btn" aria-label="Board options" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       <button id="dim-btn" class="dim-seg" aria-label="Switch board view"><span data-d="2">2D</span><span data-d="3">3D</span></button>
-      <div class="board-tools"><button id="flip-btn">Flip</button><button id="view-btn">Top view</button><button id="replay-btn">Replay voice</button><button id="center-btn">Recenter</button></div></div>
+      <div class="board-tools"><button id="dim2-btn" class="phone-only">3D board</button><button id="flip-btn">Flip</button><button id="view-btn">Top view</button><button id="replay-btn">Replay voice</button><button id="center-btn">Recenter</button></div></div>
     <div id="toast" class="toast" role="status"></div>
     <div id="coach-bubble" class="coach-bubble" hidden aria-live="polite"><span class="cb-avatar" aria-hidden="true"></span><span class="cb-body"><span class="cb-name">Coach Leo</span><span class="cb-text"></span></span></div>
     <div id="promo" hidden></div>
@@ -1202,5 +1202,49 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .panel > .actions .btn, .panel .actions .btn { min-height: 46px; font-size: 15.5px; padding: 0 20px; }
   .panel .actions .btn.primary { min-width: 150px; }
   .panel .meet-card { padding: 14px 18px; } .panel .meet-pc { width: 76px; height: 76px; } .panel .meet-txt > b { font-size: 24px; } .panel .meet-txt { font-size: 15px; }
+}
+
+/* Phone: real visible height (set from JS), board sized so the instructions always fit, board tools live in the top bar */
+.phone-only, .home-more { display: none; }
+@media (max-width: 880px) and (orientation: portrait) {
+  #app { height: var(--app-h, 100dvh) !important; }
+  html.framed .top { padding-top: 0 !important; }
+  .top .stage-top { position: relative !important; top: auto !important; left: auto !important; right: auto !important; pointer-events: auto; display: flex; align-items: center; flex: none; }
+  .top .stage-top #mode-label, .top .stage-top .dim-seg { display: none !important; }
+  .top .stage-top .tools-btn { width: 38px; height: 38px; }
+  .top .stage-top .board-tools { top: 46px; right: 0; z-index: 30; }
+  .top .phone-only { display: block; }
+  body .b2-wrap { padding-top: 0 !important; }
+  .stage { height: min(calc(100vw - 4px), calc(var(--app-h, 100dvh) - var(--below, 400px))) !important; }
+  body[data-layout="browse"] .stage { height: min(26vh, 200px, calc(var(--app-h, 100dvh) * .27)) !important; }
+  body[data-layout="board"] .stage { transition: none !important; }
+  /* compact instructions under the board */
+  body[data-layout="board"][data-mode="lesson"] .coach-tag, body[data-layout="board"][data-mode="drill"] .coach-tag { display: none; }
+  body[data-layout="board"] .panel { padding-top: 8px !important; }
+  body[data-layout="board"] .panel .coach-card { padding: 10px 12px !important; margin-bottom: 4px; }
+  body[data-layout="board"] .panel .coach-text { font-size: 15px !important; line-height: 1.42 !important; margin: 0; }
+  body[data-layout="board"] .panel .h1 { font-size: 19px !important; margin: 0 0 4px !important; }
+  body[data-layout="board"] .panel > .back { display: none; }
+  body[data-layout="board"] .panel .status:empty { display: none; }
+  body[data-layout="board"] .panel .status { margin: 6px 0 0; padding: 8px 10px; font-size: 14px; }
+  body[data-layout="board"] .panel .sq-game { padding: 8px 12px; margin-top: 6px; }
+  body[data-layout="board"] .first-hint { padding: 6px 10px; margin: 0 0 6px; font-size: 13px; border-radius: 12px; }
+  body[data-layout="board"][data-mode="mission"] .ms-steps, body[data-layout="board"][data-mode="mission"] .ms-ava { display: none; }
+  body[data-layout="board"][data-mode="mission"] .ms-head .eyebrow { font-size: 10px; margin: 0; }
+  body[data-layout="board"][data-mode="mission"] .ms-coach { margin: 4px 0 6px; }
+  body[data-layout="board"][data-mode="mission"] .ms-coach p { padding: 8px 11px; font-size: 14.5px; line-height: 1.4; }
+  body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
+  body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
+  /* home fits one screen: the next step first, everything else one tap away */
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
+  body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
+  body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }
+  .home-more { display: flex !important; align-items: center; gap: 10px; width: 100%; margin: 6px 0 0; padding: 9px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); color: var(--fg); text-align: left; font-size: 14px; }
+  .home-more b { flex: 1; }
+  body[data-layout="browse"] .b2-tag { display: none; }
+  body[data-mode="path"] .stage { display: none !important; }
+  /* the coach's words are already written in the panel on these screens */
+  body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble { display: none !important; }
 }
 </style>

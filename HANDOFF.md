@@ -148,3 +148,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   mates and promotions, each verified by a material search (one winning move, clear margin). Their explanations are voiced (P- ids).
 - **Desktop layout**: panel `clamp(380px, 40vw, 600px)` with larger type; 2D board capped at 680px.
 - **Voice**: new pools `drill_*`, `piece_found_*`, `piece_wrong`, `demo_watch`, `intro_<lesson>` (said when a lesson starts).
+
+## Phone: one screen, no scrolling
+- `phoneFit()` (app.js) sets `--app-h` from the real visible height (100dvh is wrong in some in-app browsers, e.g. the Claude app),
+  drops the notch padding when framed, and moves the board tools ("…", with a 2D/3D item) into the top bar.
+- On board screens the board resizes for every panel change (MutationObserver): it starts at full width and shrinks only by what the
+  instructions need (minimum about 31% of the height). Lesson, practice and mission screens keep their buttons pinned at the bottom.
+- Phone home shows the "Next up" card, the next first step and a "Course map, today's goals and your rating" button; the rest opens on tap.
+- Checked at 393x750, 390x844, 360x740 and 375x667 (every Foundations lesson step, practice, mission, home).
