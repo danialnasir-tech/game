@@ -23,6 +23,10 @@
     } catch (e) { }
     return freshState();
   }
+  // Erase everything Chess Ascent keeps in this browser (progress, account, settings).
+  function wipeAll() { try { Object.keys(localStorage).forEach(function (k) { if (/^chess-ascent/.test(k)) localStorage.removeItem(k); }); } catch (e) { } }
+  // Test link: opening the site with ?fresh (or #fresh) always starts like a brand-new player.
+  try { if (/[?&#]fresh\b/.test(location.search + location.hash)) wipeAll(); } catch (e) { }
   var S = loadState();
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { } if (typeof Cloud !== 'undefined' && Cloud) Cloud.push(); }
 
@@ -3888,7 +3892,7 @@
         '<div class="badge-grid">' + Object.keys(BADGES).map(function (k) { var b = BADGES[k], got = S.badges[k]; return '<div class="badge-tile ' + (got ? 'got' : '') + '" title="' + esc(b.text) + '"><span class="bt-ico">' + pieceSVG(b.icon, got ? 'w' : 'b', 30) + '</span><span class="bt-name">' + esc(b.name) + '</span></div>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your data</h2></div>' +
         '<p class="muted small">Progress is saved in this browser. Make a backup code to move it to another device or keep it safe.</p>' +
-        '<div class="actions"><button class="btn" data-act="backup">Make backup code</button><button class="btn" data-act="restore">Restore from code</button><button class="btn ghost" data-act="askReset">Reset progress</button></div><div id="reset-zone"></div>');
+        '<div class="actions"><button class="btn" data-act="backup">Make backup code</button><button class="btn" data-act="restore">Restore from code</button><button class="btn ghost" data-act="askReset">Start over</button></div><div id="reset-zone"></div>');
       drawSpark($('#spark'), S.puzzle.hist.map(function (h) { return h[1]; }));
       function stat(k, v) { return '<div class="stat"><span class="muted small">' + k + '</span><b>' + v + '</b></div>'; }
     },
@@ -4032,6 +4036,7 @@
       '<label class="toggle"><input type="checkbox" id="set-2d" ' + (s.board2d !== false ? 'checked' : '') + '> <span>Flat 2D board (switch to the classic 3D board any time from the board)</span></label>' +
       '<label class="toggle"><input type="checkbox" id="set-cam" ' + (s.cameraFixed ? 'checked' : '') + '> <span>Keep the 3D camera fixed (no rotating)</span></label>' +
       '<label class="toggle"><input type="checkbox" id="set-eval" ' + (showEvalBar() ? 'checked' : '') + '> <span>Show the "who\'s winning" bar in games</span></label>' +
+      '<div class="field" id="set-over"><span>Start over <span class="dim">· erase progress on this device and begin again from the welcome screen</span></span><div class="actions"><button class="btn ghost" data-set="over">Start over</button></div></div>' +
       '<div class="actions"><button class="btn ghost" data-set="test">▶ Test voice</button><button class="btn primary" data-set="close">Done</button></div></div>';
     m.hidden = false;
     $('#set-name').oninput = function (e) { s.coachName = e.target.value.trim() || 'Coach Leo'; save(); };
@@ -4044,6 +4049,9 @@
     m.onclick = function (e) {
       var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
       if (b.dataset.set === 'gsign') { Cloud.signIn(); return; }
+      if (b.dataset.set === 'over') { $('#set-over').innerHTML = '<span>Erase all lessons, ratings and history on this device and start like a brand-new player?</span><div class="actions"><button class="btn" data-set="overNo">Keep my progress</button><button class="btn danger" data-set="overYes">Erase and start over</button></div>'; return; }
+      if (b.dataset.set === 'overNo') { openSettings(); return; }
+      if (b.dataset.set === 'overYes') { ACT.doReset(); return; }
       if (b.dataset.set === 'gout') { Cloud.signOut(); return; }
       if (b.dataset.band) {
         var v = +b.dataset.band; S.band = v; S.coach.level = levelForRating(Math.max(S.puzzle.rating, v)); PATHUI.open = null;
@@ -4080,9 +4088,9 @@
       S = Object.assign(freshState(), data); save(); renderTop(); toast('Progress restored.'); go('progress');
     } catch (e) { toast('That code is not valid. Check that you copied all of it.', 'bad'); }
   };
-  ACT.askReset = function () { $('#reset-zone').innerHTML = '<div class="card danger"><p>Erase all lessons, ratings and history on this device?</p><div class="actions"><button class="btn" data-act="cancelReset">Keep</button><button class="btn danger" data-act="doReset">Erase</button></div></div>'; };
+  ACT.askReset = function () { $('#reset-zone').innerHTML = '<div class="card danger"><p>Start over like a brand-new player? This erases all lessons, ratings and history on this device, and shows the welcome and tour again.</p><div class="actions"><button class="btn" data-act="cancelReset">Keep</button><button class="btn danger" data-act="doReset">Erase and start over</button></div></div>'; };
   ACT.cancelReset = function () { $('#reset-zone').innerHTML = ''; };
-  ACT.doReset = function () { S = freshState(); save(); renderTop(); onboard(); };
+  ACT.doReset = function () { wipeAll(); S = freshState(); try { location.reload(); } catch (e) { renderTop(); onboard(); } };
 
   // ================= Top bar and onboarding =================
   var lastMissions = null;
