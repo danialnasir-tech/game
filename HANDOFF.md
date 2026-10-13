@@ -118,6 +118,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Feedback: every wrong puzzle move gets a plain reason (`puzzleWhyWrong`), every good coach-game move a reason (`moveReason`), refused moves including castling are explained (`illegalWhy`), mission failures explain themselves (`missionWhy`). Stars drop for hints and mistakes.
 - Layout: on phones the button row no longer floats over content; results replace the instructions and scroll into view. Coach games unlock after 5 lessons (every piece taught), openings after 6.
 
+## Google sign-in and cloud save
+- `Cloud` (app.js): Google Identity Services token client + Google Drive `appDataFolder` (scope `drive.appdata`). One file per player, `chess-ascent-progress.json` = {profile, summary, state}. Merge on sign-in keeps the richer save and unions lessons, stars, missions, badges, solved puzzles, openings, review schedule.
+- Client ID comes from `chess-ascent-config.js` next to the page (gitignored; template `chess-ascent-config.example.js`, copied into dist by build.js). No config = feature hidden. Setup steps for Google Cloud Console: `GOOGLE-SIGN-IN.md`.
+- Tested with a mocked Google (scratchpad `pw/gs.js`): upload from device A, restore on a fresh device B from the welcome screen.
+
 ## Open items
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.

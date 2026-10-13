@@ -17,6 +17,7 @@ const OUT=process.env.OUT||'dist'; // e.g. OUT=/tmp/preview node build.js to bui
 fs.mkdirSync(OUT,{recursive:true});
 const out=t.replace('/*__APP__*/', ()=>js);
 fs.writeFileSync(OUT+'/chess-ascent.html', out);
+fs.copyFileSync('chess-ascent-config.example.js', OUT+'/chess-ascent-config.example.js');
 // Standalone website build: a complete HTML document (doctype, lang, charset, mobile viewport)
 // Home-screen / tab icon for the website build
 const ICON="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ff4f8b'/><stop offset='.5' stop-color='#ffd23f'/><stop offset='1' stop-color='#4cc9f0'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(#g)'/><g transform='translate(9.5 8)' fill='#1b1a22' stroke='#f7efdc' stroke-width='1.5' stroke-linejoin='round'><path d='M14 36l.8-7.4c.8-4.6 3.8-7.3 6.5-9.6-2.4.3-5 1.6-6.9 3.6l-3.6-2.4c1.4-4.3 4.7-8.1 9.1-10.4l1.2-3.6 2.3 3.1c7 .7 11.4 6.5 11.4 14.2 0 4.8-1.3 9.3-3.3 12.5z'/><path d='M11.5 36.5h22a1.5 1.5 0 0 1 1.5 1.5v.5a1.5 1.5 0 0 1-1.5 1.5h-22A1.5 1.5 0 0 1 10 38.5V38a1.5 1.5 0 0 1 1.5-1.5z'/></g></svg>";

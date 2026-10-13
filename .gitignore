@@ -4,3 +4,5 @@ dist/voice/
 dist/kit/
 out/
 scratch/
+chess-ascent-config.js
+dist/chess-ascent-config.js

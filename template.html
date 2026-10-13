@@ -467,6 +467,7 @@ button:disabled { cursor: not-allowed; }
 })();
 </script>
 
+<script src="chess-ascent-config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');</script>
 <script>window.THREE || document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');</script>
@@ -1134,6 +1135,16 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .warm-t { display: grid; gap: 2px; flex: 1; min-width: 0; } .warm-t span { font-size: 12.5px; color: var(--muted); }
 @keyframes warmIn { from { opacity: 0; transform: translateY(8px); } }
 .wu-pips { display: flex; gap: 6px; margin: 2px 0 12px; } .wu-pips i { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); } .wu-pips i.cur { background: var(--grad-hot); } .wu-pips i.on { background: var(--good); } .wu-pips i.miss { background: var(--bad); }
+.acct { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; margin: 4px 0 14px; border-radius: 16px; background: linear-gradient(120deg, rgba(46,230,255,.1), rgba(139,92,255,.1)), var(--card); border: 1px solid rgba(46,230,255,.3); }
+.acct.off { opacity: .75; border-style: dashed; } .acct.on { border-color: rgba(61,255,168,.45); }
+.acct-t { display: grid; gap: 2px; flex: 1; min-width: 160px; } .acct-t span { font-size: 12.5px; color: var(--muted); } .acct-sync { color: var(--good) !important; }
+.acct-ava { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--grad-cool); font-weight: 800; flex-shrink: 0; }
+.acct-err { width: 100%; margin: 4px 0 0; font-size: 12.5px; color: var(--bad); }
+.g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; border-radius: 12px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; font: 600 14px var(--f-body); box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer; }
+.g-btn:hover { background: #f7f8f8; }
+.ob-or { display: grid; justify-items: center; gap: 8px; margin: 14px 0 4px; } .ob-or > span { font-size: 12.5px; color: var(--muted); }
+.small-btn { padding: 7px 12px; font-size: 13px; }
+#settings-btn.signed-in { position: relative; } #settings-btn.signed-in::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px #0e0b1a; }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }

@@ -467,6 +467,7 @@ button:disabled { cursor: not-allowed; }
 })();
 </script>
 
+<script src="chess-ascent-config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');</script>
 <script>window.THREE || document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');</script>
@@ -2932,7 +2933,7 @@ function BOARD2D_FACTORY() {
     return freshState();
   }
   var S = loadState();
-  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { } }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { } if (typeof Cloud !== 'undefined' && Cloud) Cloud.push(); }
 
   function dayKey(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function today() { var k = dayKey(); if (!S.daily[k]) S.daily[k] = { lesson: false, puzzles: 0, opening: false, game: false }; return S.daily[k]; }
@@ -6808,10 +6809,128 @@ function BOARD2D_FACTORY() {
       '<circle cx="20" cy="17" r="7.5" fill="#f2c9a5"/><path d="M12.4 16.2c-.3-5 3.2-8.4 7.8-8.4 4.4 0 7.7 2.9 7.5 7.6-1.4-1.9-3.6-3-6.7-3.2-3.3-.2-6.4 1.3-8.6 4z" fill="#2b1d16"/>' +
       '<circle cx="17.3" cy="17.6" r=".9" fill="#2b1d16"/><circle cx="22.7" cy="17.6" r=".9" fill="#2b1d16"/><path d="M17.6 20.6c1.4 1.1 3.4 1.1 4.8 0" stroke="#2b1d16" stroke-width="1" fill="none" stroke-linecap="round"/></svg>';
   }
+  // ================= Google sign-in + cloud save =================
+  // Uses an OAuth client ID from Google Cloud Console (Credentials > OAuth client ID > Web, with the site listed under
+  // "Authorized JavaScript origins"). The ID lives in chess-ascent-config.js next to the page, never in this code.
+  // Progress is saved in the player's own Google Drive, in a hidden app-only folder (scope drive.appdata).
+  // Without the config file the app works exactly as before, saving in this browser only.
+  var Cloud = (function () {
+    var C = window.CHESS_ASCENT_CONFIG || {}, clientId = C.googleClientId || '', tokenClient = null, token = null, expires = 0, fileId = null, user = null, ready = null, pushT = null, applying = false, asking = false, pending = false;
+    var FILE = 'chess-ascent-progress.json', SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata', ACCT = 'chess-ascent-account';
+    var st = { lastSync: 0, error: '', busy: false };
+    try { user = JSON.parse(localStorage.getItem(ACCT) || 'null'); } catch (e) { user = null; }
+    function enabled() { return /\.apps\.googleusercontent\.com$/.test(clientId) && !/PASTE/i.test(clientId); }
+    function load(src) { return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = function () { rej(new Error('Could not reach Google sign-in.')); }; document.head.appendChild(s); }); }
+    function init() {
+      if (ready) return ready;
+      if (!enabled()) return (ready = Promise.reject(new Error('Google sign-in is not set up')));
+      ready = (window.google && google.accounts && google.accounts.oauth2 ? Promise.resolve() : load('https://accounts.google.com/gsi/client')).then(function () {
+        tokenClient = google.accounts.oauth2.initTokenClient({ client_id: clientId, scope: SCOPE, callback: onToken, error_callback: function (e) { asking = false; st.error = e && e.type === 'popup_closed' ? 'Sign-in was closed before it finished.' : 'Sign-in did not finish (' + (e && e.type || 'error') + ').'; refresh(); } });
+      });
+      ready.catch(function (e) { st.error = e.message; refresh(); });
+      return ready;
+    }
+    function live() { return token && Date.now() < expires - 60000; }
+    function ask(prompt) { if (!tokenClient || asking) return; asking = true; tokenClient.requestAccessToken({ prompt: prompt, login_hint: user && user.email || undefined }); }
+    function api(url, opt) {
+      opt = opt || {}; opt.headers = Object.assign({ Authorization: 'Bearer ' + token }, opt.headers || {});
+      return fetch(url, opt).then(function (r) { if (r.status === 401) { token = null; throw new Error('expired'); } if (!r.ok) throw new Error('Google said ' + r.status); return r; });
+    }
+    function onToken(resp) {
+      asking = false;
+      if (!resp || resp.error || !resp.access_token) { st.error = 'Sign-in did not finish.'; refresh(); return; }
+      if (!google.accounts.oauth2.hasGrantedAllScopes(resp, 'https://www.googleapis.com/auth/drive.appdata')) { st.error = 'Please allow saving to Google Drive, otherwise your progress cannot be stored.'; refresh(); return; }
+      token = resp.access_token; expires = Date.now() + (resp.expires_in || 3600) * 1000; st.error = '';
+      var first = !user;
+      api('https://www.googleapis.com/oauth2/v3/userinfo').then(function (r) { return r.json(); }).then(function (u) {
+        user = { name: u.name || '', email: u.email || '', picture: u.picture || '', sub: u.sub };
+        try { localStorage.setItem(ACCT, JSON.stringify(user)); } catch (e) { }
+        refresh(); return pull(first);
+      }).catch(function (e) { st.error = 'Could not reach your Google account: ' + e.message; refresh(); });
+    }
+    function pull(first) {
+      st.busy = true; refresh();
+      var q = encodeURIComponent("name = '" + FILE + "'");
+      return api('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,modifiedTime)&q=' + q).then(function (r) { return r.json(); }).then(function (j) {
+        var f = (j.files || [])[0]; if (!f) return null;
+        fileId = f.id;
+        return api('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media').then(function (r) { return r.json(); });
+      }).then(function (data) {
+        var cloud = null; try { cloud = data && data.state ? (typeof data.state === 'string' ? JSON.parse(data.state) : data.state) : null; } catch (e) { cloud = null; }
+        var restored = mergeIn(cloud); st.busy = false; doPush();
+        if (restored) toast('Welcome back, ' + (user.name || 'player').split(' ')[0] + '! Your progress is restored.');
+        else if (first) toast('Signed in. Your progress now saves to your Google account.');
+      }).catch(function (e) { st.busy = false; st.error = 'Could not read your saved progress: ' + e.message; refresh(); });
+    }
+    function rich(s) { return (s.xp || 0) + Object.keys(s.lessons || {}).length * 50 + Object.keys(s.puzzle && s.puzzle.solved || {}).length * 5; }
+    // true when progress came from the account
+    function mergeIn(c) {
+      if (!c) return false;
+      var localFresh = !S.onboarded || rich(S) === 0;
+      applying = true;
+      var base = localFresh || rich(c) > rich(S) ? c : JSON.parse(JSON.stringify(S)), other = base === c ? S : c;
+      var M = Object.assign(freshState(), base);
+      M.puzzle = Object.assign(freshState().puzzle, base.puzzle || {}); M.coach = Object.assign(freshState().coach, base.coach || {}); M.settings = Object.assign(freshState().settings, base.settings || {});
+      if (!localFresh) { // nothing earned on either device is lost
+        var maxMap = function (a, b, f) { a = a || {}; Object.keys(b || {}).forEach(function (k) { a[k] = a[k] == null ? b[k] : f(a[k], b[k]); }); return a; };
+        M.lessons = maxMap(M.lessons, other.lessons, function (x, y) { return { done: x.done || y.done, stars: Math.max(x.stars || 0, y.stars || 0) }; });
+        M.missions = maxMap(M.missions, other.missions, Math.max);
+        M.arena = maxMap(M.arena, other.arena, Math.max);
+        ['badges', 'bosses', 'challenges', 'cleared', 'disc', 'visited', 'hinted'].forEach(function (k) { M[k] = maxMap(M[k], other[k], function (x) { return x; }); });
+        M.openings = maxMap(M.openings, other.openings, function (x, y) { return { drills: Math.max(x.drills || 0, y.drills || 0), perfect: Math.max(x.perfect || 0, y.perfect || 0) }; });
+        M.puzzle.solved = maxMap(M.puzzle.solved, other.puzzle && other.puzzle.solved, Math.max);
+        M.srs = maxMap(M.srs, other.srs, function (x, y) { return (x.b || 0) >= (y.b || 0) ? x : y; });
+        M.xp = Math.max(M.xp || 0, other.xp || 0); M.streak = Math.max(M.streak || 0, other.streak || 0);
+      }
+      S = M; save(); applying = false; renderTop();
+      var modal = $('#modal'); if (S.onboarded && modal && modal.classList.contains('intro')) { modal.hidden = true; modal.classList.remove('intro'); modal.onclick = null; }
+      if (!current || current === MODES.path) go('path');
+      return base === c;
+    }
+    function push(now) { if (!user || applying || st.busy) return; pending = true; clearTimeout(pushT); pushT = setTimeout(doPush, now ? 0 : 3000); }
+    function doPush() {
+      if (!user) return;
+      if (!live()) { pending = true; refresh(); return; } // reconnects on the next tap
+      pending = false;
+      var body = JSON.stringify({
+        app: 'chess-ascent', version: 1, updatedAt: new Date().toISOString(),
+        profile: { name: user.name, email: user.email, picture: user.picture },
+        summary: { xp: S.xp || 0, puzzleRating: Math.round(S.puzzle.rating), gameRating: S.grating || null, lessonsDone: lessonsDone(), streak: S.streak || 0, level: S.band, lastActive: S.lastActive || null, missions: Object.keys(S.missions || {}).length, gamesPlayed: (S.games || []).length },
+        state: S
+      });
+      var req = fileId
+        ? api('https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body })
+        : api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=cab' }, body: '--cab\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: FILE, parents: ['appDataFolder'] }) + '\r\n--cab\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--cab--' }).then(function (r) { return r.json(); }).then(function (j) { fileId = j.id; });
+      Promise.resolve(req).then(function () { st.lastSync = Date.now(); st.error = ''; refresh(); }, function (e) { if (e.message === 'expired') pending = true; else st.error = 'Saving to your account failed: ' + e.message; refresh(); });
+    }
+    // Google needs a tap to hand out a fresh token: reconnect quietly on the first tap of a visit, or when it expires.
+    document.addEventListener('pointerdown', function () { if (enabled() && user && !live() && tokenClient && !asking) ask(''); }, true);
+    function signIn() {
+      if (tokenClient) return ask(user ? '' : 'consent');
+      init().then(function () { ask('consent'); });
+    }
+    function signOut() {
+      try { if (token) google.accounts.oauth2.revoke(token, function () { }); } catch (e) { }
+      token = null; user = null; fileId = null; try { localStorage.removeItem(ACCT); } catch (e) { }
+      refresh(); toast('Signed out. Your progress stays saved in your Google account.');
+    }
+    function refresh() { var b = $('#settings-btn'); if (b) b.classList.toggle('signed-in', !!user); var a = $('#acct-box'); if (a) a.innerHTML = acctHtml(); }
+    function acctHtml() {
+      if (!enabled()) return '<div class="acct off"><b>Cloud save</b><span>Google sign-in is not set up on this site yet. Progress is saved in this browser only.</span></div>';
+      if (!user) return '<div class="acct"><div class="acct-t"><b>Save your progress</b><span>Sign in to keep lessons, puzzles and games safe in your Google account and continue on any device.</span></div><button class="g-btn" data-set="gsign">' + G_ICON + ' Sign in with Google</button>' + (st.error ? '<p class="acct-err">' + esc(st.error) + '</p>' : '') + '</div>';
+      return '<div class="acct on">' + (user.picture ? '<img class="acct-ava" src="' + esc(user.picture) + '" alt="" referrerpolicy="no-referrer">' : '<span class="acct-ava">' + esc((user.name || '?')[0]) + '</span>') +
+        '<div class="acct-t"><b>' + esc(user.name || 'Signed in') + '</b><span>' + esc(user.email || '') + '</span><span class="acct-sync">' + (st.busy ? 'Syncing…' : st.error ? '⚠ ' + esc(st.error) : !live() ? 'Tap anywhere to reconnect and sync' : st.lastSync ? '✓ Saved to your Google account at ' + new Date(st.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '✓ Connected') + '</span></div>' +
+        '<button class="btn ghost small-btn" data-set="gout">Sign out</button></div>';
+    }
+    var G_ICON = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+    return { enabled: enabled, init: init, signIn: signIn, signOut: signOut, push: push, user: function () { return user; }, html: acctHtml, refresh: refresh, gButton: function (label) { return '<button class="g-btn" data-ob="gsign">' + G_ICON + ' ' + esc(label) + '</button>'; } };
+  })();
+
   function openSettings() {
     var s = S.settings, m = $('#modal');
     m.classList.remove('intro');
     m.innerHTML = '<div class="modal-card settings" role="dialog" aria-modal="true" aria-labelledby="set-title"><div class="set-head"><span class="cb-avatar big">' + coachAvatar() + '</span><div><div class="eyebrow">Settings</div><h1 class="h1" id="set-title">Your coach</h1></div></div>' +
+      '<div id="acct-box">' + Cloud.html() + '</div>' +
       '<label class="field"><span>Coach name</span><input id="set-name" type="text" maxlength="24" value="' + esc(s.coachName) + '"></label>' +
       '<div class="field"><span>Your level <span class="dim">· sets where the course starts</span></span><div class="seg wrap">' + BANDS.map(function (b) { return '<button class="' + (S.band === b.v ? 'on' : '') + '" data-band="' + b.v + '" title="' + esc(b.t) + '">' + b.v + '</button>'; }).join('') + '</div></div>' +
       '<label class="field"><span>Voice volume <b id="vol-v">' + Math.round(s.volume * 100) + '%</b></span><input id="set-vol" type="range" min="0" max="1" step="0.05" value="' + s.volume + '"></label>' +
@@ -6833,6 +6952,8 @@ function BOARD2D_FACTORY() {
     $('#set-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); if (current === MODES.play && PL && PL.g) $('#evalbar').hidden = !e.target.checked; };
     m.onclick = function (e) {
       var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
+      if (b.dataset.set === 'gsign') { Cloud.signIn(); return; }
+      if (b.dataset.set === 'gout') { Cloud.signOut(); return; }
       if (b.dataset.band) {
         var v = +b.dataset.band; S.band = v; S.coach.level = levelForRating(Math.max(S.puzzle.rating, v)); PATHUI.open = null;
         if (S.puzzle.hist.length <= 1) { S.puzzle.rating = v; S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; }
@@ -6941,10 +7062,12 @@ function BOARD2D_FACTORY() {
       '<p class="intro-tag">Your personal coach, from your very first move to 2000.</p>' +
       '<ul class="intro-points"><li>Bite-size lessons</li><li>Real openings &amp; gambits</li><li>A coach who reacts to every move</li></ul>' +
       '<button class="btn primary big" data-ob="meet">Meet your coach</button>' +
+      (Cloud.enabled() ? '<div class="ob-or"><span>Played before?</span>' + Cloud.gButton('Sign in with Google') + '</div>' : '') +
       '<p class="muted small">Sound on for the full experience.</p></div>';
     m.hidden = false;
     m.onclick = function (e) {
       var b = e.target.closest('[data-ob],[data-band]'); if (!b) return;
+      if (b.dataset.ob === 'gsign') { Sound.unlock(); Cloud.signIn(); return; }
       if (b.dataset.ob === 'meet') {
         Sound.unlock(); Voice.say([C('welcome')]);
         m.querySelector('.intro-card').innerHTML =
@@ -7239,6 +7362,7 @@ function BOARD2D_FACTORY() {
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', applyMob); else if (MQ.addListener) MQ.addListener(applyMob); }
     $('#coach-bubble .cb-avatar').innerHTML = coachAvatar();
     Board.setup();
+    if (Cloud.enabled()) Cloud.init().catch(function () { });
     B3.setDrag({ can: dragCan, start: dragStart, drop: dragDrop, fen: function () { if (IX.collect) return fenOf(IX.collect.piece, IX.collect.at); return IX.game ? IX.game.fen() : null; } });
     B3.setCameraFixed(S.settings.cameraFixed);
     renderTop();
@@ -7928,6 +8052,16 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .warm-t { display: grid; gap: 2px; flex: 1; min-width: 0; } .warm-t span { font-size: 12.5px; color: var(--muted); }
 @keyframes warmIn { from { opacity: 0; transform: translateY(8px); } }
 .wu-pips { display: flex; gap: 6px; margin: 2px 0 12px; } .wu-pips i { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); } .wu-pips i.cur { background: var(--grad-hot); } .wu-pips i.on { background: var(--good); } .wu-pips i.miss { background: var(--bad); }
+.acct { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; margin: 4px 0 14px; border-radius: 16px; background: linear-gradient(120deg, rgba(46,230,255,.1), rgba(139,92,255,.1)), var(--card); border: 1px solid rgba(46,230,255,.3); }
+.acct.off { opacity: .75; border-style: dashed; } .acct.on { border-color: rgba(61,255,168,.45); }
+.acct-t { display: grid; gap: 2px; flex: 1; min-width: 160px; } .acct-t span { font-size: 12.5px; color: var(--muted); } .acct-sync { color: var(--good) !important; }
+.acct-ava { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--grad-cool); font-weight: 800; flex-shrink: 0; }
+.acct-err { width: 100%; margin: 4px 0 0; font-size: 12.5px; color: var(--bad); }
+.g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; border-radius: 12px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; font: 600 14px var(--f-body); box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer; }
+.g-btn:hover { background: #f7f8f8; }
+.ob-or { display: grid; justify-items: center; gap: 8px; margin: 14px 0 4px; } .ob-or > span { font-size: 12.5px; color: var(--muted); }
+.small-btn { padding: 7px 12px; font-size: 13px; }
+#settings-btn.signed-in { position: relative; } #settings-btn.signed-in::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px #0e0b1a; }
 /* phone: floating tab bar */
 @media (max-width: 880px) and (orientation: portrait) {
   .rail { margin: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); padding: 5px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(14,10,28,.82); box-shadow: 0 12px 34px rgba(0,0,0,.5); }
