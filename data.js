@@ -1,8 +1,8 @@
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
   { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
-  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
-  { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the thinking routine that stops blunders.', lessons: ['l-discovered', 'l-defender', 'l-patterns', 'l-cct'] },
+  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
+  { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the mating patterns that end games.', lessons: ['l-discovered', 'l-defender', 'l-patterns'] },
   { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Opposition, the Lucena and Philidor, pawn breaks and pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
   { id: 's5', name: 'Mastery', band: '1600 – 2000', min: 1600, blurb: 'Calculation, outposts, prophylaxis and converting a winning position.', lessons: ['l-calc', 'l-outposts', 'l-convert'] }
 ];
@@ -103,7 +103,7 @@ var LESSONS = {
     steps: [
       { t: 'read', fen: '4k3/8/8/1q6/2N5/8/8/4K3 w - - 0 1', text: 'A fork is one piece attacking two targets. The opponent can only save one. Knights are the best forkers because their attack cannot be blocked.' },
       { t: 'move', fen: '4k3/8/8/1q6/2N5/8/8/4K3 w - - 0 1', text: 'Fork the king and the queen.', sol: ['c4d6', 'e8e7', 'd6b5'], hint: 'Which square attacks both e8 and b5?', done: 'Royal fork! Check first, then the queen falls.' },
-      { t: 'move', fen: '4k3/8/2n1b3/8/2PP4/8/8/4K3 w - - 0 1', text: 'Pawns fork too. Attack both minor pieces.', sol: ['d4d5'], hint: 'A pawn on d5 attacks c6 and e6. The c4 pawn backs it up.', done: 'Pawn fork. One of the pieces will fall.' },
+      { t: 'move', fen: '4k3/8/2n1b3/8/2PP4/8/8/4K3 w - - 0 1', text: 'Pawns fork too. Knights and bishops are called minor pieces. Attack both of them with one pawn move.', sol: ['d4d5'], hint: 'A pawn on d5 attacks c6 and e6. The c4 pawn backs it up.', done: 'Pawn fork. One of the pieces will fall.' },
       { t: 'move', fen: 'r5k1/6pp/8/8/8/8/8/3QK3 w - - 0 1', text: 'Use the queen to fork king and rook.', sol: ['d1d5', 'g8h8', 'd5a8'], accept: ['d1d5'], hint: 'Find a check that also lines up with a8.', done: 'The queen hits g8 and a8 along two diagonals.' }
     ]
   },
@@ -159,9 +159,10 @@ var LESSONS = {
   'l-cct': {
     title: 'The Blunder Check', minutes: 8, takeaways: ['Every move: checks, captures, threats, for both sides.', 'Always ask what your opponent wants before you move.'], goal: 'Before every move, scan Checks, Captures and Threats for both sides.',
     steps: [
-      { t: 'read', fen: '4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', text: 'Every move, ask three questions in order. Checks: what checks exist? Captures: what can be taken? Threats: what does my opponent want to do next? This one habit is worth hundreds of rating points.' },
+      { t: 'read', fen: '4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', text: 'Most games below 1200 are lost to one careless move. Stop that with the blunder check: before every move, ask three questions in order. Checks: what checks exist? Captures: what can be taken? Threats: what does my opponent want to do next? This one habit is worth hundreds of rating points.' },
+      { t: 'move', fen: 'r1bqkbnr/pppp1ppp/2n5/8/3QP3/8/PPP2PPP/RNB1KBNR w KQkq - 1 4', text: 'Threats first. Black\'s knight on c6 is attacking your queen. Move her to a square where nothing can take her.', sol: ['d4e3'], judge: 'safe', hint: 'Look at every square she can go to, and ask: can a black piece capture me there?', done: 'Safe. When something is attacked, deal with it before anything else.' },
       { t: 'move', fen: '4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', text: 'Black threatens Re1 mate. Find a move that stops it.', sol: ['h2h3'], judge: 'safe', hint: 'Make an escape square, or cover e1.', done: 'You stopped the threat. Always ask what your opponent wants.' },
-      { t: 'move', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', text: 'Scan for checks and captures. One capture ends the game.', sol: ['h5f7'], anyMate: true, hint: 'Look at f7. Who defends it?', done: 'Scholar\'s mate. The CCT scan finds it instantly.' }
+      { t: 'move', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', text: 'Scan for checks and captures. One capture ends the game.', sol: ['h5f7'], anyMate: true, hint: 'Look at f7. Who defends it?', done: 'Scholar\'s mate. Checks and captures first: the blunder check finds it instantly.' }
     ]
   },
   'l-kp': {

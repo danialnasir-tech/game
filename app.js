@@ -944,6 +944,7 @@
   function setStatus(text, kind) {
     var el = $('#status'); if (!el) return;
     el.innerHTML = text; el.className = 'status ' + (kind || '');
+    if (text && el.scrollIntoView) try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { }
   }
   var PIECE_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
   var GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
@@ -1211,7 +1212,7 @@
   // ================= Path (home) =================
   // Placement: the stage that matches the level picked at the start. Stages below it count as cleared,
   // and so does any stage the player tested out of.
-  function placementStage(band) { var k = 0; STAGES.forEach(function (st, i) { if ((band == null ? S.band : band) >= st.min) k = i; }); return Math.min(k, 3); } // endgames are never skipped by placement
+  function placementStage(band) { var k = 0, b = band == null ? S.band : band; STAGES.forEach(function (st, i) { if (b > st.min) k = i; }); return Math.min(k, 3); } // endgames are never skipped by placement
   function lessonDone(id) { return !!(S.lessons[id] && S.lessons[id].done); }
   function placedOut(i) { return i < placementStage() || !!(S.cleared && S.cleared[STAGES[i].id]); }
   function stageComplete(i) { return STAGES[i].lessons.every(lessonDone); }
@@ -1960,7 +1961,9 @@
       if (!p) { setPanel('<h1 class="h1">No puzzles</h1>'); return; }
       var fen = puzzleFen(p);
       PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0 };
-      var g = setupBoard(fen, { drop: true, orient: new Game(fen).turn() });
+      var side = new Game(fen).turn(), flipped = PZ.lastSide && PZ.lastSide !== side; PZ.lastSide = side;
+      var g = setupBoard(fen, { drop: true, orient: side });
+      if (flipped) toast(side === 'b' ? 'You play Black this time. The board turned so your pieces are at the bottom.' : 'You play White again. The board turned back.');
       if (p.pre) { var t = new Game(); p.pre.forEach(function (s) { var m = t.move(s); if (m) B3.markers('last', [m.from, m.to]); }); }
       IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !PZ.cur.done; }; IX.onMove = MODES.puzzles.onMove;
       Voice.say([V(p.mate === 1 ? 'puzzle_mate1' : p.mate === 2 ? 'puzzle_mate2' : 'puzzle_start')], true);
@@ -2532,9 +2535,10 @@
       var plies = PL.g.history().length, real = plies >= 20 || result !== 'loss' || /Checkmate/.test(msg) || beginnerMode();
       if (real) today().game = true;
       var GR = S.grating || Math.max(100, S.band), E = 1 / (1 + Math.pow(10, (PL.level.elo - GR) / 400)), sc = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
-      PL.gdelta = plies >= 6 ? Math.round(32 * (sc - E)) : 0; S.grating = Math.max(100, GR + PL.gdelta);
+      PL.gdelta = plies >= 6 && (PL.startFen === Game.START || plies >= 20) ? Math.round(32 * (sc - E)) : 0; S.grating = Math.max(100, GR + PL.gdelta);
       addXP(result === 'win' ? 60 : 30); save();
-      if (result === 'win') Badges.award('beat_' + PL.level.id);
+      var fullGame = PL.startFen === Game.START || plies >= 20;
+      if (result === 'win' && fullGame) Badges.award('beat_' + PL.level.id);
       if (PL.toldComeback && result === 'win') Badges.award('comeback');
       PL.result = result; PL.acc = acc;
       if (result === 'win') { Sound.play('win'); B3.burst(kingSq(PL.g) || 'e4'); confetti(); }
@@ -4089,7 +4093,7 @@
       if (current !== MODES.path) go('path');
       i = 0;
       // brand-new players get the short version: welcome, board, path, puzzles, ready
-      steps = beginnerMode() ? [0, 1, 4, 5, TOUR.length - 1] : TOUR.map(function (t, k) { return k; });
+      steps = [0, 1, TOUR.length - 1]; // the rest is explained in place, the first time each area opens
       el = document.createElement('div'); el.className = 'tour';
       el.innerHTML = '<div class="tour-spot"></div><div class="tour-card" role="dialog" aria-modal="true" aria-label="App tour"></div>';
       document.body.appendChild(el);

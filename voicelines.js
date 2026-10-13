@@ -136,7 +136,7 @@ if (typeof module !== 'undefined') { module.exports.VARIANTS = VARIANTS; module.
 // ===== Welcome tour (spoken once after onboarding, replayable from the Path) =====
 var TOUR = [
   { sel: null, title: 'Welcome to Chess Ascent', text: "Hi, I'm your coach, and welcome to Chess Ascent! Let me show you around. It only takes a minute." },
-  { sel: '#three', title: 'Your 3D board', text: "This is your board. Drag to spin it around, and scroll or pinch to zoom. To make a move, click a piece, then click the square you want." },
+  { sel: '#three', title: 'Your board', text: "This is your board. To make a move, tap a piece, then tap the square you want. The switch at the top changes between a flat board and a 3D one." },
   { sel: '.board-tools', title: 'Board tools', text: "Up here you can flip the board, switch to a flat top view, replay whatever I just said, or put the camera back in place." },
   { sel: '.top-stats', title: 'Your daily stats', text: "Your daily missions, training rating and streak live up here. The microphone switches my voice on or off, and the speaker controls the sound effects." },
   { sel: '[data-go="path"]', title: 'The Path', text: "The Path is your course. Twenty-three lessons take you from your very first moves all the way to two-thousand-level ideas." },
@@ -145,7 +145,7 @@ var TOUR = [
   { sel: '[data-go="play"]', title: 'Play the coach', text: "Coach is where we play a real game. I'll react to every move, warn you about threats, and tell you exactly what went wrong." },
   { sel: '[data-go="progress"]', title: 'Progress', text: "Progress shows your rating graph, your thirty-day calendar, and how your accuracy is improving." },
   { sel: '.mchips', title: 'Today\'s missions', text: "Every day you get four missions: one lesson, five puzzles, one opening drill, and one game with me. Do them daily and you'll feel the climb." },
-  { sel: null, title: 'Ready?', text: "That's the tour! Let's start with today's lesson. I'll be right here with you." }
+  { sel: null, title: 'Ready?', text: "That's all you need. Every new area explains itself the first time you open it. Let's start with your first lesson. I'll be right here with you." }
 ];
 function TOUR_LINES() { return TOUR.map(function (t, i) { return { id: 'T-' + i, text: t.text, group: 'tour' }; }); }
 if (typeof module !== 'undefined') { module.exports.TOUR = TOUR; module.exports.TOUR_LINES = TOUR_LINES; }
