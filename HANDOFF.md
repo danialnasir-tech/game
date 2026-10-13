@@ -113,6 +113,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as support
 - First-visit hints are also spoken (`H-<mode>` clips; texts in `HINT_LINES_TEXT`, voicelines.js).
 - More puzzles: `node tests/mine.js <seed> <count> scratch/mined-<seed>.json`, then `node tests/merge2.js scratch/mined-*.json` (new ids `y001…`, old ones untouched).
 
+## Learner-bot round (simulated beginners)
+- Testers: scratchpad `testers/BRIEF.md` (personas play the real app via Playwright and take a post-test). Findings and fixes: starter puzzles (`puzzles-starter.js`, `tests/starter.js`, only pieces already taught, `taughtPieces()`), lesson 1 in 9 short steps incl. "meet the pieces" (`pieces` step), notation symbols taught where used, "Your First Ten Moves" lesson + `develop`/`castle` missions, K+Q method practised step by step, rook capture step, blunder check moved to stage 2 and given an unprompted position, Daily warm-up (`MODES.warmup`, spaced review in `S.srs`).
+- Feedback: every wrong puzzle move gets a plain reason (`puzzleWhyWrong`), every good coach-game move a reason (`moveReason`), refused moves including castling are explained (`illegalWhy`), mission failures explain themselves (`missionWhy`). Stars drop for hints and mistakes.
+- Layout: on phones the button row no longer floats over content; results replace the instructions and scroll into view. Coach games unlock after 5 lessons (every piece taught), openings after 6.
+
 ## Open items
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.

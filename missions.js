@@ -10,7 +10,7 @@ var MISSIONS = {
     { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander',
       text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
     { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander',
-      text: 'Now a real opening, the London System: d4, Bf4, e3, Nf3. Four moves, all from their written names.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+      text: 'Now a real opening that many club players use, called the London System: d4, Bf4, e3, Nf3. Read each move and play it.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
   'l-firstmoves': [
     { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', sol: ['e2e4', 'g1f3', 'b1c3'],
@@ -24,7 +24,7 @@ var MISSIONS = {
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
       text: 'Attacking the king is called check. Put your rook on a line with my king to give check. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
     { id: 'rook-snack', title: 'Pawn Snack', fen: '7k/8/1p6/8/5p2/8/8/R5K1 w - - 0 1', goal: 'capture', count: 2, limit: 6, par: 4, coach: 'wander',
-      text: 'Two of my pawns are loose. Win both of them. I will only move my king.', tip: 'Get on the same line as a pawn first, then take it.' },
+      text: 'Two of my pawns have nobody protecting them. Win both. I will only move my king.', tip: 'Get on the same line as a pawn first, then take it.' },
     { id: 'rook-sweep', title: 'Rook Sweep', fen: '7k/1p6/8/4p3/8/2p3p1/8/R5K1 w - - 0 1', goal: 'captureAll', limit: 10, par: 8, coach: 'wander',
       text: 'Clear the board: take all four pawns. Plan a route that wastes no moves.', tip: 'After each capture, look for a square that lines up with the next pawn.' }
   ],
@@ -32,7 +32,7 @@ var MISSIONS = {
     { id: 'bishop-check', title: 'Diagonal Check', fen: '4k3/8/8/8/8/8/8/5BK1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
       text: 'Give check again: attack my king, this time with your bishop. Bishops only travel on diagonals.', tip: 'Which diagonal leads to e8? Try b5.' },
     { id: 'queen-double', title: 'Queen Grab', fen: '7k/8/2n5/8/8/5r2/8/3Q2K1 w - - 0 1', goal: 'capture', count: 2, limit: 3, par: 2, coach: 'wander',
-      text: 'My knight and my rook are unguarded. Win both with your queen.', tip: 'Your queen reaches f3 on a diagonal. From f3, look at c6.' },
+      text: 'Nothing protects my knight and my rook. Win both with your queen.', tip: 'Your queen reaches f3 on a diagonal. From f3, look at c6.' },
     { id: 'queen-clean', title: 'Clean Sweep', fen: '6k1/p7/4r3/8/2b5/1n6/8/3Q2K1 w - - 0 1', goal: 'captureAll', limit: 8, par: 5, coach: 'wander',
       text: 'Four of my pieces, one queen of yours. Take them all. The queen moves like a rook and a bishop at once.', tip: 'Start with a capture that lands on a square lined up with another piece.' }
   ],

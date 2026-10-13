@@ -433,7 +433,7 @@ button:disabled { cursor: not-allowed; }
   }
   function burst(cx, cy, n, sp) { if (reduce || !x) return; var parts = []; for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, s = (.6 + Math.random()) * sp; parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 1.5 + Math.random() * 2.5, c: cols[i % 4] }); } bursts.push({ parts: parts, t: 0, life: 70 }); }
   if (x && !reduce) { size(); addEventListener('resize', size); for (var i = 0; i < 70; i++) P.push(spawn()); frame(); }
-  var tips = ['Before every move, check every check, capture and threat.', 'A knight on the rim is dim. Keep knights near the centre.', 'Castle early. A safe king lets you attack.', 'When you are ahead, trade pieces, not pawns.', 'Rooks love open files.', 'In the endgame, your king becomes a fighter.'];
+  var tips = ['Chess is played on 64 squares, and every square has a name.', 'There are six kinds of pieces, and each one moves its own way.', 'Every grandmaster started by learning how the rook moves.', 'Ten minutes a day is enough to get really good.', 'The game is won by trapping the king: that is checkmate.', 'Mistakes are how you learn. Your coach explains every one.'];
   var ti = Math.floor(Math.random() * tips.length), tipEl = document.getElementById('sp-tip');
   function tip() { tipEl.style.opacity = 0; setTimeout(function () { tipEl.textContent = 'Tip: ' + tips[ti++ % tips.length]; tipEl.style.opacity = 1; }, 380); }
   tip(); var tt = setInterval(tip, 3800);
@@ -825,7 +825,7 @@ body.no-3d .dim-seg { display: none; }
 @keyframes b2float { to { transform: translateY(-6%) rotate(8deg); } }
 .b2-burst { position: absolute; width: 12.5%; height: 12.5%; border-radius: 50%; box-shadow: 0 0 0 0 rgba(255,210,63,.8); animation: b2burst .7s ease-out forwards; z-index: 6; }
 @keyframes b2burst { to { box-shadow: 0 0 0 40px rgba(255,210,63,0); } }
-.b2-lab { position: absolute; font: 800 11px var(--f-mono); color: #8a5a34; z-index: 3; }
+.b2-lab { position: absolute; font: 800 10px var(--f-mono); color: #8a5a34; z-index: 1; opacity: .9; }
 .b2-lab.file { bottom: 0; transform: translateX(-50%); } .b2-lab.rank { left: 3px; }
 /* tour polish */
 .tour-spot { outline-color: var(--pink); border-radius: 14px; }
@@ -1143,6 +1143,11 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .panel { border-left: 0; border-top: 1px solid rgba(255,255,255,.07); }
   .h1, .hero-card .h1 { font-size: 26px; }
   .ts { padding: 0; background: none; border: 0; }
+  body[data-layout="board"] .panel > .actions { position: static !important; margin: 12px 0 4px !important; padding: 0 !important; background: none !important; }
+  body[data-layout="board"] .panel .lede { display: none; }
+  body[data-layout="board"] .panel .h1 { font-size: 21px; margin: 2px 0 6px; }
+  body[data-layout="board"] .panel .eyebrow { font-size: 10px; }
+  body[data-layout="board"] .panel .dots { margin: 2px 0 8px; }
   .toast { top: 3px; left: 8px; right: 128px; transform: translateY(-6px); text-align: left; font-size: 13px; line-height: 1.3; padding: 6px 10px; z-index: 8; }
   .toast.show { transform: none; }
   .rail button.new::after { top: 5px; }

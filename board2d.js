@@ -124,7 +124,7 @@ function BOARD2D_FACTORY() {
       var ux = dx / L, uy = dy / L, hx = x1 - ux * 0.38, hy = y1 - uy * 0.38;
       var c = COL[a[2] || 'g'] || COL.g;
       var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', x0 + ux * 0.2); line.setAttribute('y1', y0 + uy * 0.2); line.setAttribute('x2', hx); line.setAttribute('y2', hy);
+      line.setAttribute('x1', x0 + ux * 0.42); line.setAttribute('y1', y0 + uy * 0.42); line.setAttribute('x2', hx); line.setAttribute('y2', hy);
       line.setAttribute('stroke', c); line.setAttribute('stroke-width', '0.16'); line.setAttribute('stroke-linecap', 'round'); line.setAttribute('opacity', '0.85');
       var head = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
       head.setAttribute('points', [x1 - ux * 0.08, y1 - uy * 0.08, hx - uy * 0.26, hy + ux * 0.26, hx + uy * 0.26, hy - ux * 0.26].join(' '));
