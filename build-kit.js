@@ -1,6 +1,6 @@
 // Regenerates the voice generator the user runs on their PC: voice-kit-v4/generate-v4-voices.js
 // (voice B52raBK48m23qWYbwchQ, model eleven_v4). Clips already made are skipped by the generator itself.
-const fs=require('fs');const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'));
+const fs=require('fs');const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'),require('./puzzles-starter.js'));
 const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);
 const V=require('./voicelines.js');
 const MI=require('./missions.js');

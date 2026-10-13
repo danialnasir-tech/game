@@ -29,7 +29,7 @@ function BOARD2D_FACTORY() {
   function drawLabels() {
     labels.innerHTML = '';
     for (var i = 0; i < 8; i++) {
-      var f = div('b2-lab file' + (i % 2 ? '' : ' on-dark'), labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 11.2) + '%';
+      var f = div('b2-lab file' + (i % 2 ? '' : ' on-dark'), labels); f.textContent = 'abcdefgh'[orient === 'w' ? i : 7 - i]; f.style.left = (i * 12.5 + 6.25) + '%';
       var r = div('b2-lab rank' + (i % 2 ? ' on-dark' : ''), labels); r.textContent = orient === 'w' ? 8 - i : i + 1; r.style.top = (i * 12.5 + 0.6) + '%';
     }
   }

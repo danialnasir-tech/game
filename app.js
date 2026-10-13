@@ -302,7 +302,7 @@
     if (b.captured) return ['why_general', 'It captures on ' + b.to + ' and keeps the balance.'];
     if (a.reply && a.reply.captured && a.loss > 120) return ['why_safe', 'It does not give away your ' + PIECE_NAME[a.reply.captured] + '.'];
     if (/^O-O/.test(bestSan || '')) return ['why_castle', 'Castling gets your king to safety.'];
-    if (/\+$/.test(bestSan || '')) return ['why_check', 'It is a forcing check.'];
+    if (/\+$/.test(bestSan || '')) return ['why_check', 'It is a check, so they must answer it and cannot stop your plan.'];
     if (ply <= 16 && (b.piece === 'n' || b.piece === 'b') && /[18]$/.test(b.from)) return ['why_develop', 'It develops a new piece.'];
     if (ply <= 16 && b.piece === 'p' && /^[cdef][3-5]$/.test(b.to)) return ['why_center', 'It fights for the centre.'];
     if (b.captured) return ['why_wins', 'It wins material.'];
@@ -939,7 +939,7 @@
   }
   function toast(msg, kind) {
     var t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
-    clearTimeout(toast._t); toast._t = setTimeout(function () { t.className = 'toast'; }, 2200);
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.className = 'toast'; }, Math.max(2600, Math.min(6000, 1200 + msg.length * 45)));
   }
   function setStatus(text, kind) {
     var el = $('#status'); if (!el) return;
@@ -1257,7 +1257,7 @@
   ACT.goMode = function (d) { go(d.m); };
   // ===== First steps: a checklist that walks a new player through every part of the app =====
   var DISCOVER = [
-    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: '5 minutes. Learn the board and how moves are written.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
+    { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: 'Learn the board, the pieces and how moves are written.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
     { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
     { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-board" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
     { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
@@ -1478,7 +1478,7 @@
       var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
       if (LS.quizI !== LS.i) { LS.quizI = LS.i; LS.quiz = QUIZ_OF(step); if (LS.quiz) { LS.quiz.found = []; LS.stepDone = false; } }
       var Q = LS.quiz;
-      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' ? 'Board game' : 'Your move';
+      var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' || step.t === 'pieces' ? 'Board game' : 'Your move';
       var actions = '';
       if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
       else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
@@ -1490,6 +1490,7 @@
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
         '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (Q && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
+        (step.t === 'pieces' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap your <b>' + PIECE_NAME[step.targets[LS.sq.i]] + '</b> <span class="sq-glyph">' + pieceSVG(step.targets[LS.sq.i], 'w', 34) + '</span>' : '✓ All six found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (Q && Q.done ? quizBox(Q) : '') +
         (step.t === 'move' ? '<p class="turn-note">' + (new Game(step.fen).turn() === 'w' ? 'White' : 'Black') + ' to move</p>' : '') +
@@ -1498,7 +1499,7 @@
         '<div class="actions">' + actions + '</div>');
     },
     loadStep: function () {
-      var step = LS.L.steps[LS.i];
+      var step = LS.L.steps[LS.i]; Replay.stop();
       LS.stepDone = step.t === 'read'; LS.ply = 0; LS.hintUsed = false;
       Voice.say([LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }]);
       if (step.t === 'collect') {
@@ -1511,13 +1512,18 @@
         Collect.refresh();
         return;
       }
+      if (step.t === 'pieces') {
+        setupBoard(step.fen, { orient: 'w' });
+        LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.pieceTap; MODES.lesson.render();
+        return;
+      }
       if (step.t === 'squares') {
         setupBoard(step.fen, { orient: 'w' });
         LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.squareTap; MODES.lesson.render();
         setTimeout(function () { if (LS && LS.sq && LS.L.steps[LS.i] === step) Voice.say([M('sq_' + step.targets[0])], true); }, 5200);
         return;
       }
-      var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: new Game(step.fen).turn() });
+      var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: step.t === 'read' && stageOf(LS.id) === 0 ? 'w' : new Game(step.fen).turn() });
       if (step.arrows) B3.arrows(step.arrows);
       if (step.marks) B3.markers('mark', step.marks);
       var Q = LS.quizI === LS.i && LS.quiz;
@@ -1533,6 +1539,16 @@
         IX.onMove = MODES.lesson.onMove;
       }
     },
+    pieceTap: function (sq) {
+      var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'pieces' || Q.i >= step.targets.length) return;
+      var want = step.targets[Q.i], p = IX.game && IX.game.get(sq);
+      var FACT = { k: 'The king. Protect him: if he is trapped, you lose.', q: 'The queen. Your strongest piece.', r: 'The rook. It looks like a castle tower.', b: 'The bishop. It has a pointed hat with a slit.', n: 'The knight. The horse. It jumps!', p: 'The pawn. You have eight of them.' };
+      if (!p || p.color !== 'w' || p.type !== want) { Q.miss++; B3.flash('bad', [sq], 500); Sound.play('bad'); toast(p ? (p.color === 'b' ? 'That is a black piece. Yours are the white ones at the bottom.' : 'That is your ' + PIECE_NAME[p.type] + '. Find the ' + PIECE_NAME[want] + '.') : 'Tap one of your white pieces at the bottom.'); if (Q.miss >= 2) MODES.lesson.pieceHint(want); return; }
+      Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq); toast(FACT[want]);
+      if (Q.i >= step.targets.length) { LS.stepDone = true; IX.tap = null; Sound.play('good'); Voice.say([V('quiz_done')]); MODES.lesson.render(); setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good'); return; }
+      MODES.lesson.render();
+    },
+    pieceHint: function (t) { var g = IX.game, hits = []; 'abcdefgh'.split('').forEach(function (f) { for (var r = 1; r <= 2; r++) { var p = g.get(f + r); if (p && p.type === t) hits.push(f + r); } }); B3.flash('hint', hits, 1500); },
     squareTap: function (sq) {
       var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'squares' || Q.i >= step.targets.length) return;
       var want = step.targets[Q.i];
@@ -1605,6 +1621,7 @@
     LS.lineTok = (LS.lineTok || 0) + 1;
     if (LS.i < LS.L.steps.length - 1) { LS.i++; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
     var stars = LS.mistakes === 0 ? 3 : LS.mistakes <= 2 ? 2 : 1;
+    if (LS.hintsTotal) stars = Math.min(stars, LS.hintsTotal > 2 ? 1 : 2);
     if (LS.stars) stars = Math.min(stars, LS.stars);
     if (LS.finished) return;
     LS.finished = true;
@@ -1619,7 +1636,7 @@
     document.body.dataset.layout = 'browse';
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
       '<p class="big-stars" aria-label="' + stars + ' of 3 stars">' + '★'.repeat(stars) + '<span class="dim">' + '★'.repeat(3 - stars) + '</span></p></div>' +
-      '<p class="muted small">' + (LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') + ' along the way. Repeat it later to lock the pattern in.' : 'Flawless.') + '</p>' +
+      '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a longer route than par in a star game' : ''].filter(Boolean).join(', ') + '. Repeat it later for 3 stars.') + '</p>' +
       whatNext(LS.id, nl, wasLocked) +
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
       '<div class="actions plain"><button class="btn ghost" data-act="lesson" data-id="' + LS.id + '">Repeat lesson</button><button class="btn ghost" data-act="goPath">Back to path</button></div>');
@@ -1663,9 +1680,10 @@
   ACT.quizShow = function () { var step = LS && LS.L.steps[LS.i]; if (!step) return; if (step.arrows) B3.arrows(step.arrows); if (step.marks) B3.markers('mark', step.marks); setTimeout(function () { if (LS && LS.quiz && !LS.quiz.done) { B3.arrows([]); B3.markers('mark', []); } }, 1800); };
   ACT.quizSkip = function () { var Q = LS && LS.quiz; if (!Q) return; Q.done = true; Q.skipped = true; LS.stepDone = true; IX.tap = null; B3.markers('hint', Q.reach); ACT.nextStep(); };
   ACT.resetStep = function () { if (LS) { LS.lineTok = (LS.lineTok || 0) + 1; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
-  function lessonMins(L) { return Math.max(2, Math.round(L.steps.length * 1.2)); }
+  function lessonMins(L) { return L.minutes || Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
-    var step = LS.L.steps[LS.i];
+    var step = LS.L.steps[LS.i]; LS.hintsTotal = (LS.hintsTotal || 0) + 1;
+    if (step.t === 'pieces' && LS.sq) { var pt = step.targets[LS.sq.i]; if (pt) { MODES.lesson.pieceHint(pt); setStatus('Look at the flashing square: that is your ' + PIECE_NAME[pt] + '.'); LS.hintUsed = true; } return; }
     if (step.t === 'squares' && LS.sq) { var w = step.targets[LS.sq.i]; if (w) { B3.flash('hint', [w], 1500); setStatus('Here it is: ' + w + '. Files are letters along the bottom, ranks are numbers up the side.'); LS.hintUsed = true; } return; }
     if (step.t === 'collect') {
       // point at a real move: a star in one jump if there is one, otherwise a square that reaches a star next
@@ -1939,10 +1957,12 @@
   function puzzleFen(p) { if (p.fen) return p.fen; var g = new Game(); p.pre.forEach(function (s) { g.move(s); }); return g.fen(); }
   function pickPuzzle() {
     var pool = PUZZLES.filter(function (p) { return PZ.theme === 'all' || p.theme === PZ.theme; });
-    if (beginnerMode()) { // only ideas already taught: free pieces first, mates after the checkmate lesson
-      var easy = pool.filter(function (p) { return p.r <= 500 && (p.theme !== 'mate' || lessonDone('l-check')) && p.theme !== 'endgame'; });
-      if (easy.length) pool = easy;
+    if (beginnerMode() || S.puzzle.rating < 400) { // only pieces and ideas already taught
+      var ok = taughtPieces(), easy = pool.filter(function (p) { return p.r <= Math.max(300, S.puzzle.rating + 150) && (p.theme !== 'mate' || lessonDone('l-check')) && p.theme !== 'endgame' && puzzlePieces(p).every(function (t) { return ok[t]; }); });
+      pool = easy;
     }
+    S.pzRecent = S.pzRecent || [];
+    var fresh = pool.filter(function (p) { return S.pzRecent.indexOf(p.id) < 0; }); if (fresh.length) pool = fresh;
     var unsolved = pool.filter(function (p) { return !S.puzzle.solved[p.id]; });
     var src = unsolved.length ? unsolved : pool.slice().sort(function (a, b) { return (S.puzzle.solved[a.id] || 0) - (S.puzzle.solved[b.id] || 0); }).slice(0, 6);
     var R = S.puzzle.rating;
@@ -1952,13 +1972,33 @@
     if (PZ.cur && choice && choice.id === PZ.cur.p.id && src.length > 1) choice = src[1];
     return choice;
   }
+  // which piece types a beginner has met in lessons; kings are always fine
+  function taughtPieces() {
+    var t = { k: 1 };
+    if (lessonDone('l-rook')) t.r = 1; if (lessonDone('l-bishop-queen')) { t.b = 1; t.q = 1; } if (lessonDone('l-knight')) t.n = 1; if (lessonDone('l-king-pawn')) t.p = 1;
+    if (stageCleared(0)) { t.r = t.b = t.q = t.n = t.p = 1; }
+    return t;
+  }
+  function puzzlePieces(p) { if (p.pieces) return p.pieces; var f = puzzleFen(p).split(' ')[0].toLowerCase(), out = []; 'pnbrq'.split('').forEach(function (c) { if (f.indexOf(c) >= 0) out.push(c); }); return out; }
+  // one plain sentence about why a puzzle move is wrong
+  function puzzleWhyWrong(g, mv, p) {
+    var t = new Game(g.fen()), r = t.move(mv); if (!r) return '';
+    var name = PIECE_NAME[r.piece], hit = t.moves().filter(function (x) { return x.to === r.to && x.captured; })[0];
+    if (p.theme === 'mate' && t.inCheck()) return 'That is check, but the king can still escape or be saved. Find the check that leaves no way out.';
+    if (p.theme === 'mate') return 'That is not even check. Checkmate always starts with a check: try every check you have.';
+    if (hit && VAL[r.piece] > (r.captured ? VAL[r.captured] : 0)) return 'After that, they can take your ' + name + ' with ' + hit.san.replace(/[+#]/g, '') + '.';
+    if (p.theme === 'hanging' && !r.captured) return 'That does not take anything. Look for an enemy piece you can capture for free.';
+    if (t.inCheck()) return 'A check, but it does not win anything here.';
+    return 'Look for checks first, then captures.';
+  }
   function ratingBand(r) { return r < 400 ? 'Beginner' : r < 800 ? 'Novice' : r < 1200 ? 'Club player' : r < 1600 ? 'Strong club' : r < 2000 ? 'Advanced' : 'Expert'; }
   MODES.puzzles = {
     label: 'Puzzle trainer',
     enter: function (arg) { if (arg && arg.theme) PZ.theme = arg.theme; MODES.puzzles.next(); },
     next: function () {
-      var p = pickPuzzle();
-      if (!p) { setPanel('<h1 class="h1">No puzzles</h1>'); return; }
+      Replay.stop(); var p = pickPuzzle();
+      if (!p) { setupBoard(fenOf('r', 'd4'), { orient: 'w' }); setPanel('<div class="eyebrow">Puzzles</div><h1 class="h1">Your first puzzles are almost ready</h1><p class="lede">Puzzles use the pieces you have learned. Finish <b>The Rook</b> lesson and your first rook puzzles unlock right away.</p><div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>'); return; }
+      S.pzRecent = (S.pzRecent || []).concat([p.id]).slice(-12); save();
       var fen = puzzleFen(p);
       PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0 };
       var side = new Game(fen).turn(), flipped = PZ.lastSide && PZ.lastSide !== side; PZ.lastSide = side;
@@ -2017,7 +2057,7 @@
         Sound.play('bad'); B3.flash('bad', [mv.to]);
         var d = !c.failed ? MODES.puzzles.grade(false) : 0; Voice.say([V('puzzlemiss', 'puzzlemiss')]);
         c.failed = true; c.lastWrong = { fen: g.fen(), uci: uci, san: (new Game(g.fen()).move(mv) || {}).san || uci };
-        MODES.puzzles.render('<strong>Not the move.</strong> ' + (d ? 'Rating ' + d + '. ' : '') + 'Try again, or ask for a hint. <button class="link" data-act="pzWhy">▶ Show why it fails</button>', 'bad');
+        MODES.puzzles.render('<strong>Not the move.</strong> ' + esc(puzzleWhyWrong(g, mv, p)) + ' ' + (d ? 'Rating ' + d + '. ' : '') + 'Try again, or ask for a hint. <button class="link" data-act="pzWhy">▶ Show why it fails</button>', 'bad');
         IX.enabled = true; return;
       }
       return applyMove(g, mv).then(function () {
@@ -2799,7 +2839,7 @@
       Voice.say([V('cm_start'), { id: 'N-' + m.id, text: m.text }]);
     },
     load: function () {
-      var m = MS.m, side = m.side || 'w', g = setupBoard(m.fen, { drop: true, orient: side });
+      Replay.stop(); var m = MS.m, side = m.side || 'w', g = setupBoard(m.fen, { drop: true, orient: side });
       MS.g = g; MS.n = 0; MS.st = { caps: 0 }; MS.over = null; MS.hint = 0; MS.total = missionGoalCount(m, g); MS.busy = false;
       IX.canMove = function (c) { return c === side && !MS.over && !MS.busy; }; IX.onMove = MODES.mission.onMove;
       IX.enabled = !m.pre;
@@ -2819,7 +2859,7 @@
         if (res === 'win') return MODES.mission.finish(true);
         if (res === 'wrong') return MODES.mission.finish(false, 'You played ' + MS.st.wrong + ', but the move written was ' + m.seq[MS.st.k || 0] + '. Read the letter, then the square.');
         if (res === 'stalemate') return MODES.mission.finish(false, 'Stalemate! My king has no legal move but is not in check, so it is a draw. Always leave me a move.');
-        if (MS.n >= m.limit) return MODES.mission.finish(false, m.limit === 1 ? 'That move does not do it.' : 'Out of moves. ' + (m.goal === 'mate' ? 'Box my king in faster.' : 'Look for a shorter route.'));
+        if (MS.n >= m.limit) return MODES.mission.finish(false, missionWhy(m, g, r, MS));
         MS.busy = true; MODES.mission.render();
         var fen = g.fen(), t0 = Date.now();
         var job = m.coach === 'defend' ? Eng.call('pickMove', fen, levelById('master'), []).then(function (x) { return x && x.move; }) : Promise.resolve(missionWander(g));
@@ -2841,6 +2881,7 @@
       var m = MS.m; MS.over = win ? 'win' : 'fail'; IX.enabled = false; MS.busy = false;
       if (win) {
         var stars = missionStars(m, MS.n), prev = S.missions && S.missions[m.id] || 0;
+        if (MS.hint) stars = Math.min(stars, 2);
         S.missions = S.missions || {}; S.missions[m.id] = Math.max(prev, stars); MS.stars = stars;
         Sound.play('win'); confetti(); addXP(prev ? 5 : 20);
         Voice.say([V(stars === 3 ? 'cm_star3' : 'cm_done')]);
@@ -2857,7 +2898,7 @@
       var body;
       if (MS.over === 'win') {
         var nx = list[MS.i + 1];
-        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>Mission complete!</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? '. ' + m.par + ' gets you 3 stars.' : '. Perfect.') + '</p></div>' +
+        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>Mission complete!</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? (MS.hint ? '. Without a hint it is worth 3 stars.' : '. ' + m.par + ' moves gets you 3 stars.') : '. Perfect.') + '</p></div>' +
           '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next mission: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All missions done →</button>') +
           (MS.stars < 3 ? '<button class="btn" data-act="missionRetry">↻ Go for 3 stars</button>' : '') + '</div>';
       } else if (MS.over === 'fail') {
@@ -2871,7 +2912,7 @@
           '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
       }
       setPanel('<button class="back" data-act="lesson" data-id="' + MS.lesson + '">← ' + esc(L.title) + '</button>' +
-        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Coach mission ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I defend for real' : ' · I only move my king') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
+        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Coach mission ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I defend for real' : ' · I play gently and never capture') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
         '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p>' + esc(m.text) + '</p></div>' + body);
     },
     leave: function () { MS = null; }
@@ -2879,6 +2920,22 @@
   function xpPop(txt, sq) {
     var el = document.createElement('div'); el.className = 'xp-pop'; el.textContent = txt;
     $('.stage').appendChild(el); setTimeout(function () { el.remove(); }, 1300);
+  }
+  // a reason for every failed mission, in plain words
+  function missionWhy(m, g, r, ms) {
+    var name = PIECE_NAME[r.piece];
+    if (m.limit === 1) {
+      if (m.goal === 'check') return 'Your ' + name + ' on ' + r.to + ' does not attack my king. Check means your piece could capture my king on the next move.';
+      if (m.goal === 'mate') return g.inCheck() ? 'That is check, but my king can still escape or be protected. Checkmate leaves no way out.' : 'That is not even check. A checkmate always starts with a check.';
+      if (m.goal === 'castle') return 'That is not castling. To castle, move the king two squares toward a rook.';
+      if (m.goal === 'ep') return 'Not en passant. Your pawn takes diagonally, onto the square my pawn jumped over.';
+      if (m.goal === 'capture') return 'That does not capture anything. Pick a piece of mine your pawn can take.';
+      return 'That move does not reach the goal.';
+    }
+    if (m.goal === 'capture' || m.goal === 'captureAll') return 'Out of moves: you took ' + (ms.st.caps || 0) + ' of ' + ms.total + '. Plan a route where each move lines up the next capture.';
+    if (m.goal === 'mate') return 'Out of moves before checkmate. Push my king to the edge first, then bring your king closer.';
+    if (m.goal === 'promote') return 'Out of moves before your pawn reached the last rank. Push the pawn every move unless my king can take it.';
+    return 'Out of moves. Look for a shorter route.';
   }
   ACT.mission = function (d) { go('mission', { lesson: d.l, i: +d.i || 0 }); };
   ACT.missionRetry = function () { if (!MS) return; MODES.mission.load(); };
@@ -2891,14 +2948,15 @@
     function reach(depth, st) {
       var best = null;
       g.moves().some(function (mv) {
-        var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }), st2 = { caps: st.caps }, res = missionCheck(m, g, r, st2), ok = res === 'win';
-        if (!ok && res !== 'stalemate' && depth > 1 && !g.gameOver()) { var c = missionWander(g, function () { return 0.5; }); if (c) { g.move(c); ok = !!reach(depth - 1, st2); g.undo(); } }
+        var r = g.move({ from: mv.from, to: mv.to, promotion: mv.promotion }), st2 = { caps: st.caps, k: st.k }, res = missionCheck(m, g, r, st2), ok = res === 'win';
+        if (!ok && res !== 'stalemate' && res !== 'wrong' && depth > 1 && !g.gameOver()) { var c = missionWander(g, function () { return 0.5; }); if (c) { g.move(c); ok = !!reach(depth - 1, st2); g.undo(); } }
         g.undo(); if (ok) best = mv; return ok;
       });
       return best;
     }
     var show = function (mv) { if (!mv || !MS || MS.g !== g) return; B3.arrows([[mv.from, mv.to, 'g']]); B3.flash('hint', [mv.from], 2200); };
-    if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    if (m.goal === 'sequence') { var nx = new Game(g.fen()).move(m.seq[MS.st.k || 0]); show(nx); }
+    else if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
     else {
       // for capture goals, aim at the next capture; otherwise the whole goal. Fall back to the engine's move.
       if (m.goal === 'capture' || m.goal === 'captureAll') m = Object.assign({}, m, { goal: 'capture', count: (MS.st.caps || 0) + 1 });
@@ -2906,11 +2964,9 @@
       if (mv) show(mv); else Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
     }
     MODES.mission.render();
+    var tip = $('.ms-tip'); if (tip && tip.scrollIntoView) tip.scrollIntoView({ block: 'nearest' });
   };
-  ACT.missionsDone = function () {
-    var id = MS && MS.lesson, nl = nextLesson();
-    if (nl && nl !== id) go('lesson', nl); else go('path');
-  };
+  ACT.missionsDone = function () { go('path'); if (missionsDone() >= missionsTotal()) setTimeout(function () { toast('All of today\'s goals done. Great place to stop, or keep going!'); }, 600); };
 
   // ================= Analyze a game from chess.com (or any PGN) =================
   // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
@@ -3368,6 +3424,7 @@
       if (WU.ok === n) { confetti(); Sound.play('win'); }
       document.body.dataset.layout = 'browse';
       setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up done · +' + (10 + WU.ok * 3) + ' XP</div><h1 class="h1">' + WU.ok + ' of ' + n + ' remembered</h1>' +
+        '<p class="big-stars">' + '★'.repeat(WU.ok) + '<span class="dim">' + '★'.repeat(n - WU.ok) + '</span></p>' +
         '<p class="lede">' + (WU.ok === n ? 'Perfect memory. These come back later and later as they stick.' : 'The ones you missed come back tomorrow. That is how memory works: a little, often.') + '</p>' +
         '<div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>');
     },
@@ -3402,7 +3459,7 @@
         if (my !== tok) return;
         if (i >= moves.length || g.gameOver()) {
           var d = material(g, me) - m0, mate = g.inCheckmate(), loser = mate ? (g.turn() === me ? 'you' : 'them') : null;
-          var sum = (opts.missedMate && !(mate && loser === 'them') ? 'No checkmate this way. ' : '') + (mate ? (loser === 'you' ? 'and that is checkmate against you.' : 'and that is checkmate.') : d <= -1 ? 'You end up ' + (-d) + ' point' + (-d > 1 ? 's' : '') + ' of material down.' : d >= 1 ? 'You end up ' + d + ' point' + (d > 1 ? 's' : '') + ' of material ahead.' : 'Material stays level.');
+          var sum = (opts.missedMate && !(mate && loser === 'them') ? 'No checkmate this way. ' : '') + (mate ? (loser === 'you' ? 'and that is checkmate against you.' : 'and that is checkmate.') : d <= -1 ? 'You end up ' + (-d) + ' point' + (-d > 1 ? 's' : '') + ' of material down.' : d >= 1 ? 'You end up ' + d + ' point' + (d > 1 ? 's' : '') + ' of material ahead.' : 'Nobody wins anything this way.');
           bar('<span class="rb-tag">Result</span><span class="rb-text">' + esc(sum) + '</span><span class="rb-actions">' + (opts.actions || '') + '<button class="mini-btn ghost" data-act="replayAgain">↻ Watch again</button></span>');
           Replay.last = { fen: fen, moves: moves, opts: opts };
           if (opts.done) opts.done(sum, g);
@@ -3411,7 +3468,7 @@
         var mv = moves[i], mine = (g.turn() === me), t = new Game(g.fen()), dec = t.move(mv);
         if (!dec) { i = moves.length; return step(); }
         B3.arrows([[mv.from, mv.to, mine ? (first && i === 0 ? 'r' : 'g') : 'r']]);
-        bar('<span class="rb-tag">' + (i + 1) + ' / ' + moves.length + '</span><span class="rb-text">' + (mine ? 'You play ' : 'They answer ') + '<b class="mono">' + esc(dec.san) + '</b>' + (dec.captured ? ', taking the ' + PIECE_NAME[dec.captured] : '') + (/#$/.test(dec.san) ? '. Checkmate!' : /\+$/.test(dec.san) ? ', with check' : '') + '</span>');
+        bar('<span class="rb-tag">' + (i + 1) + ' / ' + moves.length + '</span><span class="rb-text">' + (mine ? 'You move your ' : 'They move their ') + PIECE_NAME[dec.piece] + ' to ' + dec.to + ' <b class="mono">(' + esc(dec.san) + ')</b>' + (dec.captured ? ', taking the ' + PIECE_NAME[dec.captured] : '') + (/#$/.test(dec.san) ? '. Checkmate!' : /\+$/.test(dec.san) ? ', with check' : '') + '</span>');
         setTimeout(function () {
           if (my !== tok) return;
           applyMove(g, mv).then(function () { i++; setTimeout(step, 850); });

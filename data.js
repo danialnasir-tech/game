@@ -9,15 +9,17 @@ var STAGES = [
 
 var LESSONS = {
   'l-board': {
-    title: 'The Board', minutes: 5, takeaways: ['Files are the columns a to h. Ranks are the rows 1 to 8.', 'A square is named by its file, then its rank, like d4.', 'A move is written as the piece letter plus the square it lands on, like Nf3. Pawn moves have no letter, like e4.'], goal: 'Learn the names of the squares and how chess moves are written.',
+    title: 'The Board', minutes: 5, takeaways: ['Files are the columns a to h. Ranks are the rows 1 to 8.', 'A square is named by its file, then its rank, like d4.', 'A move is written as the piece letter plus the square it lands on, like Nf3. Pawn moves have no letter, like e4.'], goal: 'Learn the names of the squares and the pieces, and how moves are written.',
     steps: [
-      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'A chessboard has 64 squares, 8 across and 8 up. The columns are called files. They are lettered a to h, from left to right as White sees the board. The rows are called ranks. They are numbered 1 to 8, starting from White\'s side.', marks: ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
-      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'Every square has a name: its file letter, then its rank number. The bottom left corner is a1. Walk up the d-file and you pass d1, d2, d3, all the way to d8. The four centre squares, d4, e4, d5 and e5, are the most important squares on the board.', arrows: [['d1', 'd8', 'g']], marks: ['d4', 'e4', 'd5', 'e5'] },
-      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'e2', 'a8', 'h1', 'c6', 'f5'], text: 'Your turn: tap the square I name. Find the file letter first, then count up the ranks.', done: 'Six for six. You can read the board now.' },
-      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'This is how every game starts. White fills ranks 1 and 2, Black fills ranks 7 and 8. Check the corners: there is always a light square in each player\'s bottom right corner. Light on the right. The white queen starts on her own colour, d1.', marks: ['h1', 'a8', 'd1', 'd8'] },
-      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1', text: 'Moves are written with a letter for the piece and the square it lands on. K is the king, Q the queen, R a rook, B a bishop and N a knight. Pawns get no letter. So e4 means a pawn moves to e4, and Nf3 means a knight moves to f3. An x means a capture, like Bxf7. A plus sign means check, a hash sign means checkmate, and O-O means castling.', arrows: [['g1', 'f3', 'g']] },
-      { t: 'move', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Now read and play. The move is written e4. Which pawn can reach e4? Play it.', sol: ['e2e4'], hint: 'A pawn move with no letter. The e-pawn on e2 can jump two squares to e4.', done: 'e4. The most popular first move in chess.' },
-      { t: 'move', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', text: 'Black answered e5. Now play the move written Nf3.', sol: ['g1f3'], hint: 'N is the knight. The knight on g1 jumps to f3.', done: 'Nf3. You just read and played chess notation. Every book and app writes moves this way.' }
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'A chessboard has 8 columns, called files. Each file has a letter, a to h.', marks: ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1'] },
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'It also has 8 rows, called ranks. Each rank has a number, 1 to 8.', marks: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
+      { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'A square\'s name is its letter, then its number. Go along to d, then up to 4: this square is d4.', arrows: [['d1', 'd4', 'g']], marks: ['d4'] },
+      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'e2', 'a8', 'h1', 'c6', 'f5'], text: 'Your turn! Tap the square I name. Letter first, then count up.', done: 'Six for six. You can read the board now.' },
+      { t: 'pieces', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', targets: ['k', 'q', 'r', 'b', 'n', 'p'], text: 'This is how every game starts. Now meet your pieces: tap the one I name.', done: 'You know all six pieces. Each one moves differently, and the next lessons teach them one by one.' },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Moves are written as a letter plus a square. N means knight, so Nf3 means: knight to f3.', arrows: [['g1', 'f3', 'g']] },
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Pawns get no letter. So e4 means: a pawn moves to e4.', arrows: [['e2', 'e4', 'g']] },
+      { t: 'move', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Now you play. Make the move written e4.', sol: ['e2e4'], hint: 'No letter, so it is a pawn. The pawn on e2 can jump two squares to e4.', done: 'e4. The most popular first move in chess.' },
+      { t: 'move', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', text: 'Black played e5. Now make the move written Nf3.', sol: ['g1f3'], hint: 'N is the knight. The knight on g1 jumps to f3.', done: 'Nf3. You just read and played real chess notation.' }
     ]
   },
   'l-rook': {
@@ -51,15 +53,15 @@ var LESSONS = {
     steps: [
       { t: 'collect', piece: 'k', start: 'e1', stars: ['e3', 'g5'], par: 4, text: 'The king moves one square in any direction. Walk him to both stars.' },
       { t: 'read', fen: '4k3/8/8/8/8/8/4P3/4K3 w - - 0 1', text: 'Pawns move forward one square, or two squares on their very first move. They capture diagonally forward. Pawns never move backwards.', arrows: [['e2', 'e4', 'g']] },
-      { t: 'move', fen: '4k3/8/8/3r4/4P3/8/8/4K3 w - - 0 1', text: 'Your pawn can capture the black rook. Pawns capture one square diagonally forward. Take it!', sol: ['e4d5'], hint: 'The pawn on e4 attacks d5 and f5.', done: 'A pawn worth 1 just won a rook worth 5.' },
+      { t: 'move', fen: '4k3/8/8/3r4/4P3/8/8/4K3 w - - 0 1', text: 'Your pawn can capture the black rook. Pawns capture one square diagonally forward. Take it!', sol: ['e4d5'], hint: 'The pawn on e4 attacks d5 and f5.', done: 'A pawn worth 1 just won a rook worth 5. A capture is written with an x: exd5 means the e-pawn takes on d5.' },
       { t: 'move', fen: '8/4P1k1/8/8/8/8/8/K7 w - - 0 1', text: 'A pawn that reaches the last rank promotes. Almost always choose a queen. Promote your pawn!', sol: ['e7e8q'], hint: 'Push the e-pawn to e8.', done: 'New queen. Promotion is why passed pawns are so dangerous.' }
     ]
   },
   'l-check': {
     title: 'Check, Mate and Stalemate', minutes: 6, takeaways: ['Checkmate means check with no escape.', 'When you are winning, make sure your opponent still has a legal move, or it is stalemate.'], goal: 'Tell check, checkmate and stalemate apart.',
     steps: [
-      { t: 'read', fen: '4k3/8/8/8/8/8/8/4R1K1 b - - 0 1', text: 'Check means the king is attacked. You must get out of check by moving the king, blocking, or capturing the attacker. Here Black can step aside.', arrows: [['e1', 'e8', 'r']] },
-      { t: 'move', fen: '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', text: 'Checkmate means the king is in check and has no escape. Black\'s own pawns trap the king. Deliver checkmate.', sol: ['a1a8'], anyMate: true, hint: 'Look at the back rank, the 8th rank.', done: 'Checkmate. This is the back-rank mate, one of the most common mates at every level.' },
+      { t: 'read', fen: '4k3/8/8/8/8/8/8/4R1K1 b - - 0 1', text: 'Check means the king is attacked, and it is written with a plus sign, like Re1+. You must get out of check: move the king, block, or capture the attacker. Here Black can step aside.', arrows: [['e1', 'e8', 'r']] },
+      { t: 'move', fen: '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', text: 'Checkmate means the king is in check and has no escape. Black\'s own pawns trap the king. Deliver checkmate.', sol: ['a1a8'], anyMate: true, hint: 'Look at the back rank, the 8th rank.', done: 'Checkmate, written with a hash sign: Ra8#. This is the back-rank mate, one of the most common mates at every level.' },
       { t: 'read', fen: '7k/5Q2/6K1/8/8/8/8/8 b - - 0 1', text: 'Stalemate: Black is NOT in check but has no legal move. The game is a draw. Winning players lose half a point this way every day.', marks: ['g8', 'h7', 'g7'] },
       { t: 'move', fen: '7k/5Q2/6K1/8/8/8/8/8 w - - 0 1', text: 'Same position, but now it is your move. Give checkmate, not stalemate.', sol: ['f7g7'], anyMate: true, hint: 'Your king protects g7.', done: 'Mate. Before every quiet move in a winning ending, ask: does my opponent still have a legal move?' }
     ]
@@ -68,7 +70,7 @@ var LESSONS = {
     title: 'Castling and En Passant', minutes: 5, takeaways: ['Castle to protect your king and connect your rooks.', 'En passant is only allowed on the very next move.'], goal: 'Use the two special moves correctly.',
     steps: [
       { t: 'read', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 0 1', text: 'Castling moves the king two squares toward a rook, and the rook jumps over. You can castle only if neither piece has moved, the squares between are empty, and the king is not in check or passing through check.', arrows: [['e1', 'g1', 'g'], ['h1', 'f1', 'b']] },
-      { t: 'move', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 0 1', text: 'Castle kingside to tuck your king away. Click the king, then g1.', sol: ['e1g1'], hint: 'Move the king from e1 to g1.', done: 'Castled. Your king is safer and your rook joins the game.' },
+      { t: 'move', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 0 1', text: 'Castle kingside to tuck your king away. It is written O-O. Tap the king, then g1.', sol: ['e1g1'], hint: 'Move the king from e1 to g1.', done: 'Castled. Your king is safer and your rook joins the game.' },
       { t: 'read', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', text: 'Black just played d7-d5, passing your e5 pawn. On the very next move only, you may capture it as if it moved one square. This is en passant.', arrows: [['e5', 'd6', 'g']] },
       { t: 'move', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', text: 'Capture en passant.', sol: ['e5d6'], hint: 'Your pawn lands on d6 and the d5 pawn disappears.', done: 'En passant done. The right expires after one move.' }
     ]
