@@ -12,6 +12,14 @@ var MISSIONS = {
     { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander',
       text: 'Now a real opening, the London System: d4, Bf4, e3, Nf3. Four moves, all from their written names.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
+  'l-firstmoves': [
+    { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', sol: ['e2e4', 'g1f3', 'b1c3'],
+      text: 'In three moves: one pawn in the centre and both knights out.', tip: 'e4 or d4 first, then Nf3 and Nc3.' },
+    { id: 'fm-castle', title: 'Ready, Set, Castle', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', limit: 4, par: 4, coach: 'wander', sol: ['e2e4', 'g1f3', 'f1c4', 'e1g1'],
+      text: 'Castle within four moves. Clear the squares between your king and the rook first.', tip: 'e4, Nf3, then a bishop out, then O-O.' },
+    { id: 'fm-long', title: 'The Long Way', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', side: 'w', castleSide: 'q', limit: 6, par: 5, coach: 'wander', sol: ['d2d4', 'b1c3', 'c1f4', 'd1d2', 'e1c1'],
+      text: 'Castle queenside, O-O-O, within six moves. Three pieces stand in the way this time.', tip: 'd4, Nc3, a bishop out, the queen out, then O-O-O.' }
+  ],
   'l-rook': [
     { id: 'rook-check', title: 'First Check', fen: '4k3/8/8/8/8/8/8/R5K1 w - - 0 1', goal: 'check', limit: 1, par: 1, coach: 'wander',
       text: 'Attacking the king is called check. Put your rook on a line with my king to give check. Straight lines only.', tip: 'Line the rook up on the same file or rank as my king.' },
@@ -102,7 +110,8 @@ function missionCheck(m, g, mv, st) {
   if (m.goal === 'captureAll' && missionMaterial(g, foe) === 0) return 'win';
   if (m.goal === 'mate' && g.inCheckmate()) return 'win';
   if (m.goal === 'promote' && mv.promotion) return 'win';
-  if (m.goal === 'castle' && (mv.flags === 'k' || mv.flags === 'q')) return 'win';
+  if (m.goal === 'castle' && (mv.flags === 'k' || mv.flags === 'q') && (!m.castleSide || mv.flags === m.castleSide)) return 'win';
+  if (m.goal === 'develop') { var me = mv.color, back = me === 'w' ? '1' : '8', out = 0; ['b', 'c', 'f', 'g'].forEach(function (f) { var q = g.get(f + back); if (!(q && q.color === me && (q.type === 'n' || q.type === 'b'))) out++; }); var knights = ['b', 'g'].filter(function (f) { var q = g.get(f + back); return !(q && q.color === me && q.type === 'n'); }).length, centre = ['d4', 'e4', 'd5', 'e5'].some(function (q) { var x = g.get(q); return x && x.color === me && x.type === 'p'; }); if (knights >= (m.minors || 2) && centre) return 'win'; }
   if (m.goal === 'ep' && mv.flags === 'e') return 'win';
   if (g.inStalemate()) return 'stalemate';
   return null;

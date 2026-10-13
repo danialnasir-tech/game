@@ -43,7 +43,8 @@ function greedyRun(m, seed) {
 function mateIn(g, n) { for (const m of g._gen()) { g._make(m); let ok; if (g.inCheck() && g._gen().length === 0) ok = true; else if (n > 1) { const rs = g._gen(); ok = rs.length > 0 && rs.every(r => { g._make(r); const v = mateIn(g, n - 1); g._undo(); return v; }); } g._undo(); if (ok) return true; } return false; }
 const stageOne = D.STAGES[0].lessons;
 for (const id of stageOne) if (!M.MISSIONS[id]) err('no missions for', id);
-for (const id in M.MISSIONS) {
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+for (const id in M.MISSIONS) { if (ONLY && ONLY.indexOf(id) < 0) continue;
   if (!D.LESSONS[id]) err('missions for unknown lesson', id);
   const list = M.MISSIONS[id]; if (list.length !== 3) err(id, 'needs 3 missions');
   for (const m of list) {
@@ -63,6 +64,15 @@ for (const id in M.MISSIONS) {
         if (M.missionCheck(m, h, x, st) === 'win') won = n; else { const d = Engine.rootSearch(h.fen(), 8, 600).moves[0]; if (!d) break; h.move({ from: d.from, to: d.to, promotion: d.promotion || undefined }); }
       }
       if (!won) err(m.id, 'engine could not reach the goal within', m.limit); else console.log(m.id, 'engine reaches goal in', won, '(limit', m.limit + ', par', m.par + ')');
+    } else if (m.sol) {
+      // opening missions: play the given plan against the friendly coach with several random seeds
+      let fails = 0;
+      for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const h = new Game(g.fen()), st = { caps: 0 }, rnd = seeded(seed * 7919); let won = 0;
+        for (let n = 1; n <= m.limit && !won; n++) { const u = m.sol[n - 1]; const x = h.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); if (!x) break; if (M.missionCheck(m, h, x, st) === 'win') won = n; else { const c = M.missionWander(h, rnd); if (!c) break; h.move(c); } }
+        if (!won) fails++;
+      }
+      if (fails > 1) err(m.id, fails + '/8 seeds: plan did not finish'); else if (fails) console.log(m.id, 'plan blocked by 1 of 8 random coach replies (player can adapt)'); else console.log(m.id, 'plan works against 8 coach seeds');
     } else {
       const runs = [1, 2, 3, 4, 5, 6, 7, 8].map(s => greedyRun(m, s * 7919));
       const fails = runs.filter(x => x == null).length, worst = Math.max(...runs.filter(x => x != null));

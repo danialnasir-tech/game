@@ -308,6 +308,17 @@
     if (b.captured) return ['why_wins', 'It wins material.'];
     return ['why_general', 'It keeps your position stronger.'];
   }
+  // one plain reason why a (good) move is good
+  function moveReason(res, ply, a, fenBefore, uci) {
+    if (/#$/.test(res.san)) return 'Checkmate!';
+    if (res.flags === 'k' || res.flags === 'q') return 'Your king is safe in the corner and a rook joins the game.';
+    if (res.captured) return 'It wins the ' + PIECE_NAME[res.captured] + ' on ' + res.to + '.';
+    if (/\+$/.test(res.san)) return 'It is a check, so they must deal with it first.';
+    if (ply <= 20 && (res.piece === 'n' || res.piece === 'b') && /[18]$/.test(res.from)) return 'It brings a new piece into the game.';
+    if (ply <= 12 && res.piece === 'p' && /^[cdef][3-6]$/.test(res.to)) return 'It claims the centre and opens lines for your pieces.';
+    if (a && a.best && (a.best.from + a.best.to) === (uci || '').slice(0, 4)) { var w = whyBest(a, a.bestSan, ply, fenBefore)[1]; if (!/keeps your position stronger/.test(w)) return w; }
+    return 'It keeps every piece safe and improves your position.';
+  }
   function plain(html) { var d = document.createElement('div'); d.innerHTML = html; return (d.textContent || '').replace(/Take back$/, '').trim(); }
 
   // ================= 3D board =================
@@ -995,6 +1006,12 @@
   }
   var MOVE_RULE = { r: 'Rooks move in straight lines: up, down, left or right.', b: 'Bishops move only diagonally.', q: 'The queen moves in straight lines or diagonally, without jumping.', n: 'Knights jump in an L: two squares one way, then one to the side.', k: 'The king moves one square at a time.', p: 'Pawns move straight forward and capture one square diagonally.' };
   function illegalWhy(g, piece, from, to) {
+    if (piece.type === 'k' && from && to && Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) === 2 && from[1] === to[1]) {
+      if (g.inCheck()) return 'You cannot castle while you are in check.';
+      var rights = g.fen().split(' ')[2], side = to[0] === 'g' ? 'k' : 'q', key = piece.color === 'w' ? side.toUpperCase() : side;
+      if (rights.indexOf(key) < 0) return 'You cannot castle on that side any more: the king or that rook has already moved.';
+      return 'You cannot castle here. The squares between king and rook must be empty, and the king may not pass through or land on a square an enemy piece attacks.';
+    }
     var pseudo = new Game(g.fen())._pseudo(false).some(function (m) { return Game.sqName(m.f) === from && Game.sqName(m.t) === to; });
     if (pseudo) return g.inCheck() ? 'You are in check: that move does not get your king out of it.' : 'That move would leave your king in check.';
     return MOVE_RULE[piece.type] || 'That move is not allowed.';
@@ -1031,7 +1048,7 @@
     var g = IX.game;
     var legal = g.moves({ square: from }).filter(function (m) { return m.to === to; });
     deselect();
-    if (!legal.length) { Sound.play('bad'); return false; }
+    if (!legal.length) { var pc = g.get(from); Sound.play('bad'); if (pc) toast(illegalWhy(g, pc, from, to)); return false; }
     PENDING_DROP = { from: from, to: to };
     if (legal.length > 1) askPromotion(g.turn()).then(function (pr) { submitMove({ from: from, to: to, promotion: pr }); });
     else submitMove({ from: from, to: to, promotion: legal[0].promotion });
@@ -1528,10 +1545,10 @@
       if (step.marks) B3.markers('mark', step.marks);
       var Q = LS.quizI === LS.i && LS.quiz;
       if (Q && !Q.done) {
-        LS.stepDone = false; IX.tap = MODES.lesson.quizTap;
+        LS.stepDone = false; IX.tap = function () { toast('Watch the arrows first. Your turn comes in a moment.'); };
         var tok = LS.quizTok = (LS.quizTok || 0) + 1, at = LS.i;
         // let the explanation sink in, then clear the drawing and hand the board over
-        setTimeout(function () { if (current !== MODES.lesson || !LS || LS.i !== at || LS.quizTok !== tok || Q.done) return; B3.arrows([]); B3.markers('mark', []); B3.markers('sel', [Q.at]); Voice.say([{ id: Q.id, text: Q.text }], true); }, 6000);
+        setTimeout(function () { if (current !== MODES.lesson || !LS || LS.i !== at || LS.quizTok !== tok || Q.done) return; B3.arrows([]); B3.markers('mark', []); B3.markers('sel', [Q.at]); IX.tap = MODES.lesson.quizTap; Q.live = true; MODES.lesson.render(); Voice.say([{ id: Q.id, text: Q.text }], true); }, 6000);
       }
       if (step.t === 'move') {
         IX.enabled = true;
@@ -2292,8 +2309,9 @@
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
         '<button class="test-out an-entry" data-act="goAnalyze"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
+        (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
-        '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">Your level</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
+        '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">' + (S.puzzle.rating < 500 ? 'Start here' : 'Your level') + '</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your colour</h2></div>' +
         '<div class="seg">' + [['w', 'White'], ['b', 'Black'], ['r', 'Random']].map(function (x) { return '<button class="' + (c.color === x[0] ? 'on' : '') + '" data-act="setColor" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Coach style</h2></div>' +
@@ -2366,7 +2384,7 @@
       if (Object.keys(names).length > 1) return; // e.g. 1...c5 could still be the Dragon or the Najdorf
       PL.bookSaid = true;
       var trap = !L.def && (L.family === 'Traps' || L.gambit);
-      MODES.play.say('Opening', L.def ? 'You are playing the <strong>' + esc(L.base.name) + '</strong>. Watch how I meet it: this is ' + esc(L.name) + ', and it is in Openings with every move explained.'
+      MODES.play.say('Opening', L.def ? 'Your moves so far match the start of the <strong>' + esc(L.base.name) + '</strong>. Watch how I meet it: this is ' + esc(L.name) + ', and it is in Openings with every move explained.'
         : trap ? 'Heads up: I am trying the <strong>' + esc(L.name) + '</strong>. Spot the trick before it lands.'
         : 'I am playing the <strong>' + esc(L.name) + '</strong>. You will find it in Openings with every move explained.', 'bookline');
       toast(L.def ? 'Coach is meeting your ' + L.base.name : trap ? L.name + ': a trap is coming' : 'Coach plays the ' + L.name);
@@ -2476,7 +2494,7 @@
       var html = '<strong>' + esc(res.san) + '</strong> ', spoken;
       if (c.positive) {
         var praise = '';
-        if (c.key === 'book') praise = gr.opening === 'many' || gr.opening === 'a well-known opening' ? 'A classic opening move. That is theory.' : 'Straight out of the ' + esc(gr.opening) + '. That is opening theory.';
+        if (c.key === 'book') praise = gr.opening === 'many' || gr.opening === 'a well-known opening' ? 'A standard opening move that strong players use.' : 'Straight out of the ' + esc(gr.opening) + ', a known opening.';
         else if (c.key === 'brilliant') praise = 'A real sacrifice, and it works! The piece is offered but taking it does not help them.';
         else if (c.key === 'great') praise = 'The only move that keeps your position together. Well found.';
         else if (res.flags === 'k' || res.flags === 'q') praise = 'King tucked away. Good habit.';
@@ -2484,6 +2502,7 @@
         else if (res.captured) praise = 'Good capture.';
         else if (/[+#]/.test(res.san)) praise = 'Strong check.';
         else if (c.key !== 'best' && a.bestSan && a.bestSan !== res.san) praise = 'Also strong was ' + esc(a.bestSan) + '.';
+        if (!praise || c.key === 'book') praise = (praise ? praise.replace(/ That is (opening )?theory\./, '') + ' ' : '') + moveReason(res, ply, a, fenBefore, uci);
         html += c.label + '. ' + praise;
         var flavour = (res.flags === 'k' || res.flags === 'q') ? 'castle'
           : (ply <= 16 && (res.piece === 'n' || res.piece === 'b') && /[18]$/.test(res.from)) ? 'develop'
@@ -2589,7 +2608,7 @@
       else Voice.say([V('resign')]);
       if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
       Celebrate.flush();
-      MODES.play.say('Game over', esc(msg) + ' Game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
+      MODES.play.say('Game over', esc(msg) + ' Coach-game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
     leave: function () { PL = null; }
@@ -2698,7 +2717,8 @@
       PL.hinting = false;
       if (!r || !r.move || PL.g !== g) return;
       B3.arrows([[r.move.from, r.move.to, 'g']]);
-      MODES.play.say('Hint', 'Consider moving the ' + PIECE_NAME[r.move.piece] + ' on ' + r.move.from + '. The arrow shows the move.', 'good', true);
+      var hg = new Game(g.fen()), hm = hg.move({ from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined });
+      MODES.play.say('Hint', 'Try your ' + PIECE_NAME[r.move.piece] + ' from ' + r.move.from + ' to ' + r.move.to + ' (the arrow). ' + (hm ? 'Why: ' + moveReason(hm, g.history().length + 1, null, g.fen(), '') : ''), 'good', true);
       MODES.play.render();
     });
   };
@@ -2867,10 +2887,15 @@
           setTimeout(function () {
             if (!MS || MS.g !== g || MS.over) return;
             if (!cm) { MS.busy = false; return MODES.mission.finish(false, 'The game is over.'); }
-            applyMove(g, { from: cm.from, to: cm.to, promotion: cm.promotion || undefined }).then(function () {
+            applyMove(g, { from: cm.from, to: cm.to, promotion: cm.promotion || undefined }).then(function (cr) {
               if (!MS || MS.g !== g) return;
               MS.busy = false; IX.enabled = true;
-              if (g.gameOver()) return MODES.mission.finish(false, 'The game ended before the goal.');
+              if (cr && cr.captured && m.coach === 'defend') {
+                var lost = 'My ' + PIECE_NAME[cr.piece] + ' took your ' + PIECE_NAME[cr.captured] + ' on ' + cr.to + ': nothing was protecting it.';
+                if (g.isDraw() || g.gameOver()) return MODES.mission.finish(false, lost + ' With only kings left, nobody can win: it is a draw. Keep your king next to your ' + PIECE_NAME[cr.captured] + ' so it is protected.');
+                return MODES.mission.finish(false, lost + ' Keep your pieces protected.');
+              }
+              if (g.gameOver()) return MODES.mission.finish(false, g.inCheckmate() ? 'That is checkmate against you.' : 'The game ended in a draw before the goal.');
               MODES.mission.render();
             });
           }, Math.max(0, 550 - (Date.now() - t0)));
@@ -2888,7 +2913,7 @@
       } else {
         MS.why = why; Sound.play('bad'); Voice.say([V('cm_fail')]);
       }
-      save(); MODES.mission.render();
+      save(); MODES.mission.render(); Celebrate.flush();
     },
     render: function () {
       var m = MS.m, list = MISSIONS[MS.lesson], L = LESSONS[MS.lesson], left = m.limit - MS.n;
@@ -4083,7 +4108,7 @@
   var Celebrate = (function () {
     var queue = [], open = false;
     function next() {
-      if (open || !queue.length) return;
+      if (open || !queue.length || (current === MODES.mission && MS && !MS.over)) return;
       if (current === MODES.play && PL && PL.g && !PL.over) return; // never cover the board mid-game
       var c = queue.shift(); open = true;
       var m = document.createElement('div'); m.className = 'celebrate';

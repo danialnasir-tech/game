@@ -1,6 +1,6 @@
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
-  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate'] },
+  { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate', 'l-firstmoves'] },
   { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
   { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the mating patterns that end games.', lessons: ['l-discovered', 'l-defender', 'l-patterns'] },
   { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Opposition, the Lucena and Philidor, pawn breaks and pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
@@ -26,6 +26,7 @@ var LESSONS = {
     title: 'The Rook', minutes: 4, takeaways: ['Rooks move in straight lines, up, down and sideways.', 'Plan a route before you move, and count your moves.'], goal: 'Move the rook in straight lines and collect every star.',
     steps: [
       { t: 'read', fen: '8/8/8/8/3R4/8/8/8 w - - 0 1', text: 'The rook moves any number of squares in a straight line: up, down, left or right. It cannot jump over pieces. Rooks are worth about 5 pawns.', arrows: [['d4', 'd8', 'g'], ['d4', 'd1', 'g'], ['d4', 'a4', 'g'], ['d4', 'h4', 'g']] },
+      { t: 'move', fen: '4k3/8/8/8/1n6/8/8/1R2K3 w - - 0 1', text: 'A rook captures by moving onto an enemy piece\'s square. Take the black knight!', sol: ['b1b4'], hint: 'The knight is straight up the b-file from your rook.', done: 'Captured. The knight is gone and your rook stands on its square.' },
       { t: 'collect', piece: 'r', start: 'a1', stars: ['a6', 'f6', 'f2', 'h2'], par: 4, text: 'Collect all four stars with the rook. Try to do it in 4 moves.' },
       { t: 'collect', piece: 'r', start: 'h8', stars: ['c8', 'c3', 'g3', 'g1', 'b1'], par: 5, text: 'Five stars this time. Plan the route before you move.' }
     ]
@@ -78,9 +79,23 @@ var LESSONS = {
   'l-qmate': {
     title: 'Mate with King and Queen', minutes: 6, takeaways: ["Use your queen to shrink the king's box, then bring your own king close.", 'Always check for stalemate before a quiet queen move.'], goal: 'Finish a won game without stalemating.',
     steps: [
-      { t: 'read', fen: '8/8/3k4/8/8/8/8/4K2Q w - - 0 1', text: 'The method: use the queen to shrink the king\'s box, keeping a knight\'s jump away. Then bring your king close and mate on the edge.' },
+      { t: 'read', fen: '8/8/3k4/8/8/8/8/4K2Q w - - 0 1', text: 'The method has three steps. Box the king in with your queen, walk your own king up, then mate on the edge. Never leave the king with no move at all: that is stalemate, a draw.' },
+      { t: 'move', fen: '4k3/8/8/8/8/8/8/4K2Q w - - 0 1', text: 'Step one: the box. Put your queen on the 7th rank. Then the black king cannot leave the back rank.', sol: ['h1h7'], accept: ['h1b7'], hint: 'From h1 the queen reaches the 7th rank on h7 or b7.', done: 'Boxed in. The king can only walk along the back rank now.' },
+      { t: 'move', fen: '3k4/7Q/8/8/8/8/8/4K3 w - - 0 1', text: 'Step two: the queen holds the box by herself. Walk your king up toward the black king.', sol: ['e1e2'], accept: ['e1d2', 'e1f2'], hint: 'Move your king one square up the board.', done: 'Keep walking like this until your king stands in front of the black king.' },
+      { t: 'move', fen: '3k4/7Q/3K4/8/8/8/8/8 w - - 0 1', text: 'Step three: your king is in front of theirs. Mate on the back rank.', sol: ['h7d7'], anyMate: true, hint: 'A queen check on the 7th or 8th rank, guarded by your king.', done: 'Checkmate. Box, walk, mate: that is the whole method.' },
       { t: 'move', fen: 'k7/8/1K6/8/8/8/8/2Q5 w - - 0 1', text: 'The king is on the edge and your king guards a7 and b7. Mate in one. Careful: Qc7 is stalemate!', sol: ['c1c8'], anyMate: true, hint: 'Check along the 8th rank.', done: 'Mate. Your king did half the work.' },
       { t: 'move', fen: '4k3/8/4K3/8/8/8/8/7Q w - - 0 1', text: 'Kings face each other. Find mate in one.', sol: ['h1h8'], anyMate: true, hint: 'The queen can reach the back rank in one move.', done: 'Mate. Kings in opposition plus a queen on the edge is the standard finish.' }
+    ]
+  },
+  'l-firstmoves': {
+    title: 'Your First Ten Moves', minutes: 4, takeaways: ['Job 1: put a pawn in the centre.', 'Job 2: bring your knights and bishops out.', 'Job 3: castle to keep your king safe.'], goal: 'Know exactly what to do at the start of every game.',
+    steps: [
+      { t: 'read', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Every game starts with three jobs. One: put a pawn in the centre. Two: bring out your knights and bishops. Three: castle.', marks: ['d4', 'e4', 'd5', 'e5'] },
+      { t: 'move', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', text: 'Job one. Push a centre pawn two squares. Pieces behind it can now come out.', sol: ['e2e4'], accept: ['d2d4'], hint: 'The e-pawn or the d-pawn, two squares forward.', done: 'Centre pawn. Your bishop and queen can now get out.' },
+      { t: 'move', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', text: 'Job two. Bring a knight out toward the centre, where it reaches the most squares.', sol: ['g1f3'], accept: ['b1c3'], hint: 'Knights jump to f3 or c3.', done: 'Developed. Nf3 also attacks the e5 pawn.' },
+      { t: 'move', fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3', text: 'Now a bishop. Put it on a square where it aims at the centre or at Black\'s king.', sol: ['f1c4'], accept: ['f1b5'], hint: 'The bishop on f1 can go to c4 or b5.', done: 'Bishop out. Now the king has an empty path to castle.' },
+      { t: 'move', fen: 'r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4', text: 'Job three. Castle: tap your king, then g1. The king hides in the corner and the rook joins the game.', sol: ['e1g1'], hint: 'The squares between the king and rook are empty now. King to g1.', done: 'Castled in four moves. That is a great start to any game.' },
+      { t: 'read', fen: 'r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4', text: 'Avoid three things early: moving one piece twice, bringing the queen out too soon, and pushing edge pawns. Do the three jobs and you will be ready to fight.' }
     ]
   },
   'l-values': {
@@ -164,7 +179,8 @@ var LESSONS = {
       { t: 'read', fen: '4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', text: 'Most games below 1200 are lost to one careless move. Stop that with the blunder check: before every move, ask three questions in order. Checks: what checks exist? Captures: what can be taken? Threats: what does my opponent want to do next? This one habit is worth hundreds of rating points.' },
       { t: 'move', fen: 'r1bqkbnr/pppp1ppp/2n5/8/3QP3/8/PPP2PPP/RNB1KBNR w KQkq - 1 4', text: 'Threats first. Black\'s knight on c6 is attacking your queen. Move her to a square where nothing can take her.', sol: ['d4e3'], judge: 'safe', hint: 'Look at every square she can go to, and ask: can a black piece capture me there?', done: 'Safe. When something is attacked, deal with it before anything else.' },
       { t: 'move', fen: '4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', text: 'Black threatens Re1 mate. Find a move that stops it.', sol: ['h2h3'], judge: 'safe', hint: 'Make an escape square, or cover e1.', done: 'You stopped the threat. Always ask what your opponent wants.' },
-      { t: 'move', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', text: 'Scan for checks and captures. One capture ends the game.', sol: ['h5f7'], anyMate: true, hint: 'Look at f7. Who defends it?', done: 'Scholar\'s mate. Checks and captures first: the blunder check finds it instantly.' }
+      { t: 'move', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', text: 'Scan for checks and captures. One capture ends the game.', sol: ['h5f7'], anyMate: true, hint: 'Look at f7. Who defends it?', done: 'Scholar\'s mate. Checks and captures first: the blunder check finds it instantly.' },
+      { t: 'move', fen: 'r1b1kbnr/pppp1ppp/2n5/4p3/2B1P2q/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4', text: 'Your move. In a real game nobody warns you, so do the blunder check yourself: checks, captures, threats.', sol: ['f3h4'], hint: 'Captures: is any black piece attacked and unprotected?', done: 'The queen was free. Asking the three questions every move finds gifts like this.' }
     ]
   },
   'l-kp': {
