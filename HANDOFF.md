@@ -20,7 +20,7 @@ A 3D chess tutor (100 → 2000 rating) in one HTML page: Three.js board (2D fall
 | `dist/voice-pack-1..19.mp3` | All 1932 voice clips, packed (32 kbps mono). Packs 1-2 are the start packs (first-session lines) the launch screen downloads; the rest load on demand. `dist/voice-manifest.json` = generator hash per clip (stale clips stay silent). |
 | `pack-voice.js`, `unpack-voice.js`, `ingest.sh` | Turn a voice zip (or a folder) from the user into packs: `sh ingest.sh chess-voice-v4.zip` (needs ffmpeg). It may hold only the new clips: `unpack-voice.js` restores the already packed ones first. A .rar must be extracted to a folder first (e.g. with the free `node-unrar-js`). |
 | `build-kit.js` | Rebuilds `voice-kit-v4/generate-v4-voices.js` from `voice-kit-v4/generate-v4-voices.template.js` with every line (male voice, eleven_v4 only) and prints how many clips are new. `voice-kit/` is the old female template and is no longer used. |
-| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 2032 lines (1932 packed, 100 waiting to be recorded). |
+| `voice-kit-v4/` | Current generator for the user: voice ID `B52raBK48m23qWYbwchQ`, model eleven_v4, 2032 lines (2204 packed in 25 packs). |
 | `website/` | Download version: `serve.js` + `Start-Chess-Ascent.bat` (index.html = dist/site.html, plus the 15 packs). |
 | `tests/` | `perft.js`, `validate.js` (checks every lesson/opening/puzzle), `bench.js` (engine match + tactics), `mine.js` (puzzle miner), Playwright scripts (`smoke.py`, `mob.py` phone screenshots, etc.). |
 
@@ -36,7 +36,7 @@ sh ingest.sh <voice-zip>      # add new voice clips, then rebuild
 Tests reference `../chesscore.js` etc. from a `scratch/` folder — run them from a `scratch/` copy or fix the paths.
 
 ## Publishing
-Publish `dist/chess-ascent.html` as an artifact and pass all 19 packs as supporting files
+Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as supporting files
 (`voice-pack-N.mp3` → `dist/voice-pack-N.mp3`). The page fetches them by relative path.
 
 ## Rules the user cares about
