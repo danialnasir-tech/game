@@ -3,7 +3,7 @@ function BOARD2D_FACTORY() {
   var api = {}, root, sqLayer, mkLayer, pcLayer, svgLayer, fxLayer, labels;
   var meshes = {}, stars = {}, cats = {}, orient = 'w', onClick = function () { }, hoverFn = function () { return false; }, dragFns = null, drag = null;
   var COL = { g: '#3ddc97', r: '#ff5d6c', b: '#4cc9f0', y: '#ffd23f' };
-  var CAT = { hover: 'rgba(255,255,255,.12)', last: 'rgba(255,210,63,.38)', mark: 'rgba(76,201,240,.5)', sel: 'rgba(255,210,63,.6)', check: 'rgba(255,93,108,.7)', hint: 'rgba(61,220,151,.55)', bad: 'rgba(255,93,108,.6)', good: 'rgba(61,220,151,.6)' };
+  var CAT = { zoneA: 'rgba(76,201,240,.55)', zoneB: 'rgba(255,93,170,.5)', zoneC: 'rgba(255,210,63,.55)', spot: 'rgba(196,255,61,.55)', hover: 'rgba(255,255,255,.12)', last: 'rgba(255,210,63,.38)', mark: 'rgba(76,201,240,.5)', sel: 'rgba(255,210,63,.6)', check: 'rgba(255,93,108,.7)', hint: 'rgba(61,220,151,.55)', bad: 'rgba(255,93,108,.6)', good: 'rgba(61,220,151,.6)' };
   function fr(sq) { var f = sq.charCodeAt(0) - 97, r = +sq[1] - 1; return orient === 'w' ? { x: f, y: 7 - r } : { x: 7 - f, y: r }; }
   function place(el, sq) { var p = fr(sq); el.style.left = (p.x * 12.5) + '%'; el.style.top = (p.y * 12.5) + '%'; }
   api.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
@@ -18,7 +18,7 @@ function BOARD2D_FACTORY() {
     svgLayer.setAttribute('viewBox', '0 0 8 8'); svgLayer.setAttribute('class', 'b2-svg'); root.appendChild(svgLayer);
     for (var y = 0; y < 8; y++) for (var x = 0; x < 8; x++) { var s = div('b2-sq ' + ((x + y) % 2 ? 'dark' : 'light'), sqLayer); s.style.left = x * 12.5 + '%'; s.style.top = y * 12.5 + '%'; }
     labels = div('b2-labels', root);
-    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), pad = parseFloat(getComputedStyle(wrap).paddingTop) || 0, size = Math.max(160, mob ? Math.min(w - 20, h - 16 - pad) : Math.min(w - 24, h - 70)); root.style.width = root.style.height = size + 'px'; root.classList.toggle('tiny', size < 300); }
+    function fit() { var mob, w = el.clientWidth, h = el.clientHeight, mob = document.body.classList.contains('mob') || (window.matchMedia && matchMedia('(max-height: 520px) and (orientation: landscape)').matches), pad = parseFloat(getComputedStyle(wrap).paddingTop) || 0, size = Math.max(160, mob ? Math.min(w - 20, h - 16 - pad) : Math.min(w - 48, h - 96, 680)); root.style.width = root.style.height = size + 'px'; root.classList.toggle('tiny', size < 300); }
     new ResizeObserver(fit).observe(el); fit();
     drawLabels();
     root.addEventListener('pointerdown', down);
@@ -115,6 +115,16 @@ function BOARD2D_FACTORY() {
       place(d, sq); cats[cat].push(d);
     });
   };
+  // teaching visuals: text tags on squares, and a spotlight that dims every other piece
+  var tagEls = [];
+  api.tags = function (map) {
+    tagEls.forEach(function (d) { d.remove(); }); tagEls = [];
+    Object.keys(map || {}).forEach(function (sq) { var d = div('b2-tag' + (meshes[sq] ? ' on-pc' : ''), fxLayer); d.innerHTML = '<span>' + String(map[sq]).replace(/</g, '&lt;') + '</span>'; place(d, sq); d.dataset.sq = sq; tagEls.push(d); });
+  };
+  api.spot = function (sqs) {
+    root.classList.toggle('spotlit', !!(sqs && sqs.length));
+    Object.keys(meshes).forEach(function (sq) { meshes[sq].classList.toggle('lit', !!(sqs && sqs.indexOf(sq) >= 0)); });
+  };
   api.flash = function (cat, sqs, ms) { api.markers(cat, sqs); setTimeout(function () { api.markers(cat, []); }, ms || 650); };
   api.arrows = function (list) {
     while (svgLayer.firstChild) svgLayer.removeChild(svgLayer.firstChild);
@@ -138,8 +148,8 @@ function BOARD2D_FACTORY() {
   };
   api.takeStar = function (sq) { var s = stars[sq]; if (!s) return false; delete stars[sq]; s.classList.add('captured'); setTimeout(function () { s.remove(); }, 300); return true; };
   api.burst = function (sq) { if (!sq) return; var b = div('b2-burst', fxLayer); place(b, sq); setTimeout(function () { b.remove(); }, 700); };
-  api.clearAll = function () { Object.keys(cats).forEach(function (c) { api.markers(c, []); }); api.arrows([]); api.stars([]); };
-  api.setOrientation = function (c) { orient = c; drawLabels(); Object.keys(meshes).forEach(function (sq) { place(meshes[sq], sq); }); Object.keys(stars).forEach(function (sq) { place(stars[sq], sq); }); Object.keys(cats).forEach(function (k) { cats[k].forEach(function () { }); }); return Promise.resolve(); };
+  api.clearAll = function () { Object.keys(cats).forEach(function (c) { api.markers(c, []); }); api.arrows([]); api.stars([]); api.tags(null); api.spot(null); };
+  api.setOrientation = function (c) { orient = c; drawLabels(); Object.keys(meshes).forEach(function (sq) { place(meshes[sq], sq); }); Object.keys(stars).forEach(function (sq) { place(stars[sq], sq); }); tagEls.forEach(function (d) { place(d, d.dataset.sq); }); Object.keys(cats).forEach(function (k) { cats[k].forEach(function () { }); }); return Promise.resolve(); };
   api.orientation = function () { return orient; };
   api.toggleView = function () { return '2d'; };
   api.idle = function () { };

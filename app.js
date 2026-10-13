@@ -864,7 +864,8 @@
     var CAT = {
       hover: { color: 0xffffff, op: 0.1, y: 0.002 }, last: { color: 0xe7c66b, op: 0.32, y: 0.003 }, mark: { color: 0x6fa8dc, op: 0.45, y: 0.004 },
       sel: { color: 0xd6a54e, op: 0.6, y: 0.005 }, check: { color: 0xe2695c, op: 0.65, y: 0.006 }, hint: { color: 0x73c48f, op: 0.55, y: 0.007 },
-      bad: { color: 0xe2695c, op: 0.6, y: 0.008 }, good: { color: 0x73c48f, op: 0.6, y: 0.008 }, moves: { color: 0x10161e, op: 0.5, y: 0.01 }
+      bad: { color: 0xe2695c, op: 0.6, y: 0.008 }, good: { color: 0x73c48f, op: 0.6, y: 0.008 }, moves: { color: 0x10161e, op: 0.5, y: 0.01 },
+      zoneA: { color: 0x4cc9f0, op: 0.5, y: 0.0045 }, zoneB: { color: 0xff5daa, op: 0.45, y: 0.0046 }, zoneC: { color: 0xffd23f, op: 0.5, y: 0.0047 }, spot: { color: 0xc4ff3d, op: 0.5, y: 0.0048 }
     };
     api.markers = function (cat, items) {
       (cats[cat] || []).forEach(function (m) { overlay.remove(m); m.material.dispose(); });
@@ -880,6 +881,8 @@
       });
     };
     api.flash = function (cat, sqs, ms) { api.markers(cat, sqs); setTimeout(function () { api.markers(cat, []); }, ms || 650); };
+    api.tags = function () { };
+    api.spot = function (sqs) { api.markers('spot', sqs || []); };
 
     api.arrows = function (list) {
       while (arrowGroup.children.length) { var old = arrowGroup.children[0]; arrowGroup.remove(old); old.children.forEach(function (c) { c.geometry.dispose(); c.material.dispose(); }); }
@@ -1070,6 +1073,48 @@
     return B3.animateMove(res, g.fen()).then(function () { showCheck(g); return res; });
   }
   function uciObj(u) { return { from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }; }
+  // ---- Lesson visuals: what the coach is talking about, drawn on the board ----
+  // step fields: files ['e'], ranks [4], zones [[squares, 'A'|'B'|'C']], tags {sq: text}, spot 'n' (both colours) | 'N' (white) | 'n!' (black) | ['k','q'],
+  // dots 'd4' (where the piece on d4 can go), demo ['g1f3', ...] (moves played out on the board), arrows, marks
+  var ZONE = { A: 'zoneA', B: 'zoneB', C: 'zoneC' };
+  function pieceSquares(fen, spec) {
+    var out = [], rows = fen.split(' ')[0].split('/'), want = [].concat(spec);
+    rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; }
+      if (want.some(function (w) { return w === ch.toLowerCase() || w === ch + '!' || (w === ch && w !== w.toLowerCase()); })) out.push('abcdefgh'[f] + (8 - ri)); f++; } });
+    return out;
+  }
+  function moveDots(fen, sq) {
+    var parts = fen.split(' '), map = new Game(fen), pc = map.get(sq); if (!pc) return [];
+    parts[1] = pc.color; parts[3] = '-'; var g = new Game(parts.join(' '));
+    var ms = g.moves({ square: sq }), seen = {};
+    return (ms || []).filter(function (m) { if (seen[m.to]) return false; seen[m.to] = 1; return true; }).map(function (m) { return { sq: m.to, cap: !!m.captured }; });
+  }
+  function showVisuals(step, fen) {
+    fen = fen || step.fen; if (!fen) return;
+    if (step.arrows) B3.arrows(step.arrows);
+    if (step.marks) B3.markers('mark', step.marks);
+    var zones = { zoneA: [], zoneB: [], zoneC: [] }, tags = {};
+    (step.files || []).forEach(function (f) { for (var r = 1; r <= 8; r++) zones.zoneA.push(f + r); });
+    (step.ranks || []).forEach(function (r) { 'abcdefgh'.split('').forEach(function (f) { zones.zoneB.push(f + r); }); });
+    (step.zones || []).forEach(function (z) { zones[ZONE[z[1] || 'C']] = zones[ZONE[z[1] || 'C']].concat(z[0]); });
+    Object.keys(zones).forEach(function (c) { B3.markers(c, zones[c]); });
+    Object.keys(step.tags || {}).forEach(function (k) { tags[k] = step.tags[k]; });
+    if (step.spot) B3.spot(pieceSquares(fen, step.spot)); else B3.spot(null);
+    B3.tags(tags);
+    if (step.dots) B3.markers('moves', [].concat(step.dots).reduce(function (a, sq) { return a.concat(moveDots(fen, sq)); }, []));
+  }
+  function playDemo(step, isLive) {
+    if (!step.demo || !step.demo.length) return;
+    var g = new Game(step.fen), i = 0;
+    (function next() {
+      if (!isLive()) return;
+      if (i >= step.demo.length) { setTimeout(function () { if (!isLive()) return; B3.setPosition(step.fen); B3.arrows(step.arrows || []); showVisuals(step); }, 1600); return; }
+      var u = step.demo[i++], m = g.move(uciObj(u)); if (!m) return;
+      B3.arrows([[m.from, m.to, 'y']]); B3.markers('moves', []);
+      B3.animateMove(m, g.fen()).then(function () { setTimeout(next, 900); });
+    })();
+  }
+
   function setupBoard(fen, opts) {
     opts = opts || {};
     deselect(); B3.clearAll(); IX.collect = null;
@@ -1181,7 +1226,7 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -1196,7 +1241,7 @@
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
+  var BOARD_MODES = { drill: 1, warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -1281,7 +1326,7 @@
   var DISCOVER = [
     { k: 'lesson', ico: 'r', t: 'Take your first lesson', s: 'Learn the board, the pieces and how moves are written.', act: 'data-act="startNext"', done: function () { return lessonsDone() >= 1; } },
     { k: 'puzzle', ico: 'n', t: 'Solve a puzzle', s: 'Find the best move. Your rating goes up.', act: 'data-act="goPuzzles"', done: function () { return Object.keys(S.puzzle.solved || {}).length >= 1; } },
-    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-board" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
+    { k: 'mission', ico: 'k', t: 'Beat a coach mission', s: 'A tiny challenge with me, right after a lesson.', act: 'data-act="mission" data-l="l-pieces" data-i="0"', done: function () { return Object.keys(S.missions || {}).length >= 1; } },
     { k: 'arena', ico: 'q', t: 'Play a 60-second game', s: 'Quick board games in the Arena.', act: 'data-act="goMode" data-m="arena"', done: function () { return Object.keys(S.arena || {}).some(function (x) { return S.arena[x] > 0; }); } },
     { k: 'play', ico: 'p', t: 'Play a game against me', s: 'A real game, with tips on every move.', act: 'data-act="goPlay"', lock: 'play', done: function () { return (S.games || []).length >= 1; } },
     { k: 'opening', ico: 'b', t: 'Learn an opening', s: 'The first moves the pros play.', act: 'data-act="goMode" data-m="openings"', lock: 'openings', done: function () { return Object.keys(S.openings || {}).length >= 1; } },
@@ -1315,7 +1360,7 @@
         // the board previews the next lesson, so home is never a dead starting position; tap it to dive in
         var pl = nextLesson(), ps = pl && LESSONS[pl].steps[0];
         if (ps && ps.t === 'collect') { setupBoard(fenOf(ps.piece, ps.start), { drop: true, orient: 'w' }); B3.stars(ps.stars); }
-        else if (ps && ps.fen) { setupBoard(ps.fen, { drop: true, orient: new Game(ps.fen).turn() }); if (ps.arrows) B3.arrows(ps.arrows); if (ps.marks) B3.markers('mark', ps.marks); }
+        else if (ps && ps.fen) { setupBoard(ps.fen, { drop: true, orient: new Game(ps.fen).turn() }); showVisuals(ps); }
         else setupBoard(Game.START, { drop: true, orient: 'w' });
         if (pl) IX.tap = function () { ACT.startNext(); };
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
@@ -1323,7 +1368,7 @@
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
       discSync(); var fresh = !discAllDone() && discCount() < 3 && lessonsDone() < 2; // newcomers get a short, focused home
       if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
-      var L = LESSONS[nl], cur = allClear ? STAGES.length - 1 : stageOf(nl), placed = placementStage();
+      var L = LESSONS[nl], cur = allClear ? STAGES.length - 1 : stageOf(nl), placed = placementStage(), pend = allClear ? null : pendingFlow(nl);
       var openStage = PATHUI.open == null ? cur : PATHUI.open;
       var R = S.puzzle.rating, marks = [100, 400, 800, 1200, 1600, 2000];
       var seg = 0; while (seg < 4 && R >= marks[seg + 1]) seg++;
@@ -1336,6 +1381,10 @@
         '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + ' · ' + STAGES[cur].band + '</div>' +
         (allClear ? '<h1 class="h1">Every stage cleared</h1><p class="lede">The whole course is behind you. Keep sharpening with puzzles at your rating, master openings, and beat the strongest coach.</p>' +
           '<button class="btn primary big" data-act="goPlay">▶&nbsp; Play the ' + esc(levelById(levelForRating(S.puzzle.rating)).name) + ' coach</button>'
+        : pend ? '<h1 class="h1">Next up: ' + esc(pend.t) + '</h1>' +
+          '<p class="lede">' + (pend.k === 'mission' ? 'Use what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b> against me, in a few quick challenges.' : 'Five puzzles that use exactly what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b>.') + '</p>' + flowChips(pend.lid) +
+          '<button class="btn primary big" data-act="flowGo" data-l="' + pend.lid + '">▶&nbsp; ' + (pend.k === 'mission' ? 'Start the missions' : 'Start practice') + '</button>' +
+          '<button class="btn ghost small hero-skip" data-act="startNext">Skip to the next lesson: ' + esc(L.title) + '</button>'
         : '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
@@ -1379,7 +1428,7 @@
     },
     leave: function () { B3.idle(false); }
   };
-  ACT.startNext = function () { var nl = nextLesson(); if (nl) go('lesson', nl); else go('play'); };
+  ACT.startNext = function () { var nl = nextLesson(); if (nl) { var pf = current === MODES.path && pendingFlow(nl); if (pf) { S.flowSkip = S.flowSkip || {}; S.flowSkip[pf.lid] = 1; save(); } go('lesson', nl); } else go('play'); };
   ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
   ACT.toggleStage = function (d) { var i = +d.i, nl0 = nextLesson(), cur = PATHUI.open == null ? (nl0 ? stageOf(nl0) : STAGES.length - 1) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
   ACT.lesson = function (d) { go('lesson', d.id); };
@@ -1487,6 +1536,18 @@
   // ================= Lesson =================
   var LS = null;
   function quizBox(Q) { return '<div class="quiz' + (Q.done ? ' done' : '') + '"><span class="quiz-tag">' + (Q.done ? '✓ Nailed it' : 'Your turn') + '</span><span class="quiz-q">' + esc(Q.text.replace(/^Your turn\. /, '')) + '</span><span class="quiz-pips">' + Array.apply(null, Array(Q.need)).map(function (x, k) { return '<i class="' + (k < Q.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span></div>'; }
+  var PIECE_INFO = {
+    k: { letter: 'K', value: 'Priceless' },
+    q: { letter: 'Q', value: '9 points' },
+    r: { letter: 'R', value: '5 points' },
+    b: { letter: 'B', value: '3 points' },
+    n: { letter: 'N', value: '3 points' },
+    p: { letter: 'no letter', value: '1 point' }
+  };
+  function meetCard(t) {
+    var I = PIECE_INFO[t];
+    return '<div class="meet-card"><span class="meet-pc">' + pieceSVG(t, 'w', 64) + '</span><span class="meet-txt"><b>' + PIECE_NAME[t].charAt(0).toUpperCase() + PIECE_NAME[t].slice(1) + '</b><span>Letter: <b class="mono">' + I.letter + '</b> · Worth: ' + I.value + '</span></span></div>';
+  }
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
@@ -1503,14 +1564,14 @@
       var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' || step.t === 'pieces' ? 'Board game' : 'Your move';
       var actions = '';
       if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
-      else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
+      else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + (step.demo ? '<button class="btn" data-act="demoAgain">▶ Watch again</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       else actions = '<button class="btn ghost" data-act="hint">Hint</button><button class="btn ghost" data-act="resetStep">Reset</button><button class="btn primary" data-act="nextStep" ' + (LS.stepDone ? '' : 'disabled') + '>' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       setPanel('<button class="back" data-act="goPath">← Path</button>' +
         '<div class="eyebrow">' + esc(st.name) + ' · ' + st.band + '</div>' +
         '<h1 class="h1">' + esc(L.title) + '</h1>' +
         '<p class="lede">' + esc(L.goal) + '</p>' +
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
-        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (Q && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
         (step.t === 'pieces' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap your <b>' + PIECE_NAME[step.targets[LS.sq.i]] + '</b> <span class="sq-glyph">' + pieceSVG(step.targets[LS.sq.i], 'w', 34) + '</span>' : '✓ All six found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
@@ -1523,7 +1584,7 @@
     loadStep: function () {
       var step = LS.L.steps[LS.i]; Replay.stop();
       LS.stepDone = step.t === 'read'; LS.ply = 0; LS.hintUsed = false;
-      Voice.say([LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }]);
+      Voice.say([LS.i === 0 ? V('intro_' + LS.id) : LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }]);
       if (step.t === 'collect') {
         Collect.start(step, function (stars, moves) {
           LS.stepDone = true; LS.stars = Math.min(LS.stars || 3, stars);
@@ -1535,25 +1596,25 @@
         return;
       }
       if (step.t === 'pieces') {
-        setupBoard(step.fen, { orient: 'w' });
+        setupBoard(step.fen, { orient: 'w' }); showVisuals(step);
         LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.pieceTap; MODES.lesson.render();
         return;
       }
       if (step.t === 'squares') {
-        setupBoard(step.fen, { orient: 'w' });
+        setupBoard(step.fen, { orient: 'w' }); showVisuals(step);
         LS.sq = { i: 0, miss: 0 }; LS.stepDone = false; IX.tap = MODES.lesson.squareTap; MODES.lesson.render();
         setTimeout(function () { if (LS && LS.sq && LS.L.steps[LS.i] === step) Voice.say([M('sq_' + step.targets[0])], true); }, 5200);
         return;
       }
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: step.t === 'read' && stageOf(LS.id) === 0 ? 'w' : new Game(step.fen).turn() });
-      if (step.arrows) B3.arrows(step.arrows);
-      if (step.marks) B3.markers('mark', step.marks);
+      showVisuals(step);
+      if (step.demo) { var dTok = LS.demoTok = (LS.demoTok || 0) + 1, dAt = LS.i; setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === dAt && LS.demoTok === dTok; }); }, step.demoDelay || 2600); }
       var Q = LS.quizI === LS.i && LS.quiz;
       if (Q && !Q.done) {
         LS.stepDone = false; IX.tap = function () { toast('Watch the arrows first. Your turn comes in a moment.'); };
         var tok = LS.quizTok = (LS.quizTok || 0) + 1, at = LS.i;
         // let the explanation sink in, then clear the drawing and hand the board over
-        setTimeout(function () { if (current !== MODES.lesson || !LS || LS.i !== at || LS.quizTok !== tok || Q.done) return; B3.arrows([]); B3.markers('mark', []); B3.markers('sel', [Q.at]); IX.tap = MODES.lesson.quizTap; Q.live = true; MODES.lesson.render(); Voice.say([{ id: Q.id, text: Q.text }], true); }, 6000);
+        setTimeout(function () { if (current !== MODES.lesson || !LS || LS.i !== at || LS.quizTok !== tok || Q.done) return; B3.arrows([]); B3.markers('mark', []); B3.markers('moves', []); B3.tags(null); B3.markers('sel', [Q.at]); IX.tap = MODES.lesson.quizTap; Q.live = true; MODES.lesson.render(); Voice.say([{ id: Q.id, text: Q.text }], true); }, 6000);
       }
       if (step.t === 'move') {
         IX.enabled = true;
@@ -1565,8 +1626,8 @@
       var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'pieces' || Q.i >= step.targets.length) return;
       var want = step.targets[Q.i], p = IX.game && IX.game.get(sq);
       var FACT = { k: 'The king. Protect him: if he is trapped, you lose.', q: 'The queen. Your strongest piece.', r: 'The rook. It looks like a castle tower.', b: 'The bishop. It has a pointed hat with a slit.', n: 'The knight. The horse. It jumps!', p: 'The pawn. You have eight of them.' };
-      if (!p || p.color !== 'w' || p.type !== want) { Q.miss++; B3.flash('bad', [sq], 500); Sound.play('bad'); toast(p ? (p.color === 'b' ? 'That is a black piece. Yours are the white ones at the bottom.' : 'That is your ' + PIECE_NAME[p.type] + '. Find the ' + PIECE_NAME[want] + '.') : 'Tap one of your white pieces at the bottom.'); if (Q.miss >= 2) MODES.lesson.pieceHint(want); return; }
-      Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq); toast(FACT[want]);
+      if (!p || p.color !== 'w' || p.type !== want) { Q.miss++; B3.flash('bad', [sq], 500); Sound.play('bad'); Voice.say([V('piece_wrong')], true); toast(p ? (p.color === 'b' ? 'That is a black piece. Yours are the white ones at the bottom.' : 'That is your ' + PIECE_NAME[p.type] + '. Find the ' + PIECE_NAME[want] + '.') : 'Tap one of your white pieces at the bottom.'); if (Q.miss >= 2) MODES.lesson.pieceHint(want); return; }
+      Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq); toast(FACT[want]); if (Q.i < step.targets.length) Voice.say([V('piece_found_' + want)], true);
       if (Q.i >= step.targets.length) { LS.stepDone = true; IX.tap = null; Sound.play('good'); Voice.say([V('quiz_done')]); MODES.lesson.render(); setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good'); return; }
       MODES.lesson.render();
     },
@@ -1574,7 +1635,7 @@
     squareTap: function (sq) {
       var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'squares' || Q.i >= step.targets.length) return;
       var want = step.targets[Q.i];
-      if (sq !== want) { Q.miss++; Q.missed = true; LS.mistakes += 0.25; B3.flash('bad', [sq], 600); Sound.play('bad'); toast('That is ' + sq + '. Find the ' + want[0] + '-file, then rank ' + want[1] + '.'); if (Q.miss >= 2) B3.flash('hint', [1, 2, 3, 4, 5, 6, 7, 8].map(function (r) { return want[0] + r; }), 1400); return; }
+      if (sq !== want) { Q.miss++; Q.missed = true; LS.mistakes += 0.25; B3.flash('bad', [sq], 600); Sound.play('bad'); toast('That is ' + sq + '. Find the ' + want[0] + '-file (lit up in blue), then go up to rank ' + want[1] + '.'); B3.flash('zoneA', [1, 2, 3, 4, 5, 6, 7, 8].map(function (r) { return want[0] + r; }), 2200); if (Q.miss >= 2) B3.flash('zoneB', 'abcdefgh'.split('').map(function (f) { return f + want[1]; }), 2200); return; }
       Q.i++; Q.miss = 0; B3.flash('good', [sq], 700); Sound.play('star'); xpPop('✓', sq);
       if (Q.i >= step.targets.length) { LS.stepDone = true; IX.tap = null; Sound.play('good'); Voice.say([V('quiz_done')]); MODES.lesson.render(); setStatus('<strong>Correct.</strong> ' + esc(Q.missed ? 'All six found. Next time try it without a miss.' : step.done || ''), 'good'); return; }
       MODES.lesson.render(); Voice.say([M('sq_' + step.targets[Q.i])]);
@@ -1659,7 +1720,7 @@
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
       '<p class="big-stars" aria-label="' + stars + ' of 3 stars">' + '★'.repeat(stars) + '<span class="dim">' + '★'.repeat(3 - stars) + '</span></p></div>' +
       '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : 'Not bad: ' + [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a star route with extra moves' : ''].filter(Boolean).join(', ') + '. Repeat it later for 3 stars.') + '</p>' +
-      whatNext(LS.id, nl, wasLocked) +
+      flowCta(LS.id) + whatNext(LS.id, nl, wasLocked) +
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
       '<div class="actions plain"><button class="btn ghost" data-act="lesson" data-id="' + LS.id + '">Repeat lesson</button><button class="btn ghost" data-act="goPath">Back to path</button></div>');
   };
@@ -1690,8 +1751,11 @@
     if (cards.some(function (c) { return c.k === 'boss'; })) pref = 'boss'; else if (cards.some(function (c) { return c.k === 'challenge'; }) && lessonsToday >= 1) pref = 'challenge';
     if (ms && msDone < ms.length) pref = 'mission';
     if (!cards.some(function (c) { return c.k === pref; })) pref = cards[0].k;
+    var fl = flowNext(id);
+    if (fl) { cards = cards.filter(function (c) { return c.k !== fl.k && !(fl.k === 'drill' && c.k === 'puzzle'); }); pref = null; }
+    if (!cards.length) return '';
     cards.sort(function (a, b) { return (b.k === pref) - (a.k === pref); });
-    return '<div class="sect-head"><h2>What next?</h2><span class="muted small">pick any, switch anytime</span></div><div class="wn-grid">' + cards.map(function (c) {
+    return '<div class="sect-head"><h2>' + (fl ? 'Or try something else' : 'What next?') + '</h2><span class="muted small">pick any, switch anytime</span></div><div class="wn-grid' + (fl ? ' quiet' : '') + '">' + cards.map(function (c) {
       return '<button class="wn-card' + (c.k === pref ? ' pref' : '') + '" ' + c.act + '><span class="wn-ico">' + pieceSVG(c.ico, 'w', 26) + '</span><span class="wn-txt"><b>' + esc(c.t) + (c.isNew ? ' <em class="new-tag">New</em>' : '') + (c.k === pref ? ' <em class="rec-tag">Suggested</em>' : '') + '</b><span>' + esc(c.s) + '</span></span></button>';
     }).join('') + '</div>';
   }
@@ -1699,8 +1763,9 @@
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
-  ACT.quizShow = function () { var step = LS && LS.L.steps[LS.i]; if (!step) return; if (step.arrows) B3.arrows(step.arrows); if (step.marks) B3.markers('mark', step.marks); setTimeout(function () { if (LS && LS.quiz && !LS.quiz.done) { B3.arrows([]); B3.markers('mark', []); } }, 1800); };
+  ACT.quizShow = function () { var step = LS && LS.L.steps[LS.i]; if (!step) return; showVisuals(step); setTimeout(function () { if (LS && LS.quiz && !LS.quiz.done) { B3.arrows([]); B3.markers('mark', []); B3.markers('moves', []); B3.tags(null); B3.markers('sel', [LS.quiz.at]); } }, 1800); };
   ACT.quizSkip = function () { var Q = LS && LS.quiz; if (!Q) return; Q.done = true; Q.skipped = true; LS.stepDone = true; IX.tap = null; B3.markers('hint', Q.reach); ACT.nextStep(); };
+  ACT.demoAgain = function () { var step = LS && LS.L.steps[LS.i]; if (!step || !step.demo) return; var tok = LS.demoTok = (LS.demoTok || 0) + 1, at = LS.i; B3.setPosition(step.fen); showVisuals(step); Voice.say([V('demo_watch')], true); setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === at && LS.demoTok === tok; }); }, 700); };
   ACT.resetStep = function () { if (LS) { LS.lineTok = (LS.lineTok || 0) + 1; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
   function lessonMins(L) { return L.minutes || Math.max(2, Math.round(L.steps.length * 1.2)); }
   ACT.hint = function () {
@@ -1983,6 +2048,11 @@
       var ok = taughtPieces(), easy = pool.filter(function (p) { return p.r <= Math.max(300, S.puzzle.rating + 150) && (p.theme !== 'mate' || lessonDone('l-check')) && p.theme !== 'endgame' && puzzlePieces(p).every(function (t) { return ok[t]; }); });
       pool = easy;
     }
+    // most puzzles come from ideas the player has already learned in lessons
+    if (PZ.theme === 'all' && !beginnerMode() && Math.random() < 0.7) {
+      var learned = {}; Object.keys(LESSON_THEME).forEach(function (id) { if (lessonDone(id) && LESSON_THEME[id] !== 'all') learned[LESSON_THEME[id]] = 1; });
+      var mine = pool.filter(function (p) { return learned[p.theme] && Math.abs(p.r - S.puzzle.rating) < 400; }); if (mine.length >= 6) pool = mine;
+    }
     S.pzRecent = S.pzRecent || [];
     var fresh = pool.filter(function (p) { return S.pzRecent.indexOf(p.id) < 0; }); if (fresh.length) pool = fresh;
     var unsolved = pool.filter(function (p) { return !S.puzzle.solved[p.id]; });
@@ -2040,7 +2110,7 @@
         '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
         '<div class="chips">' + themes.map(function (t) { return '<button class="chip ' + (PZ.theme === t ? 'on' : '') + '" data-act="pzTheme" data-t="' + t + '">' + (t === 'all' ? 'All themes' : t === 'combo' ? 'combination' : t) + '</button>'; }).join('') + '</div>' +
         '<div class="coach-card"><div class="coach-tag">Puzzle · ' + p.r + '</div>' +
-        '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
+        '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (beginnerMode() || S.puzzle.rating < 800 ? esc(drillAsk(p, null)) : p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
         (c.done ? '<p class="next-note"><strong>' + esc(p.title) + '</strong> · ' + esc(p.theme) + ' · ' + esc(p.explain) + '</p>' : '') + '</div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
         '<div class="actions">' + (c.done ? '<button class="btn primary" data-act="pzNext">Next puzzle</button>' : '<button class="btn ghost" data-act="pzHint">Hint</button><button class="btn ghost" data-act="pzShow">Solution</button><button class="btn" data-act="pzNext">Skip</button>') + '</div>');
@@ -2997,7 +3067,159 @@
     MODES.mission.render();
     var tip = $('.ms-tip'); if (tip && tip.scrollIntoView) tip.scrollIntoView({ block: 'nearest' });
   };
-  ACT.missionsDone = function () { go('path'); if (missionsDone() >= missionsTotal()) setTimeout(function () { toast('All of today\'s goals done. Great place to stop, or keep going!'); }, 600); };
+  ACT.missionsDone = function () { var lid = MS && MS.lesson, f = lid && flowNext(lid); if (f) return flowGo(f); go('path'); if (missionsDone() >= missionsTotal()) setTimeout(function () { toast('All of today\'s goals done. Great place to stop, or keep going!'); }, 600); };
+
+  // ================= Lesson practice: puzzles that use exactly what the lesson just taught =================
+  function pzHas(p, t) { return (p.pieces || puzzlePieces(p)).indexOf(t) >= 0; }
+  function starter(p) { return /^s\d/.test(p.id); }
+  var LESSON_DRILL = {
+    'l-rook': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'r'; }, ask: 'Your rook can capture a piece that nobody protects. Find it.', hint: 'Look along the straight lines from your rook: up, down, left and right.' },
+    'l-bishop-queen': { pick: function (p) { return starter(p) && p.theme === 'hanging' && /[bq]/.test(p.pieces[0]); }, ask: 'Your bishop or queen can capture a piece that nobody protects. Find it.', hint: 'Bishops look along the diagonals. The queen looks along diagonals and straight lines.' },
+    'l-knight': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'n'; }, ask: 'Your knight can capture a piece that nobody protects. Find it.', hint: 'Count the L: two squares one way, then one to the side. Which landing square has a black piece?' },
+    'l-king-pawn': { pick: function (p) { return (starter(p) && p.theme === 'hanging' && /[pk]/.test(p.pieces[0])) || p.theme === 'promotion' && /^g/.test(p.id); }, ask: 'Win something with your king or a pawn. Remember: pawns capture diagonally.', hint: 'Pawns take one square diagonally forward. A pawn on the 7th rank can become a queen.' },
+    'l-check': { pick: function (p) { return (starter(p) && p.theme === 'mate') || p.backrank; }, ask: 'Find checkmate in one move: a check the king cannot escape.', hint: 'Try every check you have. For each one, ask: can the king step away, can something block, can something capture?' },
+    'l-qmate': { pick: function (p) { return starter(p) && p.theme === 'mate' && p.pieces[0] === 'q'; }, ask: 'Checkmate in one with your queen. Watch out for stalemate!', hint: 'The king is near the edge. Find a queen check that also covers every square next to him.' },
+    'l-rookmate': { pick: function (p) { return starter(p) && p.theme === 'mate' && p.pieces[0] === 'r'; }, ask: 'Checkmate in one with your rook.', hint: 'Check along the edge where the king is stuck. Your king covers the squares in front.' },
+    'l-values': { pick: function (p) { return p.theme === 'hanging' && !starter(p) && p.r <= 520; }, ask: 'Something is undefended. Win it, and keep your own pieces safe.', hint: 'For each black piece, ask: is it attacked by me? Is it defended?' },
+    'l-cct': { pick: function (p) { return (p.theme === 'hanging' || p.theme === 'mate') && !starter(p) && p.r <= 560; }, ask: 'Do the blunder check: checks, captures, threats. Then find the best move.', hint: 'Start with every check, then every capture.' },
+    'l-traps': { pick: function (p) { return p.theme === 'mate' && p.mate === 1 && p.r <= 600; }, ask: 'Find checkmate in one.', hint: 'Look at the squares next to the king. Which check covers them all?' },
+    'l-forks': { pick: function (p) { return p.theme === 'fork' && p.r <= 640; }, ask: 'Find a fork: one move that attacks two things at once.', hint: 'Look for a square where one of your pieces attacks two black pieces, or the king and a piece.' },
+    'l-pins': { pick: function (p) { return p.theme === 'pin'; }, ask: 'Find a pin: attack a piece that has something more valuable behind it.', hint: 'Find two black pieces on the same line, with the more valuable one behind.' },
+    'l-skewers': { pick: function (p) { return p.theme === 'skewer'; }, ask: 'Find a skewer: check the king so it must move, and win the piece behind it.', hint: 'Find a line with the black king in front and another piece behind him.' },
+    'l-backrank': { pick: function (p) { return p.backrank || (p.theme === 'mate' && p.mate === 1 && p.r >= 380 && p.r <= 700); }, ask: 'The king is stuck behind his own pawns. Find the checkmate.', hint: 'Get a rook or queen to the back rank with check.' },
+    'l-discovered': { pick: function (p) { return p.theme === 'discovered'; }, ask: 'Move one piece out of the way to uncover an attack by another.', hint: 'Find your rook, bishop or queen with one of your own pieces in front of it.' },
+    'l-defender': { pick: function (p) { return p.theme === 'defender' || p.theme === 'combo' && p.r <= 900; }, ask: 'Remove or distract the defender, then win what it was guarding.', hint: 'Which black piece is guarding the one you want? Can you capture or chase it?' },
+    'l-patterns': { pick: function (p) { return p.theme === 'mate' && p.r >= 600 && p.r <= 1300; }, ask: 'Find the mating pattern.', hint: 'Look at the king\'s escape squares. Which of your pieces can cover them?' },
+    'l-smothered': { pick: function (p) { return p.theme === 'mate' && p.r >= 600 && p.r <= 1300; }, ask: 'Find the checkmate.', hint: 'Checks first. A knight check cannot be blocked.' },
+    'l-kp': { pick: function (p) { return p.theme === 'endgame' || p.theme === 'promotion'; }, ask: 'Find the winning endgame move.', hint: 'Kings and pawns: who gets there first? Count the moves.' },
+    'l-rook-end': { pick: function (p) { return p.theme === 'endgame'; }, ask: 'Find the winning endgame move.', hint: 'Active rook, active king. Look for checks first.' },
+    'l-calc': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'mate') && p.r >= 900; }, ask: 'Calculate: list your forcing moves and pick the one that works.', hint: 'Checks, captures, threats. Follow each line to the end.' },
+    'l-convert': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'hanging') && p.r >= 700; }, ask: 'You are better. Find the cleanest way to win more.', hint: 'Forcing moves first, even when you are winning.' }
+  };
+  function drillList(lid) {
+    var D = LESSON_DRILL[lid]; if (!D) return null;
+    var pool = PUZZLES.filter(D.pick); if (pool.length < 3) return null;
+    var fresh = pool.filter(function (p) { return !S.puzzle.solved[p.id]; }); if (fresh.length >= 5) pool = fresh;
+    pool = pool.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 5).sort(function (a, b) { return a.r - b.r; });
+    return pool;
+  }
+  function hasDrill(lid) { var D = LESSON_DRILL[lid]; return !!(D && PUZZLES.filter(D.pick).length >= 3); }
+  function drillDone(lid) { return !!(S.drills && S.drills[lid]); }
+  // what comes after a lesson: its missions, then its practice, then the next lesson
+  function flowNext(lid) {
+    var ms = MISSIONS[lid];
+    if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Coach missions', s: ms.length + ' quick challenges against me' };
+    if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
+    var nl = nextLesson(); return nl ? { k: 'lesson', lid: nl, t: 'Next lesson', s: LESSONS[nl].title } : null;
+  }
+  function pendingFlow(nl) {
+    var order = []; STAGES.forEach(function (st) { order = order.concat(st.lessons); });
+    var i = order.indexOf(nl), prev = i > 0 ? order[i - 1] : null;
+    if (!prev || !lessonDone(prev) || (S.flowSkip && S.flowSkip[prev])) return null;
+    var f = flowNext(prev); return f && f.k !== 'lesson' ? f : null;
+  }
+  function flowGo(f) { if (!f) return go('path'); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
+  ACT.flowGo = function (d) { flowGo(flowNext(d.l)); };
+  // three chips that show where this lesson's loop stands: learn, missions, practice
+  function flowChips(lid) {
+    var ms = MISSIONS[lid], items = [{ t: 'Learn', done: lessonDone(lid) }];
+    if (ms) items.push({ t: 'Missions', done: coachMissionsDone(lid) >= ms.length });
+    if (hasDrill(lid)) items.push({ t: 'Practice', done: drillDone(lid) });
+    var cur = items.filter(function (x) { return !x.done; })[0];
+    return '<div class="flow-chips">' + items.map(function (x) { return '<span class="fc' + (x.done ? ' done' : x === cur ? ' now' : '') + '">' + (x.done ? '✓ ' : '') + x.t + '</span>'; }).join('<i></i>') + '</div>';
+  }
+  function flowCta(lid) {
+    var f = flowNext(lid); if (!f) return '';
+    return '<div class="flow-cta">' + flowChips(lid) + '<button class="btn primary big wide" data-act="flowGo" data-l="' + lid + '">▶&nbsp; ' + (f.k === 'lesson' ? 'Next lesson: ' + esc(f.s) : esc(f.t) + ' · ' + esc(f.s)) + '</button></div>';
+  }
+  var DR = null;
+  function drillAsk(p, D) {
+    if (D && p.theme === 'hanging' && starter(p)) return D.ask;
+    var T = { fork: 'Find a fork: one move that attacks two things at once.', pin: 'Find the pin.', skewer: 'Find the skewer.', discovered: 'Find the discovered attack.', promotion: 'Make a new queen, safely.', endgame: 'Find the winning move.', combo: 'Find the move that wins material.', hanging: 'Something is left unprotected. Win it.', defender: 'Remove the defender.' };
+    if (p.theme === 'mate') return p.mate > 1 ? 'Find checkmate in ' + p.mate + ' moves.' : 'Find checkmate in one move.';
+    return (D && D.ask) || T[p.theme] || 'Find the best move.';
+  }
+  MODES.drill = {
+    label: 'Practice',
+    enter: function (lid) {
+      var list = drillList(lid); if (!list) return flowGo(flowNext(lid));
+      DR = { lid: lid, D: LESSON_DRILL[lid], list: list, k: 0, res: [] };
+      Voice.say([V('drill_start')], true);
+      MODES.drill.load();
+    },
+    load: function () {
+      var p = DR.list[DR.k], fen = puzzleFen(p), side = new Game(fen).turn();
+      DR.ply = 0; DR.tries = 0; DR.hint = 0; DR.over = false;
+      var g = setupBoard(fen, { drop: true, orient: side });
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !DR.over; }; IX.onMove = MODES.drill.onMove;
+      MODES.drill.render();
+    },
+    render: function (msg, kind) {
+      var p = DR.list[DR.k], L = LESSONS[DR.lid], turn = new Game(puzzleFen(p)).turn();
+      var pips = DR.list.map(function (x, i) { var r = DR.res[i]; return '<i class="' + (r === true ? 'ok' : r === false ? 'miss' : i === DR.k ? 'cur' : '') + '"></i>'; }).join('');
+      setPanel('<button class="back" data-act="lesson" data-id="' + DR.lid + '">← ' + esc(L.title) + '</button>' +
+        '<div class="eyebrow">Practice · ' + esc(L.title) + '</div><h1 class="h1">Puzzle ' + (DR.k + 1) + ' of ' + DR.list.length + '</h1>' +
+        '<div class="dr-pips">' + pips + '</div>' +
+        '<div class="coach-card"><div class="coach-tag">' + (turn === 'w' ? 'White' : 'Black') + ' to move</div><p class="coach-text"><strong>' + esc(drillAsk(p, DR.D)) + '</strong></p>' +
+        (DR.hint ? '<p class="ms-tip">💡 ' + esc(DR.D.hint) + '</p>' : '') + '</div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions">' + (DR.over ? '<button class="btn primary wide" data-act="drillNext">' + (DR.k + 1 < DR.list.length ? 'Next puzzle →' : 'Finish practice →') + '</button>' : '<button class="btn ghost" data-act="drillHint">' + (DR.hint >= 2 ? 'Show the move' : 'Hint') + '</button>') + '</div>');
+    },
+    onMove: function (mv, uci) {
+      var p = DR.list[DR.k], g = IX.game, t = new Game(g.fen()), r = t.move(mv);
+      var ok = uci === p.sol[DR.ply] || (DR.ply === 0 && p.accept && p.accept.indexOf(uci) >= 0) || (r && t.inCheckmate());
+      if (!ok) {
+        DR.tries++; Sound.play('bad'); B3.flash('bad', [mv.to], 700);
+        var why = puzzleWhyWrong(g, mv, p) || 'That move does not win anything.';
+        if (DR.tries >= 2 && DR.hint < 1) DR.hint = 1;
+        Voice.say([V('drill_wrong')]);
+        MODES.drill.render('<strong>Not quite.</strong> ' + esc(why) + ' Try again.', 'bad');
+        B3.sync(g.fen()); IX.enabled = true;
+        return null;
+      }
+      IX.enabled = false;
+      return applyMove(g, mv).then(function () {
+        DR.ply++;
+        if ((r && t.inCheckmate()) || DR.ply >= p.sol.length) return MODES.drill.win(mv.to);
+        MODES.drill.render('Good. Keep going…', 'good');
+        return B3.wait(450).then(function () { return applyMove(g, uciObj(p.sol[DR.ply])); }).then(function () {
+          DR.ply++; if (DR.ply >= p.sol.length) return MODES.drill.win(); IX.enabled = true;
+        });
+      });
+    },
+    win: function (sq) {
+      var p = DR.list[DR.k], clean = DR.tries === 0 && DR.hint < 3;
+      DR.over = true; DR.res[DR.k] = clean; B3.burst(sq || p.sol[p.sol.length - 1].slice(2, 4)); Sound.play('good');
+      S.puzzle.solved[p.id] = Date.now(); today().puzzles++; addXP(clean ? 10 : 4); save();
+      Voice.say([V(clean ? 'drill_right' : 'drill_right_late'), { id: 'P-' + p.id, text: p.explain }]);
+      MODES.drill.render('<strong>' + (clean ? 'Solved!' : 'Got it.') + '</strong> ' + esc(p.explain), 'good');
+    },
+    leave: function () { }
+  };
+  ACT.drillHint = function () {
+    if (!DR || DR.over) return; var p = DR.list[DR.k], u = p.sol[DR.ply];
+    DR.hint++;
+    if (DR.hint === 2) B3.markers('hint', [u.slice(0, 2)]);
+    if (DR.hint >= 3) { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); DR.res[DR.k] = false; }
+    MODES.drill.render(DR.hint === 2 ? 'This piece is the one to move.' : DR.hint >= 3 ? 'Play the green arrow to see how it works.' : '', '');
+  };
+  ACT.drillNext = function () {
+    if (!DR) return;
+    if (DR.k + 1 < DR.list.length) { DR.k++; return MODES.drill.load(); }
+    var okN = DR.res.filter(function (x) { return x === true; }).length, n = DR.list.length, lid = DR.lid;
+    S.drills = S.drills || {}; S.drills[lid] = Math.max(S.drills[lid] || 0, okN); save();
+    document.body.dataset.layout = 'browse'; IX.enabled = false;
+    if (okN >= n - 1) { Sound.play('win'); confetti(); }
+    Voice.say([V(okN >= n - 1 ? 'drill_done_great' : 'drill_done_ok')]);
+    var f = flowNext(lid);
+    setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Practice complete · ' + esc(LESSONS[lid].title) + '</div>' +
+      '<h1 class="h1">' + okN + ' of ' + n + ' solved first time</h1>' +
+      '<p class="lede">' + (okN >= n - 1 ? 'You really own this idea now.' : okN >= 2 ? 'Good work. Practise again any time to make it automatic.' : 'This one needs more practice. Try the set again, or repeat the lesson.') + '</p>' +
+      flowChips(lid) +
+      '<div class="actions">' + (f ? '<button class="btn primary big wide" data-act="flowGo" data-l="' + lid + '">▶&nbsp; ' + (f.k === 'lesson' ? 'Next lesson: ' + esc(f.s) : esc(f.t)) + '</button>' : '<button class="btn primary big wide" data-act="goPath">Back to the path</button>') + '</div>' +
+      '<div class="actions plain"><button class="btn ghost" data-act="drillAgain" data-l="' + lid + '">↻ Practise again</button><button class="btn ghost" data-act="lesson" data-id="' + lid + '">Repeat lesson</button></div>');
+  };
+  ACT.drillAgain = function (d) { go('drill', d.l); };
 
   // ================= Analyze a game from chess.com (or any PGN) =================
   // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
@@ -4356,13 +4578,14 @@
       arrows: function (a) { BS.arrows = (a[0] || []).slice(); },
       stars: function (a) { BS.stars = (a[0] || []).slice(); },
       takeStar: function (a) { BS.stars = BS.stars.filter(function (s) { return s !== a[0]; }); },
-      clearAll: function () { BS.cats = {}; BS.arrows = []; BS.stars = []; },
+      clearAll: function () { BS.cats = {}; BS.arrows = []; BS.stars = []; BS.tags = null; BS.spot = null; },
+      tags: function (a) { BS.tags = a[0] || null; }, spot: function (a) { BS.spot = a[0] || null; },
       setOrientation: function (a) { BS.orient = a[0]; },
       setDrag: function (a) { BS.drag = a[0]; }, setCameraFixed: function (a) { BS.camFixed = a[0]; }, lift: function (a) { BS.lift = a[0] || null; }
     };
     function front() {
       var keys = {}; Object.keys(impl3).forEach(function (k) { keys[k] = 1; });
-      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait'].forEach(function (k) { keys[k] = 1; });
+      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait', 'tags', 'spot'].forEach(function (k) { keys[k] = 1; });
       Object.keys(B3).forEach(function (k) { delete B3[k]; });
       Object.keys(keys).forEach(function (k) {
         if (k === 'init' || k === 'setActive') return;
@@ -4389,7 +4612,7 @@
       if (BS.fen) cur.setPosition(BS.fen);
       cur.clearAll();
       Object.keys(BS.cats).forEach(function (c) { cur.markers(c, BS.cats[c]); });
-      cur.arrows(BS.arrows); cur.stars(BS.stars);
+      cur.arrows(BS.arrows); cur.stars(BS.stars); if (cur.tags) cur.tags(BS.tags); if (cur.spot) cur.spot(BS.spot);
       if (cur.lift) cur.lift(BS.lift);
       if (IX.game && !BS.fen) cur.sync(IX.game.fen());
     }

@@ -41,7 +41,7 @@ function greedyRun(m, seed) {
   return null;
 }
 function mateIn(g, n) { for (const m of g._gen()) { g._make(m); let ok; if (g.inCheck() && g._gen().length === 0) ok = true; else if (n > 1) { const rs = g._gen(); ok = rs.length > 0 && rs.every(r => { g._make(r); const v = mateIn(g, n - 1); g._undo(); return v; }); } g._undo(); if (ok) return true; } return false; }
-const stageOne = D.STAGES[0].lessons;
+const stageOne = D.STAGES[0].lessons.filter(id => id !== 'l-board'); // The Board practises with its square quizzes
 for (const id of stageOne) if (!M.MISSIONS[id]) err('no missions for', id);
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 for (const id in M.MISSIONS) { if (ONLY && ONLY.indexOf(id) < 0) continue;

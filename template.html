@@ -60,7 +60,7 @@ button:disabled { cursor: not-allowed; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); } .dim { color: var(--dim); } .small { font-size: 12.5px; }
 
-#app { height: 100%; display: grid; grid-template-columns: 76px minmax(0, 1fr) minmax(340px, 410px); grid-template-rows: 56px auto minmax(0, 1fr); grid-template-areas: "top top top" "rail stage dock" "rail stage panel"; }
+#app { height: 100%; display: grid; grid-template-columns: 76px minmax(0, 1fr) clamp(380px, 40vw, 600px); grid-template-rows: 56px auto minmax(0, 1fr); grid-template-areas: "top top top" "rail stage dock" "rail stage panel"; }
 
 /* top bar */
 .top { grid-area: top; display: flex; align-items: center; gap: 20px; padding-inline: 18px; border-bottom: 1px solid var(--line); background: var(--bg-2); min-width: 0; }
@@ -818,6 +818,29 @@ body.no-3d .dim-seg { display: none; }
 .b2-piece.drop { animation: b2drop .45s cubic-bezier(.2,1.4,.4,1) both; }
 @keyframes b2drop { from { transform: translateY(-40%) scale(.6); opacity: 0; } }
 .b2-mark { position: absolute; width: 12.5%; height: 12.5%; }
+.flow-cta { margin: 14px 0 18px; padding: 14px; border-radius: 18px; background: linear-gradient(135deg, rgba(196,255,61,.12), rgba(255,79,139,.10)); border: 1px solid rgba(196,255,61,.3); display: grid; gap: 12px; }
+.flow-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.flow-cta .flow-chips { margin: 0; }
+.flow-chips .fc { font: 700 12px/1 var(--font-mono, monospace); letter-spacing: .04em; text-transform: uppercase; padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted, #9aa3b8); border: 1px solid rgba(255,255,255,.1); }
+.flow-chips .fc.done { color: #c4ff3d; border-color: rgba(196,255,61,.4); background: rgba(196,255,61,.08); }
+.flow-chips .fc.now { color: #0b0f17; background: #c4ff3d; border-color: #c4ff3d; }
+.flow-chips i { width: 14px; height: 2px; background: rgba(255,255,255,.18); border-radius: 2px; }
+.wn-grid.quiet { opacity: .85; }
+.hero-skip { margin-top: 8px; display: block; }
+.dr-pips { display: flex; gap: 6px; margin: 4px 0 12px; } .dr-pips i { flex: 1; height: 6px; border-radius: 4px; background: rgba(255,255,255,.1); } .dr-pips i.cur { background: #4cc9f0; } .dr-pips i.ok { background: #c4ff3d; } .dr-pips i.miss { background: #ff5d6c; }
+.meet-card { display: flex; gap: 14px; align-items: center; padding: 12px 14px; margin: 4px 0 10px; border-radius: 16px; background: linear-gradient(135deg, rgba(196,255,61,.14), rgba(76,201,240,.12)); border: 1px solid rgba(196,255,61,.35); animation: tagpop .4s both; }
+.meet-pc { flex: none; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 14px; background: #f0d9b5; }
+.meet-txt { display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .meet-txt > b { font-size: 20px; }
+body.mob .meet-card { padding: 8px 10px; gap: 10px; margin: 2px 0 6px; } body.mob .meet-pc { width: 46px; height: 46px; } body.mob .meet-pc svg { width: 40px; height: 40px; } body.mob .meet-txt > b { font-size: 17px; }
+.b2-tag { position: absolute; width: 12.5%; height: 12.5%; display: grid; place-items: center; z-index: 4; pointer-events: none; }
+.b2-tag span { font: 800 clamp(10px, 2.1vmin, 17px)/1 var(--font-display, system-ui); color: #0b0f17; background: #fff; padding: .28em .45em; border-radius: 7px; box-shadow: 0 2px 8px rgba(0,0,0,.35); animation: tagpop .35s cubic-bezier(.2,1.5,.4,1) both; white-space: nowrap; }
+.b2-tag.on-pc { align-items: start; } .b2-tag.on-pc span { transform: translateY(-55%); font-size: clamp(9px, 1.7vmin, 14px); animation-name: tagpop2; }
+@keyframes tagpop2 { from { transform: translateY(-55%) scale(.4); opacity: 0; } }
+@keyframes tagpop { from { transform: scale(.4); opacity: 0; } }
+.b2-board.spotlit .b2-piece:not(.lit) { opacity: .22; filter: grayscale(.8); }
+.b2-board .b2-piece.lit { animation: litpulse 1.3s ease-in-out infinite; z-index: 3; }
+@keyframes litpulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .b2-board .b2-piece.lit, .b2-tag span { animation: none; } }
 .b2-dot { position: absolute; width: 12.5%; height: 12.5%; } .b2-dot::after { content: ""; position: absolute; inset: 37%; border-radius: 50%; background: rgba(16,22,30,.45); }
 .b2-ring { position: absolute; width: 12.5%; height: 12.5%; box-shadow: inset 0 0 0 5px rgba(16,22,30,.45); border-radius: 50%; }
 .b2-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
@@ -1155,6 +1178,8 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .h1, .hero-card .h1 { font-size: 26px; }
   .ts { padding: 0; background: none; border: 0; }
   body[data-layout="board"] .panel > .actions { position: static !important; margin: 12px 0 4px !important; padding: 0 !important; background: none !important; }
+  body[data-layout="board"][data-mode="lesson"] .panel > .actions, body[data-layout="board"][data-mode="drill"] .panel > .actions { position: sticky !important; bottom: -16px; margin: 8px -14px -16px !important; padding: 8px 14px 10px !important; background: linear-gradient(to bottom, rgba(12,9,24,0), rgba(12,9,24,.96) 28%) !important; z-index: 3; }
+  body[data-layout="board"][data-mode="lesson"] .panel > .eyebrow, body[data-layout="board"][data-mode="drill"] .panel > .eyebrow { display: none; }
   body[data-layout="board"] .panel .lede { display: none; }
   body[data-layout="board"] .panel .h1 { font-size: 21px; margin: 2px 0 6px; }
   body[data-layout="board"] .panel .eyebrow { font-size: 10px; }
@@ -1165,4 +1190,17 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .ts-day b .small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { body::before, body::after, .hero-card::before, .hero-mark, .btn.primary::after, #mode-label::before { animation: none !important; } }
+
+/* Desktop: the side panel is where learning happens, so it gets room and large type */
+@media (min-width: 1000px) and (min-height: 560px) {
+  .panel { padding: 24px 28px 32px; }
+  .panel .h1 { font-size: 32px; }
+  .panel .lede { font-size: 16px; }
+  .panel .coach-card { padding: 18px 20px; }
+  .panel .coach-text { font-size: 17px; line-height: 1.55; }
+  .panel .status { font-size: 15.5px; }
+  .panel > .actions .btn, .panel .actions .btn { min-height: 46px; font-size: 15.5px; padding: 0 20px; }
+  .panel .actions .btn.primary { min-width: 150px; }
+  .panel .meet-card { padding: 14px 18px; } .panel .meet-pc { width: 76px; height: 76px; } .panel .meet-txt > b { font-size: 24px; } .panel .meet-txt { font-size: 15px; }
+}
 </style>

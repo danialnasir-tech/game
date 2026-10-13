@@ -4,7 +4,7 @@
 // coach: 'wander' = the coach only walks his king around and never captures (a friendly sparring partner),
 //        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
 var MISSIONS = {
-  'l-board': [
+  'l-pieces': [
     { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
       text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
     { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander',
@@ -73,7 +73,7 @@ var MISSIONS = {
       text: 'Your king guards the squares in front of mine. Checkmate in one with the queen.', tip: 'The back rank is open.' },
     { id: 'q-mate2', title: 'Mate in Two', fen: '7k/8/5K2/8/8/8/8/Q7 w - - 0 1', goal: 'mate', limit: 2, par: 2, coach: 'defend',
       text: 'Checkmate within 2 moves. One quiet queen move first, but leave me a legal move or it is stalemate.', tip: 'Put the queen on the 7th rank, a knight\'s jump from my king.' },
-    { id: 'q-box', title: 'Shrink the Box', fen: '6k1/8/8/8/8/8/8/4K2Q w - - 0 1', goal: 'mate', limit: 12, par: 9, coach: 'defend',
+    { id: 'q-box', title: 'Shrink the Box', fen: '6k1/8/8/8/8/8/8/4K2Q w - - 0 1', goal: 'mate', limit: 16, par: 10, coach: 'defend',
       text: 'The full technique. My king is on the edge. Box it in, bring your king, and mate within 12 moves.', tip: 'Queen to the 7th rank keeps me on the back rank. Then walk your king up.' }
   ]
 };

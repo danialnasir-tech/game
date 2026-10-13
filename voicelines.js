@@ -279,7 +279,7 @@ Object.assign(MORE_POOLS, {
 // Hands-on check after a "Concept" step that shows one lone piece: tap squares it can reach.
 var QUIZ_NEED = { r: 4, b: 3, q: 5, n: 3, k: 3 }, QUIZ_WORD = ['zero', 'one', 'two', 'three', 'four', 'five'], QUIZ_NAME = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
 function QUIZ_OF(step) {
-  if (!step || step.t !== 'read' || !step.fen) return null;
+  if (!step || step.t !== 'read' || !step.fen || step.demo) return null;
   var rows = step.fen.split(' ')[0].split('/'), found = [];
   rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } found.push({ ch: ch, sq: 'abcdefgh'[f] + (8 - ri) }); f++; } });
   if (found.length !== 1 || !QUIZ_NEED[found[0].ch.toLowerCase()] || found[0].ch !== found[0].ch.toUpperCase()) return null;
@@ -331,3 +331,50 @@ var HINT_LINES_TEXT = {
 };
 function HINT_LINES() { return Object.keys(HINT_LINES_TEXT).map(function (k) { return { id: 'H-' + k, text: HINT_LINES_TEXT[k], group: 'more' }; }); }
 if (typeof module !== 'undefined') { module.exports.HINT_LINES = HINT_LINES; }
+
+// ===== Batch 9: lesson practice, flow between steps, lesson intros, piece quiz, demos =====
+Object.assign(MORE_POOLS, {
+  drill_start: ["Practice time. Five puzzles, and every one uses what you just learned.", "Let's lock that lesson in. Five quick puzzles.", "Now you try it on your own. Five puzzles, same idea.", "Time to practise. You know everything you need for these.", "Five puzzles. Each one is the lesson, in a real position."],
+  drill_right: ["Yes! That's exactly it.", "Spot on. You saw it straight away.", "Perfect. That's the idea from the lesson.", "Got it first time. Brilliant.", "That's the one. You're getting fast.", "Exactly right. Well spotted.", "Lovely. Clean and simple."],
+  drill_right_late: ["There it is. You got there.", "Found it. Next time you'll see it even faster.", "That's it. Mistakes on the way are how you learn.", "Good. You kept looking until you found it."],
+  drill_wrong: ["Not that one. Read what I wrote and try again.", "Close, but no. Have another look.", "Hmm, not quite. Think about the lesson.", "That doesn't win anything. Look again.", "Try a different move. You can do this."],
+  drill_done_great: ["Practice done, and you nailed it. This idea is yours now.", "Fantastic. You've really got this one.", "That's how a strong player does it. Well done."],
+  drill_done_ok: ["Practice done. Every puzzle makes the pattern stick.", "Good effort. Come back to these and they'll get easier.", "Done. Repeat this set any time, it's the fastest way to improve."],
+  demo_watch: ["Watch this.", "Keep your eyes on the board.", "Look what happens here.", "Watch carefully.", "Here, let me show you."],
+  piece_found_k: ["Yes, that's your king. Keep him safe.", "The king. The most important piece of all."],
+  piece_found_q: ["That's the queen. Your strongest piece.", "Yes, the queen. Power on legs."],
+  piece_found_r: ["Right, the rook. The castle tower.", "That's a rook. Corners are home."],
+  piece_found_b: ["Yes, a bishop. See the pointed hat?", "That's the bishop."],
+  piece_found_n: ["The knight! The horse.", "Yes, a knight. The jumper."],
+  piece_found_p: ["A pawn. Small, but brave.", "That's a pawn. You've got eight of them."],
+  piece_wrong: ["Not that one. Look at the picture again.", "Close! Check the shape in the picture.", "That's a different piece. Try again."],
+  'intro_l-board': ["Let's start at the very beginning: the board itself. By the end of this, you'll know the name of every square."],
+  'intro_l-pieces': ["Now let's meet the pieces. Six kinds, and I'll introduce each one."],
+  'intro_l-rook': ["Our first piece to move: the rook. Straight lines, and lots of power."],
+  'intro_l-bishop-queen': ["Diagonals today. First the bishop, then the mighty queen."],
+  'intro_l-knight': ["The knight. The trickiest mover, and my personal favourite."],
+  'intro_l-king-pawn': ["King and pawns. The slowest pieces, but they decide a lot of games."],
+  'intro_l-check': ["Check, checkmate and stalemate. This is how games are won, and sometimes thrown away."],
+  'intro_l-special': ["Two special moves people always forget: castling and en passant."],
+  'intro_l-qmate': ["You've got a queen and the other side has nothing. Let's make sure you always win this."],
+  'intro_l-firstmoves': ["What should you actually do at the start of a game? Three simple jobs. Let's learn them."],
+  'intro_l-values': ["Not all pieces are equal. Let's learn what each one is worth, and stop giving them away."],
+  'intro_l-cct': ["This lesson is the big one. A three-question habit that stops most blunders."],
+  'intro_l-principles': ["Opening principles. Get these right and you'll start every game with a good position."],
+  'intro_l-traps': ["There's an early queen attack that catches so many beginners. Let's make sure it never catches you."],
+  'intro_l-forks': ["Forks! One move, two attacks. This is where you start winning pieces."],
+  'intro_l-pins': ["Pins. Freeze an enemy piece so it can't move without losing something bigger."],
+  'intro_l-skewers': ["Skewers. The pin's sneaky cousin."],
+  'intro_l-backrank': ["The back rank. A king stuck behind his pawns is in real danger."],
+  'intro_l-discovered': ["Discovered attacks. Move one piece, and another one strikes."],
+  'intro_l-defender': ["Every position has a key defender. Remove it, and everything falls apart."],
+  'intro_l-patterns': ["Mating patterns. Learn the pictures and you'll find mates in seconds."],
+  'intro_l-smothered': ["Smothered mate. One of the most beautiful ideas in chess."],
+  'intro_l-rookmate': ["King and rook against a lone king. A win you should never miss."],
+  'intro_l-kp': ["King and pawn endings. Precise, simple, and full of tricks."],
+  'intro_l-rook-end': ["Rook endgames. The most common endgame of all."],
+  'intro_l-structure': ["Pawn structure. The pawns tell you what plan to play."],
+  'intro_l-calc': ["Calculation. How strong players look ahead without getting lost."],
+  'intro_l-outposts': ["Outposts and prophylaxis. Thinking like a master."],
+  'intro_l-convert': ["You're winning. Now let's make sure you actually win."]
+});

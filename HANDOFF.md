@@ -130,3 +130,21 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 
 ## Website folder (upload to your own hosting)
 `node build.js && node make-website.js` creates `out/chess-ascent-website/` and `out/chess-ascent-website.zip`. The folder holds `index.html` (the whole game), `voice-pack-1..25.mp3`, `chess-ascent-config.js` (placeholder, so Google sign-in stays off), `.htaccess` (Apache: index page, mp3 type, caching) and `READ-ME-FIRST.txt`. Upload everything in the folder to `public_html` (or a subfolder). Re-run both commands after every change, including new voice clips.
+
+## Teaching round 2: show it on the board, practise exactly what was taught
+- **Board visuals** (`showVisuals` in app.js, `tags`/`spot` in board2d.js, zone colours in both boards). Lesson step fields:
+  `files: ['e']` (blue column), `ranks: [4]` (pink row), `zones: [[squares, 'A'|'B'|'C']]`, `tags: { d4: 'd4' }` (labels; they sit above a piece),
+  `spot: 'n'` (lights up that piece type, dims the rest; `'N'` white only, `'n!'` black only), `dots: 'd4'` (where that piece can go),
+  `demo: ['g1f3']` (played out on the board after `demoDelay` ms, with a "Watch again" button), `meet: 'k'` (piece card in the panel).
+  Every explanation step in every lesson now has at least one of these.
+- **Lesson 1 split** into *The Board* (files, ranks, square names, centre, two tap-the-square rounds) and *Meet the Pieces* (each piece introduced
+  and lit up before the tap quiz, then notation). The written-move missions moved from `l-board` to `l-pieces`.
+- **Lesson loop**: Learn → Coach missions → Practice (5 puzzles) → Next lesson. `flowNext(lid)` decides the next step; the lesson-complete
+  screen, the end of the missions and the end of practice all show one big Continue button, with Learn/Missions/Practice chips.
+  The home hero shows unfinished missions/practice of the last lesson first (with "Skip to the next lesson").
+- **Practice mode** (`MODES.drill`, `LESSON_DRILL`): per-lesson puzzle filters and goal sentences; wrong moves explain why and let you retry;
+  hint 1 = tip, 2 = highlight the piece, 3 = arrow. Results in `S.drills[lid]`.
+- **Themed puzzles**: `node tests/themed.js` writes `puzzles-themed.js` (ids g001…): forks, pins, skewers, discovered attacks, back-rank
+  mates and promotions, each verified by a material search (one winning move, clear margin). Their explanations are voiced (P- ids).
+- **Desktop layout**: panel `clamp(380px, 40vw, 600px)` with larger type; 2D board capped at 680px.
+- **Voice**: new pools `drill_*`, `piece_found_*`, `piece_wrong`, `demo_watch`, `intro_<lesson>` (said when a lesson starts).
