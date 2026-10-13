@@ -36,7 +36,7 @@ You need one thing from Google: an **OAuth client ID**. It is not a secret, but 
 ## 5. Put the ID in the config file
 1. In the game folder, copy `chess-ascent-config.example.js` and name the copy `chess-ascent-config.js`.
 2. Replace `PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com` with your Client ID.
-3. Upload `chess-ascent-config.js` to your website, in the same folder as `chess-ascent.html` (and the `voice-pack-*.mp3` files).
+3. Upload `chess-ascent-config.js` to your website, in the same folder as `index.html` (it is already there in the website folder made by `node make-website.js`: just edit it).
 
 That's it. Open the site: **Settings → Sign in with Google**, or on the welcome screen **Played before? Sign in with Google**.
 

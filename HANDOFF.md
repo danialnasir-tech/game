@@ -127,3 +127,6 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 1. Voice: 1932 clips packed. 100 new lines (pools `cm_*`, `coach_onpurpose`, `coach_lost_easy`, `quiz_*`, `an_*`, `pr_*`, mission intros `N-…`, quiz prompts `Q-…`) are in `out/chess-voice-kit-v4.zip`; until the user records them those spots are silent (text still shows). Then `sh ingest.sh <zip>`, rebuild, republish.
 2. The 3D board was only tested with a stub in headless Chrome; check it on a real phone.
 3. Ideas offered: Stockfish (WASM, GPL) for the website build; accounts / cloud save on Hostinger.
+
+## Website folder (upload to your own hosting)
+`node build.js && node make-website.js` creates `out/chess-ascent-website/` and `out/chess-ascent-website.zip`. The folder holds `index.html` (the whole game), `voice-pack-1..25.mp3`, `chess-ascent-config.js` (placeholder, so Google sign-in stays off), `.htaccess` (Apache: index page, mp3 type, caching) and `READ-ME-FIRST.txt`. Upload everything in the folder to `public_html` (or a subfolder). Re-run both commands after every change, including new voice clips.
