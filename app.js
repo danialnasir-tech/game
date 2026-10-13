@@ -1118,6 +1118,7 @@
   function setupBoard(fen, opts) {
     opts = opts || {};
     deselect(); B3.clearAll(); IX.collect = null;
+    var pr = $('#promo'); if (pr && !pr.hidden) { pr.hidden = true; pr.onclick = null; }
     var g = new Game(fen);
     IX.game = g;
     var p = B3.setPosition(fen, { drop: opts.drop });
@@ -3082,18 +3083,18 @@
     'l-rookmate': { pick: function (p) { return starter(p) && p.theme === 'mate' && p.pieces[0] === 'r'; }, ask: 'Checkmate in one with your rook.', hint: 'Check along the edge where the king is stuck. Your king covers the squares in front.' },
     'l-values': { pick: function (p) { return p.theme === 'hanging' && !starter(p) && p.r <= 520; }, ask: 'Something is undefended. Win it, and keep your own pieces safe.', hint: 'For each black piece, ask: is it attacked by me? Is it defended?' },
     'l-cct': { pick: function (p) { return (p.theme === 'hanging' || p.theme === 'mate') && !starter(p) && p.r <= 560; }, ask: 'Do the blunder check: checks, captures, threats. Then find the best move.', hint: 'Start with every check, then every capture.' },
-    'l-traps': { pick: function (p) { return p.theme === 'mate' && p.mate === 1 && p.r <= 600; }, ask: 'Find checkmate in one.', hint: 'Look at the squares next to the king. Which check covers them all?' },
+    'l-traps': { pick: function (p) { return p.theme === 'mate' && p.sol.length === 1 && p.r <= 600; }, ask: 'Find checkmate in one.', hint: 'Look at the squares next to the king. Which check covers them all?' },
     'l-forks': { pick: function (p) { return p.theme === 'fork' && p.r <= 640; }, ask: 'Find a fork: one move that attacks two things at once.', hint: 'Look for a square where one of your pieces attacks two black pieces, or the king and a piece.' },
     'l-pins': { pick: function (p) { return p.theme === 'pin'; }, ask: 'Find a pin: attack a piece that has something more valuable behind it.', hint: 'Find two black pieces on the same line, with the more valuable one behind.' },
     'l-skewers': { pick: function (p) { return p.theme === 'skewer'; }, ask: 'Find a skewer: check the king so it must move, and win the piece behind it.', hint: 'Find a line with the black king in front and another piece behind him.' },
     'l-backrank': { pick: function (p) { return p.backrank || (p.theme === 'mate' && p.mate === 1 && p.r >= 380 && p.r <= 700); }, ask: 'The king is stuck behind his own pawns. Find the checkmate.', hint: 'Get a rook or queen to the back rank with check.' },
     'l-discovered': { pick: function (p) { return p.theme === 'discovered'; }, ask: 'Move one piece out of the way to uncover an attack by another.', hint: 'Find your rook, bishop or queen with one of your own pieces in front of it.' },
     'l-defender': { pick: function (p) { return p.theme === 'defender' || p.theme === 'combo' && p.r <= 900; }, ask: 'Remove or distract the defender, then win what it was guarding.', hint: 'Which black piece is guarding the one you want? Can you capture or chase it?' },
-    'l-patterns': { pick: function (p) { return p.theme === 'mate' && p.r >= 600 && p.r <= 1300; }, ask: 'Find the mating pattern.', hint: 'Look at the king\'s escape squares. Which of your pieces can cover them?' },
-    'l-smothered': { pick: function (p) { return p.theme === 'mate' && p.r >= 600 && p.r <= 1300; }, ask: 'Find the checkmate.', hint: 'Checks first. A knight check cannot be blocked.' },
+    'l-patterns': { pick: function (p) { return p.theme === 'mate' && p.sol.length <= 3 && p.r >= 600 && p.r <= 1300; }, ask: 'Find the mating pattern.', hint: 'Look at the king\'s escape squares. Which of your pieces can cover them?' },
+    'l-smothered': { pick: function (p) { return p.theme === 'mate' && p.sol.length <= 3 && p.r >= 600 && p.r <= 1300; }, ask: 'Find the checkmate.', hint: 'Checks first. A knight check cannot be blocked.' },
     'l-kp': { pick: function (p) { return p.theme === 'endgame' || p.theme === 'promotion'; }, ask: 'Find the winning endgame move.', hint: 'Kings and pawns: who gets there first? Count the moves.' },
     'l-rook-end': { pick: function (p) { return p.theme === 'endgame'; }, ask: 'Find the winning endgame move.', hint: 'Active rook, active king. Look for checks first.' },
-    'l-calc': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'mate') && p.r >= 900; }, ask: 'Calculate: list your forcing moves and pick the one that works.', hint: 'Checks, captures, threats. Follow each line to the end.' },
+    'l-calc': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'mate') && p.sol.length <= 5 && p.r >= 900 && p.r <= 1600; }, ask: 'Calculate: list your forcing moves and pick the one that works.', hint: 'Checks, captures, threats. Follow each line to the end.' },
     'l-convert': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'hanging') && p.r >= 700; }, ask: 'You are better. Find the cleanest way to win more.', hint: 'Forcing moves first, even when you are winning.' }
   };
   function drillList(lid) {
@@ -4710,6 +4711,6 @@
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
