@@ -1236,7 +1236,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
   body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
   /* home fits one screen: the next step first, everything else one tap away */
-  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card) { display: none !important; }
   body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
   body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
   body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }
@@ -1245,6 +1245,39 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="browse"] .b2-tag { display: none; }
   body[data-mode="path"] .stage { display: none !important; }
   /* the coach's words are already written in the panel on these screens */
-  body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble { display: none !important; }
+  body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble, body[data-mode="daily"] #app > .coach-bubble, body[data-mode="challenge"] #app > .coach-bubble, body[data-mode="friend"] #app > .coach-bubble { display: none !important; }
 }
+
+/* sharing, daily puzzle, challenges, friend games, install */
+.social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 0; }
+.sr-btn { display: flex; align-items: center; gap: 10px; text-align: left; padding: 11px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); background: linear-gradient(135deg, rgba(76,201,240,.14), rgba(139,92,255,.12)); color: var(--fg); min-width: 0; }
+.sr-btn.done { background: linear-gradient(135deg, rgba(196,255,61,.16), rgba(76,201,240,.08)); border-color: rgba(196,255,61,.35); }
+.sr-ico { font-size: 22px; flex: none; } .sr-t { display: flex; flex-direction: column; min-width: 0; } .sr-t b { font-size: 14px; } .sr-t span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.install-card { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 9px 10px 9px 12px; border-radius: 16px; border: 1px dashed rgba(196,255,61,.4); background: rgba(196,255,61,.06); }
+.install-card .ic-ico { font-size: 22px; } .install-card .ic-t { flex: 1; display: flex; flex-direction: column; min-width: 0; } .install-card .ic-t b { font-size: 14px; } .install-card .ic-t span { font-size: 12px; color: var(--muted); }
+.install-card .ic-x { background: none; border: 0; color: var(--dim); font-size: 14px; padding: 6px; }
+.btn.small { min-height: 34px !important; padding: 0 14px !important; font-size: 13.5px !important; min-width: 0 !important; }
+.share-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; margin: 12px 0 6px; }
+.share-row .btn { min-width: 0 !important; padding: 0 10px !important; justify-content: center; text-align: center; text-decoration: none; display: inline-flex; align-items: center; }
+.btn.wa { background: #25d366; color: #062b14; border-color: #25d366; font-weight: 800; }
+.daily-res { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); margin: 6px 0 8px; }
+.dr-sq { font-size: 24px; letter-spacing: 3px; } .dr-st { font-weight: 800; color: var(--brass); white-space: nowrap; }
+.ch-bar { margin: 2px 0 8px; padding: 8px 12px; border-radius: 12px; background: rgba(255,79,139,.12); border: 1px solid rgba(255,79,139,.35); font-size: 14.5px; }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin: 8px 0; text-align: center; }
+.vs span { display: flex; flex-direction: column; padding: 10px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 13px; color: var(--muted); } .vs span b { color: var(--fg); font-size: 16px; } .vs i { font-style: normal; font-weight: 800; color: var(--dim); }
+.fr-names { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fr-names .field, .fr-names .field span { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.fr-names input, #nm-in { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: 600 16px var(--f-body); }
+.fr-names input:focus, #nm-in:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+.fr-turn { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); font-size: 17px; margin-bottom: 8px; }
+.fr-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #888; flex: none; } .fr-turn.w .fr-dot { background: #f7efdc; } .fr-turn.b .fr-dot { background: #1b1a22; border-color: #f7efdc; }
+.fr-check { font-style: normal; color: var(--bad); font-weight: 800; margin-left: auto; }
+.fr-feed { display: grid; gap: 6px; } .fr-msg { margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.4; }
+.fr-msg.good { border-color: rgba(61,220,151,.5); background: rgba(61,220,151,.08); } .fr-msg.warn { border-color: rgba(255,181,71,.5); background: rgba(255,181,71,.08); } .fr-msg.bad { border-color: rgba(255,93,108,.55); background: rgba(255,93,108,.09); }
+.actions.col { flex-direction: column; align-items: stretch; }
+.inst-steps { margin: 8px 0 14px; padding-left: 20px; line-height: 1.6; } .inst-ico { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--card-2); }
+@media (max-width: 880px) and (orientation: portrait) {
+  .share-row .btn { min-height: 42px; }
+}
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { display: none; } }
 </style>

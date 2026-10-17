@@ -2897,6 +2897,22 @@ Object.assign(MORE_POOLS, {
   'intro_l-convert': ["You're winning. Now let's make sure you actually win."]
 });
 
+// ===== Batch 10: daily puzzle, challenges, playing a friend =====
+Object.assign(MORE_POOLS, {
+  daily_start: ["Today's puzzle. Everyone in the world gets this same one.", "Here's the daily puzzle. Take your time, there's no clock.", "Daily puzzle time. Solve it, then dare your friends.", "Today's challenge. Fewer tries means a better score to share."],
+  daily_solved: ["Solved! Now share it and see if your friends can match you.", "There it is. Send it to a friend and compare.", "Done for today. Come back tomorrow for a new one.", "Nice. Your streak keeps growing."],
+  daily_perfect: ["First try! That's a perfect score. Show it off.", "Perfect, first try. Your friends will have to work to match that.", "Spot on, first attempt. Brilliant."],
+  challenge_intro: ["A friend has challenged you. Let's see if you can beat them.", "You've been challenged! Solve it in fewer tries to win.", "Somebody thinks this is too hard for you. Prove them wrong."],
+  challenge_win: ["You win! Fewer tries than your friend. Send it back to them.", "Victory! Now challenge them back.", "You beat them. Time to rub it in, nicely."],
+  challenge_tie: ["A tie! Equally sharp. Send them a new one.", "Same score. Neither of you blinked."],
+  challenge_lose: ["They got this one. Challenge them back and win the next.", "Close! Send them a puzzle of your own."],
+  friend_start: ["Two players, one board. I'll keep an eye on both of you.", "Friendly game! I'll point out the good moves and the slips.", "Let's play. Pass the phone after every move."],
+  friend_good: ["Great move!", "Oh, nice one.", "That's a strong move.", "Well played.", "Lovely. That's what I like to see."],
+  friend_careful: ["Careful! That was a big mistake.", "Ooh, that gives something away.", "Watch out, that piece is in danger now.", "Hmm, that one hurts."],
+  friend_mate: ["Checkmate! What a game.", "That's checkmate. Shake hands, and play again!", "Game over. Well played, both of you."],
+  friend_draw: ["It's a draw. A fair result.", "Draw! Nobody could break through."]
+});
+
 ;
 // Vector chess piece icons (45x45 viewBox). Font-free so they render identically on every device.
 var PIECE_PATHS = {
@@ -4309,7 +4325,7 @@ function BOARD2D_FACTORY() {
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -4325,7 +4341,7 @@ function BOARD2D_FACTORY() {
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { drill: 1, warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
+  var BOARD_MODES = { daily: 1, challenge: 1, friend: 1, drill: 1, warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -4473,6 +4489,7 @@ function BOARD2D_FACTORY() {
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
+        socialRow() + installCard() +
         warmupCard() +
         (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
@@ -5199,7 +5216,7 @@ function BOARD2D_FACTORY() {
         '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (beginnerMode() || S.puzzle.rating < 800 ? esc(drillAsk(p, null)) : p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
         (c.done ? '<p class="next-note"><strong>' + esc(p.title) + '</strong> · ' + esc(p.theme) + ' · ' + esc(p.explain) + '</p>' : '') + '</div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
-        '<div class="actions">' + (c.done ? '<button class="btn primary" data-act="pzNext">Next puzzle</button>' : '<button class="btn ghost" data-act="pzHint">Hint</button><button class="btn ghost" data-act="pzShow">Solution</button><button class="btn" data-act="pzNext">Skip</button>') + '</div>');
+        '<div class="actions">' + (c.done ? '<button class="btn primary" data-act="pzNext">Next puzzle</button>' + (!c.failed ? '<button class="btn ghost" data-act="challengeThis" data-id="' + p.id + '" data-t="1" data-h="' + (c.hinted ? 1 : 0) + '">👥 Challenge a friend</button>' : '') : '<button class="btn ghost" data-act="pzHint">Hint</button><button class="btn ghost" data-act="pzShow">Solution</button><button class="btn" data-act="pzNext">Skip</button>') + '</div>');
       drawSpark($('#spark'), S.puzzle.hist.map(function (h) { return h[1]; }));
     },
     grade: function (win) {
@@ -5469,6 +5486,7 @@ function BOARD2D_FACTORY() {
       var c = S.coach, from = PL.arg && PL.arg.from;
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
+        '<button class="test-out an-entry" data-act="friend"><span class="to-ico" aria-hidden="true">👥</span><span><b>Play a friend on this device</b><span>Pass the phone after each move. I give tips to both of you.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="goAnalyze"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
@@ -6249,7 +6267,7 @@ function BOARD2D_FACTORY() {
         '<div class="coach-card"><div class="coach-tag">' + (turn === 'w' ? 'White' : 'Black') + ' to move</div><p class="coach-text"><strong>' + esc(drillAsk(p, DR.D)) + '</strong></p>' +
         (DR.hint ? '<p class="ms-tip">💡 ' + esc(DR.D.hint) + '</p>' : '') + '</div>' +
         '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
-        '<div class="actions">' + (DR.over ? '<button class="btn primary wide" data-act="drillNext">' + (DR.k + 1 < DR.list.length ? 'Next puzzle →' : 'Finish practice →') + '</button>' : '<button class="btn ghost" data-act="drillHint">' + (DR.hint >= 2 ? 'Show the move' : 'Hint') + '</button>') + '</div>');
+        '<div class="actions">' + (DR.over ? '<button class="btn primary" data-act="drillNext">' + (DR.k + 1 < DR.list.length ? 'Next puzzle →' : 'Finish practice →') + '</button><button class="btn ghost" data-act="challengeThis" data-id="' + p.id + '" data-t="' + (DR.tries + 1) + '" data-h="' + (DR.hint ? 1 : 0) + '">👥 Challenge a friend</button>' : '<button class="btn ghost" data-act="drillHint">' + (DR.hint >= 2 ? 'Show the move' : 'Hint') + '</button>') + '</div>');
     },
     onMove: function (mv, uci) {
       var p = DR.list[DR.k], g = IX.game, t = new Game(g.fen()), r = t.move(mv);
@@ -6306,6 +6324,353 @@ function BOARD2D_FACTORY() {
       '<div class="actions plain"><button class="btn ghost" data-act="drillAgain" data-l="' + lid + '">↻ Practise again</button><button class="btn ghost" data-act="lesson" data-id="' + lid + '">Repeat lesson</button></div>');
   };
   ACT.drillAgain = function (d) { go('drill', d.l); };
+
+  // ================= Sharing: daily puzzle, challenge links, share cards =================
+  function shareBase() {
+    var c = window.CHESS_ASCENT_CONFIG || {};
+    if (c.shareUrl && !/PASTE|yourdomain/i.test(c.shareUrl)) return String(c.shareUrl).replace(/[#?].*$/, '');
+    return location.origin + location.pathname;
+  }
+  function b64e(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64d(str) { try { str = String(str).replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch (e) { return null; } }
+  function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function playerName() { return (S.name || '').trim(); }
+  // ---- daily puzzle: the same puzzle for everyone on the same calendar day
+  function dailyNo(d) { d = d || new Date(); return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(2026, 9, 1)) / 864e5) + 1; }
+  function dailyPool() { return PUZZLES.filter(function (p) { return p.r >= 240 && p.r <= 800 && p.sol.length <= 3 && /^(mate|fork|hanging|pin|skewer|discovered|promotion)$/.test(p.theme); }); }
+  function dailyPuzzle(n) {
+    var best = null, bh = 0;
+    dailyPool().forEach(function (p) { var h = hashStr(p.id + ':' + n); if (!best || h < bh) { best = p; bh = h; } });
+    return best;
+  }
+  function dailyRec(n) { return S.dailyPz && S.dailyPz[n]; }
+  function dailyStreak() {
+    var n = dailyNo(), k = 0; if (!dailyRec(n)) n--;
+    while (dailyRec(n)) { k++; n--; }
+    return k;
+  }
+  function squaresLine(r) { var out = ''; for (var i = 0; i < Math.min(r.tries - 1, 6); i++) out += '🟥'; return out + '🟩' + (r.hints ? ' 💡' : ''); }
+  function triesText(t) { return t === 1 ? 'first try' : t + ' tries'; }
+  // ---- one puzzle runner for the daily puzzle and for challenges
+  var SP = null;
+  function spStart(kind, p, extra) {
+    var fen = p.fen || puzzleFen(p), side = new Game(fen).turn();
+    SP = Object.assign({ kind: kind, p: p, fen: fen, ply: 0, tries: 1, hints: 0, over: false, t0: Date.now() }, extra || {});
+    var g = setupBoard(fen, { drop: true, orient: side });
+    IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !SP.over; }; IX.onMove = spMove;
+  }
+  function spMove(mv, uci) {
+    var p = SP.p, g = IX.game, t = new Game(g.fen()), r = t.move(mv);
+    var ok = uci === p.sol[SP.ply] || (r && t.inCheckmate());
+    if (!ok) {
+      SP.tries++; Sound.play('bad'); B3.flash('bad', [mv.to], 700);
+      var why = puzzleWhyWrong(g, mv, p) || 'That move does not win anything.';
+      Voice.say([V('drill_wrong')]);
+      current.render('<strong>Not quite.</strong> ' + esc(why) + ' Try again.', 'bad');
+      B3.sync(g.fen()); IX.enabled = true;
+      return null;
+    }
+    IX.enabled = false;
+    return applyMove(g, mv).then(function () {
+      SP.ply++;
+      if ((r && t.inCheckmate()) || SP.ply >= p.sol.length) return spWin(mv.to);
+      current.render('Good. Keep going…', 'good');
+      return B3.wait(450).then(function () { return applyMove(g, uciObj(p.sol[SP.ply])); }).then(function () {
+        SP.ply++; if (SP.ply >= p.sol.length) return spWin(); IX.enabled = true;
+      });
+    });
+  }
+  function spWin(sq) {
+    SP.over = true; SP.ms = Date.now() - SP.t0; B3.burst(sq || SP.p.sol[SP.p.sol.length - 1].slice(2, 4)); Sound.play('good');
+    addXP(SP.tries === 1 ? 15 : 8); current.won();
+  }
+  ACT.spHint = function () {
+    if (!SP || SP.over) return; var u = SP.p.sol[SP.ply]; SP.hints++;
+    if (SP.hints === 1) { B3.markers('hint', [u.slice(0, 2)]); current.render('💡 This piece is the one to move.', ''); }
+    else { B3.arrows([[u.slice(0, 2), u.slice(2, 4), 'g']]); current.render('💡 Play the green arrow.', ''); }
+  };
+  function spPanel(head, msg, kind) {
+    var p = SP.p, turn = new Game(SP.fen).turn();
+    return head + '<div class="coach-card"><div class="coach-tag">' + (turn === 'w' ? 'White' : 'Black') + ' to move · try ' + SP.tries + '</div><p class="coach-text"><strong>' + esc(drillAsk(p, null)) + '</strong></p></div>' +
+      '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+      '<div class="actions"><button class="btn ghost" data-act="spHint">' + (SP.hints ? 'Show the move' : 'Hint') + '</button></div>';
+  }
+  // ---- sharing helpers
+  function challengeLink(p, tries, hints, label) {
+    return shareBase() + '#c=' + b64e({ v: 1, f: p.fen || puzzleFen(p), s: p.sol, i: p.id, e: p.explain, th: p.theme, m: p.mate || 0, n: playerName() || 'A friend', t: tries, h: hints ? 1 : 0, l: label || '' });
+  }
+  function doShare(text, url, fileP) {
+    var full = text + '\n' + url;
+    var fallback = function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(full).then(function () { toast('Copied! Paste it to a friend.'); }, function () { prompt('Copy this and send it to a friend:', full); });
+      else prompt('Copy this and send it to a friend:', full);
+    };
+    if (!navigator.share) return fallback();
+    Promise.resolve(fileP).then(function (file) {
+      var data = { title: 'Chess Ascent', text: text, url: url };
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) data.files = [file];
+      return navigator.share(data);
+    }).catch(function (e) { if (!e || e.name !== 'AbortError') fallback(); });
+  }
+  function waLink(text, url) { return 'https://wa.me/?text=' + encodeURIComponent(text + '\n' + url); }
+  function askName(then) {
+    if (playerName()) return then();
+    var m = $('#modal'); m.classList.remove('intro');
+    m.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true"><div class="eyebrow">Sharing</div><h1 class="h1">What should friends call you?</h1>' +
+      '<p class="lede">Your name appears on the challenge, like "Sara solved this in 2 tries".</p>' +
+      '<label class="field"><span>Your name</span><input id="nm-in" type="text" maxlength="18" autocomplete="nickname" placeholder="e.g. Sara"></label>' +
+      '<div class="actions"><button class="btn primary wide" data-nm="ok">Continue</button></div></div>';
+    m.hidden = false; var inp = $('#nm-in'); setTimeout(function () { try { inp.focus(); } catch (e) { } }, 50);
+    var done = function () { S.name = (inp.value || '').trim().slice(0, 18) || 'A friend'; save(); m.hidden = true; m.onclick = null; then(); };
+    inp.onkeydown = function (e) { if (e.key === 'Enter') done(); };
+    m.onclick = function (e) { if (e.target.closest('[data-nm]')) done(); else if (e.target === m) { m.hidden = true; m.onclick = null; } };
+  }
+  // ---- share card image (portrait, fits WhatsApp status and Instagram stories)
+  function pieceImg(t, c) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pieceSVG(t, c, 90).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')); }); }
+  function shareCard(o) {
+    var W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; var x = cv.getContext('2d');
+    if (!x || !cv.toBlob) return Promise.resolve(null);
+    var map = {}, rows = o.fen.split(' ')[0].split('/'), flip = new Game(o.fen).turn() === 'b';
+    rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } map[f + ',' + ri] = { t: ch.toLowerCase(), c: ch === ch.toLowerCase() ? 'b' : 'w' }; f++; } });
+    var need = {}; Object.keys(map).forEach(function (k) { need[map[k].t + map[k].c] = 1; });
+    return Promise.all(Object.keys(need).map(function (k) { return pieceImg(k[0], k[1]).then(function (im) { need[k] = im; }); })).then(function () {
+      var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#2a1250'); g.addColorStop(.55, '#120c2a'); g.addColorStop(1, '#0b1020'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      var a = x.createLinearGradient(0, 0, W, 0); a.addColorStop(0, '#ff4f8b'); a.addColorStop(.5, '#ffd23f'); a.addColorStop(1, '#4cc9f0'); x.fillStyle = a; x.fillRect(0, 0, W, 12);
+      x.textAlign = 'center'; x.fillStyle = '#c4ff3d'; x.font = '800 40px system-ui, sans-serif'; x.fillText('CHESS ASCENT', W / 2, 96);
+      x.fillStyle = '#ffffff'; x.font = '800 66px system-ui, sans-serif'; x.fillText(o.title, W / 2, 180);
+      var B = 800, bx = (W - B) / 2, by = 230, q = B / 8;
+      x.fillStyle = '#5a3a1e'; x.fillRect(bx - 14, by - 14, B + 28, B + 28);
+      for (var r = 0; r < 8; r++) for (var f = 0; f < 8; f++) {
+        var dx = flip ? 7 - f : f, dy = flip ? 7 - r : r;
+        x.fillStyle = (f + r) % 2 ? '#b58863' : '#f0d9b5'; x.fillRect(bx + dx * q, by + dy * q, q, q);
+        var pc = map[f + ',' + r]; if (pc && need[pc.t + pc.c]) x.drawImage(need[pc.t + pc.c], bx + dx * q + q * .07, by + dy * q + q * .07, q * .86, q * .86);
+      }
+      var y = by + B + 90;
+      (o.marks || []).forEach(function (mk, i, all) { var s = 64, gap = 18, total = all.length * s + (all.length - 1) * gap, sx = (W - total) / 2 + i * (s + gap); x.fillStyle = mk === 'g' ? '#3ddc97' : mk === 'h' ? '#ffd23f' : '#ff5d6c'; x.beginPath(); if (x.roundRect) x.roundRect(sx, y - 50, s, s, 14); else x.rect(sx, y - 50, s, s); x.fill(); });
+      x.fillStyle = '#ffffff'; x.font = '700 50px system-ui, sans-serif'; x.fillText(o.line, W / 2, y + 80);
+      x.fillStyle = '#a6aecb'; x.font = '600 38px system-ui, sans-serif'; x.fillText(o.sub, W / 2, y + 140);
+      return new Promise(function (res) { cv.toBlob(function (b) { try { res(b ? new File([b], 'chess-ascent.png', { type: 'image/png' }) : null); } catch (e) { res(null); } }, 'image/png'); });
+    });
+  }
+  function shareBlock(o) {
+    // o: {text, url, card}
+    SHARE_NOW = o;
+    return '<div class="share-row"><button class="btn primary" data-act="shareNow">📤 Share</button><a class="btn wa" href="' + esc(waLink(o.text, o.url)) + '" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost" data-act="shareCopy">Copy link</button></div>';
+  }
+  var SHARE_NOW = null;
+  ACT.shareNow = function () { var o = SHARE_NOW; if (!o) return; doShare(o.text, o.url, o.card ? shareCard(o.card) : null); };
+  ACT.shareCopy = function () { var o = SHARE_NOW; if (!o) return; var full = o.text + '\n' + o.url; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(full).then(function () { toast('Copied! Paste it to a friend.'); }, function () { prompt('Copy this:', full); }); else prompt('Copy this:', full); };
+  ACT.shareImage = function () { var o = SHARE_NOW; if (!o || !o.card) return; shareCard(o.card).then(function (f) { if (!f) return toast('Your browser cannot make images.'); var a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = 'chess-ascent.png'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }); };
+
+  // ---- daily puzzle mode
+  MODES.daily = {
+    label: 'Daily puzzle',
+    enter: function () {
+      var n = dailyNo(), p = dailyPuzzle(n); if (!p) return go('puzzles');
+      MODES.daily.n = n;
+      var rec = dailyRec(n);
+      spStart('daily', p);
+      if (rec) { SP.over = true; SP.tries = rec.tries; SP.hints = rec.hints; IX.enabled = false; return MODES.daily.result(true); }
+      Voice.say([V('daily_start')], true);
+      MODES.daily.render();
+    },
+    render: function (msg, kind) {
+      if (SP.over) return MODES.daily.result(true);
+      setPanel(spPanel('<div class="eyebrow">Daily puzzle #' + MODES.daily.n + ' · same for everyone today</div><h1 class="h1">Today\'s puzzle</h1>', msg, kind));
+    },
+    won: function () {
+      var n = MODES.daily.n; S.dailyPz = S.dailyPz || {}; S.dailyPz[n] = { tries: SP.tries, hints: SP.hints, ms: SP.ms }; today().puzzles++;
+      S.puzzle.solved[SP.p.id] = Date.now(); save(); confetti();
+      Voice.say([V(SP.tries === 1 && !SP.hints ? 'daily_perfect' : 'daily_solved'), { id: 'P-' + SP.p.id, text: SP.p.explain }]);
+      MODES.daily.result(false);
+    },
+    result: function (again) {
+      var n = MODES.daily.n, r = dailyRec(n) || { tries: SP.tries, hints: SP.hints }, st = dailyStreak();
+      var marks = []; for (var i = 0; i < Math.min(r.tries - 1, 6); i++) marks.push('r'); if (r.hints) marks.push('h'); marks.push('g');
+      var text = 'Chess Ascent #' + n + ' ♞\n' + squaresLine(r) + '\nSolved on the ' + triesText(r.tries) + (st > 1 ? ' · 🔥 ' + st + '-day streak' : '') + '\nCan you beat me?';
+      var url = challengeLink(SP.p, r.tries, r.hints, 'Daily #' + n);
+      var card = { fen: SP.fen, title: 'Daily puzzle #' + n, marks: marks, line: 'Solved on the ' + triesText(r.tries) + (st > 1 ? ' · 🔥 ' + st : ''), sub: 'Can you beat me? Free on Chess Ascent' };
+      document.body.dataset.layout = 'board';
+      var tomorrow = new Date(); tomorrow.setHours(24, 0, 0, 0); var hrs = Math.max(1, Math.round((tomorrow - Date.now()) / 36e5));
+      setPanel('<div class="eyebrow">Daily puzzle #' + n + (again ? ' · already solved today' : '') + '</div><h1 class="h1">' + (r.tries === 1 && !r.hints ? 'Perfect! First try' : 'Solved in ' + r.tries + ' tries') + '</h1>' +
+        '<div class="daily-res"><span class="dr-sq">' + squaresLine(r) + '</span><span class="dr-st">🔥 ' + st + '-day streak</span></div>' +
+        (again ? '<p class="muted small">A new puzzle comes in about ' + hrs + ' hour' + (hrs > 1 ? 's' : '') + '.</p>' : '<p class="coach-text small">' + esc(SP.p.explain) + '</p>') +
+        shareBlock({ text: text, url: url, card: card }) +
+        '<div class="actions plain"><button class="btn ghost" data-act="shareImage">⬇ Save picture</button><button class="btn ghost" data-act="goPath">Back home</button></div>');
+      if (!playerName()) setTimeout(function () { if (current === MODES.daily) askName(function () { MODES.daily.result(again); }); }, 900);
+    },
+    leave: function () { }
+  };
+  ACT.daily = function () { go('daily'); };
+
+  // ---- challenge mode: a friend's puzzle from a link
+  MODES.challenge = {
+    label: 'Challenge',
+    enter: function (c) {
+      if (!c || !c.f || !c.s) return go('path');
+      var p = { id: c.i || 'c-' + hashStr(c.f), fen: c.f, sol: c.s, explain: c.e || 'Well found.', theme: c.th || 'combo', mate: c.m || 0, r: 500 };
+      MODES.challenge.c = c; spStart('challenge', p);
+      Voice.say([V('challenge_intro')], true);
+      MODES.challenge.render();
+    },
+    render: function (msg, kind) {
+      var c = MODES.challenge.c;
+      setPanel(spPanel('<div class="eyebrow">' + esc(c.l || 'Challenge') + '</div><h1 class="h1">' + esc(c.n) + ' challenged you</h1><p class="ch-bar"><b>' + esc(c.n) + '</b> solved it on the ' + triesText(c.t) + (c.h ? ' with a hint' : '') + '. Can you do better?</p>', msg, kind));
+    },
+    won: function () {
+      var c = MODES.challenge.c, mine = SP.tries + (SP.hints ? 0.5 : 0), theirs = c.t + (c.h ? 0.5 : 0);
+      var res = mine < theirs ? 'win' : mine === theirs ? 'tie' : 'lose';
+      S.puzzle.solved[SP.p.id] = Date.now(); S.challenges = S.challenges || {}; save();
+      if (res === 'win') confetti();
+      Voice.say([V('challenge_' + res)]);
+      var head = res === 'win' ? 'You beat ' + esc(c.n) + '!' : res === 'tie' ? 'A tie with ' + esc(c.n) : esc(c.n) + ' wins this one';
+      var text = (res === 'win' ? 'I beat ' : res === 'tie' ? 'I tied with ' : 'I took on ') + c.n + ' on Chess Ascent ♞\n' + squaresLine({ tries: SP.tries, hints: SP.hints }) + ' solved on the ' + triesText(SP.tries) + '\nYour turn!';
+      var go1 = function () {
+        var url = challengeLink(SP.p, SP.tries, SP.hints, c.l);
+        var card = { fen: SP.fen, title: 'Can you beat me?', marks: (function () { var m = []; for (var i = 0; i < Math.min(SP.tries - 1, 6); i++) m.push('r'); if (SP.hints) m.push('h'); m.push('g'); return m; })(), line: 'Solved on the ' + triesText(SP.tries), sub: 'Free on Chess Ascent' };
+        document.body.dataset.layout = 'board';
+        setPanel('<div class="eyebrow">Challenge result</div><h1 class="h1">' + head + '</h1>' +
+          '<div class="vs"><span><b>You</b>' + triesText(SP.tries) + (SP.hints ? ' 💡' : '') + '</span><i>vs</i><span><b>' + esc(c.n) + '</b>' + triesText(c.t) + (c.h ? ' 💡' : '') + '</span></div>' +
+          shareBlock({ text: text, url: url, card: card }) +
+          '<div class="actions plain">' + (!S.onboarded ? '<button class="btn primary wide" data-act="chLearn">♞ Learn chess free with Coach Leo</button>' : '<button class="btn ghost" data-act="daily">🧩 Today\'s daily puzzle</button><button class="btn ghost" data-act="goPath">Home</button>') + '</div>');
+      };
+      go1();
+    },
+    leave: function () { }
+  };
+  ACT.chLearn = function () { go('path'); if (!S.onboarded) { setupBoard(Game.START, { drop: true }); onboard(); } };
+  // challenge any solved puzzle (practice, puzzle trainer)
+  ACT.challengeThis = function (d) {
+    var p = PUZZLES.filter(function (x) { return x.id === d.id; })[0]; if (!p) return;
+    askName(function () {
+      var tries = +d.t || 1, url = challengeLink(p, tries, +d.h || 0, 'Puzzle challenge');
+      doShare('I solved this chess puzzle on the ' + triesText(tries) + '. Can you beat me? ♞', url, shareCard({ fen: p.fen || puzzleFen(p), title: 'Can you beat me?', marks: tries > 1 ? ['r', 'g'] : ['g'], line: 'Solved on the ' + triesText(tries), sub: 'Free on Chess Ascent' }));
+    });
+  };
+  function readIncoming() {
+    var h = (location.hash || '') + '&' + (location.search || '').replace(/^\?/, ''), m = /[#&?]c=([A-Za-z0-9_-]+)/.exec(h);
+    if (m) { var c = b64d(m[1]); try { history.replaceState(null, '', location.pathname + location.search.replace(/[?&]c=[^&]*/, '')); } catch (e) { } if (c && c.f && c.s) return { kind: 'challenge', c: c }; }
+    if (/[#&?]daily\b/.test(h)) return { kind: 'daily' };
+    return null;
+  }
+
+  // ================= Play a friend on one device, with the coach watching both sides =================
+  var FR = null;
+  MODES.friend = {
+    label: 'Play a friend',
+    enter: function () {
+      FR = { setup: true }; setupBoard(Game.START, { drop: true, orient: 'w' });
+      var nm = S.friendNames || [playerName() || 'Player 1', 'Player 2'];
+      setPanel('<div class="eyebrow">Two players · one device</div><h1 class="h1">Play a friend</h1>' +
+        '<p class="lede">Pass the phone after every move. I watch both of you and point out good moves and mistakes.</p>' +
+        '<div class="fr-names"><label class="field"><span>♔ White</span><input id="fr-w" maxlength="16" value="' + esc(nm[0]) + '"></label><label class="field"><span>♚ Black</span><input id="fr-b" maxlength="16" value="' + esc(nm[1]) + '"></label></div>' +
+        '<label class="toggle"><input type="checkbox" id="fr-tips" ' + (S.friendTips !== false ? 'checked' : '') + '> <span>Coach tips for both players</span></label>' +
+        '<label class="toggle"><input type="checkbox" id="fr-flip" ' + (S.friendFlip !== false ? 'checked' : '') + '> <span>Turn the board to whoever is moving</span></label>' +
+        '<div class="actions"><button class="btn primary wide" data-act="frStart">▶ Start the game</button></div>');
+    },
+    start: function (swap) {
+      var w = ($('#fr-w') && $('#fr-w').value.trim()) || (FR && FR.names && FR.names[swap ? 1 : 0]) || 'White', b = ($('#fr-b') && $('#fr-b').value.trim()) || (FR && FR.names && FR.names[swap ? 0 : 1]) || 'Black';
+      if ($('#fr-tips')) { S.friendTips = $('#fr-tips').checked; S.friendFlip = $('#fr-flip').checked; }
+      S.friendNames = [w, b]; save();
+      var g = setupBoard(Game.START, { orient: 'w' });
+      FR = { g: g, names: [w, b], tips: S.friendTips !== false, flip: S.friendFlip !== false, msgs: [], n: { w: { good: 0, bad: 0 }, b: { good: 0, bad: 0 } }, over: false };
+      IX.enabled = true; IX.canMove = function (c) { return !FR.over && c === g.turn(); }; IX.onMove = MODES.friend.onMove;
+      Voice.say([V('friend_start')], true);
+      MODES.friend.render();
+    },
+    who: function (c) { return FR.names[c === 'w' ? 0 : 1]; },
+    render: function () {
+      var g = FR.g, t = g.turn(), last = FR.msgs.slice(-2);
+      setPanel('<div class="fr-turn ' + t + '"><span class="fr-dot"></span><b>' + esc(MODES.friend.who(t)) + '</b> to move <span class="dim">(' + (t === 'w' ? 'White' : 'Black') + ')</span>' + (g.inCheck() ? ' <em class="fr-check">Check!</em>' : '') + '</div>' +
+        '<div class="fr-feed">' + (last.length ? last.map(function (m) { return '<p class="fr-msg ' + m.k + '">' + m.h + '</p>'; }).join('') : '<p class="fr-msg">' + (FR.tips ? 'I will comment on the moves. Have fun!' : 'Coach tips are off. Good luck!') + '</p>') + '</div>' +
+        '<div class="actions"><button class="btn ghost" data-act="frUndo" ' + (g.history().length ? '' : 'disabled') + '>↶ Take back</button><button class="btn ghost" data-act="frEnd">End game</button></div>');
+    },
+    onMove: function (mv, uci) {
+      var g = FR.g, fenBefore = g.fen(), side = g.turn(), moveNo = g.history().length;
+      return applyMove(g, mv).then(function (res) {
+        if (!res) { IX.enabled = true; return; }
+        if (g.gameOver()) { MODES.friend.render(); return MODES.friend.finish(g.inCheckmate() ? side : null, g.inCheckmate() ? 'checkmate' : g.inStalemate() ? 'stalemate' : 'draw'); }
+        if (FR.tips) Eng.call('analyzeMove', fenBefore, uci, 30, 800).then(function (a) { if (FR && FR.g === g && g.history().length === moveNo + 1) MODES.friend.comment(a, res, side, fenBefore, uci); });
+        MODES.friend.render();
+        if (FR.flip) setTimeout(function () { if (FR && FR.g === g && !FR.over) B3.setOrientation(g.turn()); }, 550);
+        IX.enabled = true;
+      });
+    },
+    comment: function (a, res, side, fenBefore, uci) {
+      if (!a) return;
+      var c = grade(a, res, fenBefore, uci).c, name = esc(MODES.friend.who(side)), html = null, k = '';
+      if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
+      if (c.key === 'blunder' || c.key === 'mistake') {
+        FR.n[side].bad++; k = c.key === 'blunder' ? 'bad' : 'warn';
+        var why = a.reply && a.reply.score > 90000 ? esc(a.replySan) + ' would be checkmate.' : a.reply && a.reply.captured ? 'Now ' + esc(a.replySan) + ' wins your ' + PIECE_NAME[a.reply.captured] + '.' : 'It gives away material.';
+        html = '<b>' + esc(res.san) + '</b> · ' + name + ', careful! ' + why + (a.bestSan ? ' Better was <b>' + esc(a.bestSan) + '</b>.' : '');
+        if (c.key === 'blunder') Voice.say([V('friend_careful')]);
+      } else if (c.key === 'brilliant' || c.key === 'great' || (c.key === 'best' && res.captured)) {
+        FR.n[side].good++; k = 'good';
+        html = '<b>' + esc(res.san) + '</b> · ' + (c.key === 'brilliant' ? 'Brilliant, ' : 'Great move, ') + name + '! ' + esc(moveReason(res, 0, a, fenBefore, uci) || '');
+        if (chance(0.5)) Voice.say([V('friend_good')]);
+      } else if (c.positive) FR.n[side].good++;
+      if (html) { FR.msgs.push({ h: html, k: k }); if (current === MODES.friend && !FR.over) MODES.friend.render(); }
+    },
+    finish: function (winner, how) {
+      FR.over = true; IX.enabled = false;
+      var g = FR.g, moves = Math.ceil(g.history().length / 2), w = winner ? MODES.friend.who(winner) : null, l = winner ? MODES.friend.who(winner === 'w' ? 'b' : 'w') : null;
+      if (winner) { confetti(); Sound.play('win'); Voice.say([V('friend_mate')]); } else Voice.say([V('friend_draw')]);
+      var text = winner ? w + ' beat ' + l + ' at chess ♞ (' + how + ' in ' + moves + ' moves)\nLearn chess free with Coach Leo:' : FR.names[0] + ' and ' + FR.names[1] + ' drew a chess game ♞ (' + how + ')\nLearn chess free with Coach Leo:';
+      var row = function (c) { var n = FR.n[c]; return '<span><b>' + esc(MODES.friend.who(c)) + '</b>' + n.good + ' good · ' + n.bad + ' slips</span>'; };
+      document.body.dataset.layout = 'board';
+      setPanel('<div class="eyebrow">Game over · ' + moves + ' moves</div><h1 class="h1">' + (winner ? esc(w) + ' wins by ' + how + '!' : 'Draw by ' + how) + '</h1>' +
+        (FR.tips ? '<div class="vs">' + row('w') + '<i>vs</i>' + row('b') + '</div>' : '') +
+        '<div class="actions"><button class="btn primary" data-act="frRematch">↻ Rematch (swap colours)</button></div>' +
+        shareBlock({ text: text, url: shareBase(), card: null }) +
+        '<div class="actions plain"><button class="btn ghost" data-act="goPath">Home</button></div>');
+    },
+    leave: function () { }
+  };
+  ACT.friend = function () { go('friend'); };
+  ACT.frStart = function () { MODES.friend.start(false); };
+  ACT.frRematch = function () { var n = FR.names; FR = { names: [n[1], n[0]] }; MODES.friend.start(false); };
+  ACT.frUndo = function () { if (!FR || FR.over || !FR.g.history().length) return; FR.g.undo(); FR.msgs.push({ h: 'Move taken back.', k: '' }); B3.setPosition(FR.g.fen()); B3.markers('last', []); if (FR.flip) B3.setOrientation(FR.g.turn()); IX.enabled = true; MODES.friend.render(); };
+  ACT.frEnd = function () {
+    if (!FR || FR.over) return;
+    setPanel('<h1 class="h1">End the game?</h1><div class="actions col"><button class="btn" data-act="frResign" data-c="w">' + esc(FR.names[0]) + ' (White) resigns</button><button class="btn" data-act="frResign" data-c="b">' + esc(FR.names[1]) + ' (Black) resigns</button><button class="btn" data-act="frDraw">We agree to a draw</button><button class="btn ghost" data-act="frBack">Keep playing</button></div>');
+  };
+  ACT.frResign = function (d) { MODES.friend.finish(d.c === 'w' ? 'b' : 'w', 'resignation'); };
+  ACT.frDraw = function () { MODES.friend.finish(null, 'agreement'); };
+  ACT.frBack = function () { MODES.friend.render(); };
+
+  // ================= Install as an app =================
+  var INSTALL = { evt: null };
+  function isStandalone() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function canInstall() { return !isStandalone() && (INSTALL.evt || isIOS()); }
+  function installInit() {
+    window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); INSTALL.evt = e; if (current === MODES.path) MODES.path.enter(true); });
+    window.addEventListener('appinstalled', function () { INSTALL.evt = null; S.installed = true; save(); toast('Installed! Chess Ascent is on your home screen.'); });
+    var framed = document.documentElement.classList.contains('framed');
+    if ('serviceWorker' in navigator && !framed && /^https?:$/.test(location.protocol) && !/claudeusercontent|claude\.ai/.test(location.host)) {
+      navigator.serviceWorker.register('sw.js').catch(function () { });
+    }
+  }
+  ACT.install = function () {
+    if (INSTALL.evt) { var e = INSTALL.evt; INSTALL.evt = null; e.prompt(); (e.userChoice || Promise.resolve()).then(function () { if (current === MODES.path) MODES.path.enter(true); }); return; }
+    var m = $('#modal'); m.classList.remove('intro');
+    m.innerHTML = '<div class="modal-card" role="dialog" aria-modal="true"><div class="eyebrow">Install</div><h1 class="h1">Put Chess Ascent on your home screen</h1>' +
+      (isIOS() ? '<ol class="inst-steps"><li>Tap the <b>Share</b> button <span class="inst-ico">⬆︎</span> at the bottom of Safari.</li><li>Scroll down and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>. Chess Ascent opens like an app, full screen.</li></ol>'
+        : '<ol class="inst-steps"><li>Open the browser menu <b>⋮</b>.</li><li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li></ol>') +
+      '<div class="actions"><button class="btn primary wide" data-ins="ok">Got it</button></div></div>';
+    m.hidden = false; m.onclick = function (e) { if (e.target.closest('[data-ins]') || e.target === m) { m.hidden = true; m.onclick = null; } };
+  };
+  ACT.installLater = function () { S.installNo = Date.now(); save(); var el = $('.install-card'); if (el) el.remove(); };
+  function installCard() {
+    if (!canInstall() || lessonsDone() < 1 || (S.installNo && Date.now() - S.installNo < 7 * 864e5)) return '';
+    return '<div class="install-card"><span class="ic-ico" aria-hidden="true">📲</span><span class="ic-t"><b>Get the app</b><span>One tap from your home screen, works offline.</span></span><button class="btn primary small" data-act="install">Install</button><button class="ic-x" data-act="installLater" aria-label="Not now">✕</button></div>';
+  }
+  function socialRow() {
+    var n = dailyNo(), done = !!dailyRec(n), st = dailyStreak();
+    return '<div class="social-row"><button class="sr-btn' + (done ? ' done' : '') + '" data-act="daily"><span class="sr-ico" aria-hidden="true">' + (done ? '✓' : '🧩') + '</span><span class="sr-t"><b>Daily puzzle #' + n + '</b><span>' + (done ? (st > 1 ? '🔥 ' + st + ' days · share it' : 'Solved · share it') : 'New every day') + '</span></span></button>' +
+      '<button class="sr-btn" data-act="friend"><span class="sr-ico" aria-hidden="true">👥</span><span class="sr-t"><b>Play a friend</b><span>One phone, coach tips</span></span></button></div>';
+  }
 
   // ================= Analyze a game from chess.com (or any PGN) =================
   // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
@@ -7334,6 +7699,8 @@ function BOARD2D_FACTORY() {
     m.classList.remove('intro');
     m.innerHTML = '<div class="modal-card settings" role="dialog" aria-modal="true" aria-labelledby="set-title"><div class="set-head"><span class="cb-avatar big">' + coachAvatar() + '</span><div><div class="eyebrow">Settings</div><h1 class="h1" id="set-title">Your coach</h1></div></div>' +
       '<div id="acct-box">' + Cloud.html() + '</div>' +
+      '<label class="field"><span>Your name <span class="dim">· shown on challenges you send</span></span><input id="set-me" type="text" maxlength="18" value="' + esc(S.name || '') + '" placeholder="e.g. Sara"></label>' +
+      (canInstall() ? '<div class="field"><span>App</span><div class="actions"><button class="btn" data-act="install">📲 Install Chess Ascent on this device</button></div></div>' : '') +
       '<label class="field"><span>Coach name</span><input id="set-name" type="text" maxlength="24" value="' + esc(s.coachName) + '"></label>' +
       '<div class="field"><span>Your level <span class="dim">· sets where the course starts</span></span><div class="seg wrap">' + BANDS.map(function (b) { return '<button class="' + (S.band === b.v ? 'on' : '') + '" data-band="' + b.v + '" title="' + esc(b.t) + '">' + b.v + '</button>'; }).join('') + '</div></div>' +
       '<label class="field"><span>Voice volume <b id="vol-v">' + Math.round(s.volume * 100) + '%</b></span><input id="set-vol" type="range" min="0" max="1" step="0.05" value="' + s.volume + '"></label>' +
@@ -7347,6 +7714,7 @@ function BOARD2D_FACTORY() {
       '<div class="field" id="set-over"><span>Start over <span class="dim">· erase progress on this device and begin again from the welcome screen</span></span><div class="actions"><button class="btn ghost" data-set="over">Start over</button></div></div>' +
       '<div class="actions"><button class="btn ghost" data-set="test">▶ Test voice</button><button class="btn primary" data-set="close">Done</button></div></div>';
     m.hidden = false;
+    $('#set-me').oninput = function (e) { S.name = e.target.value.trim().slice(0, 18); save(); };
     $('#set-name').oninput = function (e) { s.coachName = e.target.value.trim() || 'Coach Leo'; save(); };
     $('#set-vol').oninput = function (e) { s.volume = +e.target.value; $('#vol-v').textContent = Math.round(s.volume * 100) + '%'; save(); };
     $('#set-sub').onchange = function (e) { s.subtitles = e.target.checked; save(); };
@@ -7821,7 +8189,11 @@ function BOARD2D_FACTORY() {
       document.removeEventListener('pointerdown', greet);
       if (S.onboarded && S.lastGreet !== dayKey() && S.toured) { S.lastGreet = dayKey(); save(); Voice.say([V('welcome_back')], true); }
     });
-    if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
+    installInit();
+    window.addEventListener('hashchange', function () { var inc = readIncoming(); if (inc) go(inc.kind, inc.c); });
+    var incoming = readIncoming();
+    if (incoming) go(incoming.kind, incoming.c);
+    else if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
     else { go('path'); if (!S.toured) setTimeout(Tour.start, 1500); }
     // Launch screen: on the first visit download the coach's starter voice with real progress, then a Start tap
     // (which also unlocks sound); later visits just fade in.
@@ -7839,7 +8211,7 @@ function BOARD2D_FACTORY() {
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
@@ -8604,7 +8976,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
   body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
   /* home fits one screen: the next step first, everything else one tap away */
-  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card) { display: none !important; }
   body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
   body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
   body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }
@@ -8613,6 +8985,39 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="browse"] .b2-tag { display: none; }
   body[data-mode="path"] .stage { display: none !important; }
   /* the coach's words are already written in the panel on these screens */
-  body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble { display: none !important; }
+  body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble, body[data-mode="daily"] #app > .coach-bubble, body[data-mode="challenge"] #app > .coach-bubble, body[data-mode="friend"] #app > .coach-bubble { display: none !important; }
 }
+
+/* sharing, daily puzzle, challenges, friend games, install */
+.social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 0; }
+.sr-btn { display: flex; align-items: center; gap: 10px; text-align: left; padding: 11px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); background: linear-gradient(135deg, rgba(76,201,240,.14), rgba(139,92,255,.12)); color: var(--fg); min-width: 0; }
+.sr-btn.done { background: linear-gradient(135deg, rgba(196,255,61,.16), rgba(76,201,240,.08)); border-color: rgba(196,255,61,.35); }
+.sr-ico { font-size: 22px; flex: none; } .sr-t { display: flex; flex-direction: column; min-width: 0; } .sr-t b { font-size: 14px; } .sr-t span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.install-card { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 9px 10px 9px 12px; border-radius: 16px; border: 1px dashed rgba(196,255,61,.4); background: rgba(196,255,61,.06); }
+.install-card .ic-ico { font-size: 22px; } .install-card .ic-t { flex: 1; display: flex; flex-direction: column; min-width: 0; } .install-card .ic-t b { font-size: 14px; } .install-card .ic-t span { font-size: 12px; color: var(--muted); }
+.install-card .ic-x { background: none; border: 0; color: var(--dim); font-size: 14px; padding: 6px; }
+.btn.small { min-height: 34px !important; padding: 0 14px !important; font-size: 13.5px !important; min-width: 0 !important; }
+.share-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; margin: 12px 0 6px; }
+.share-row .btn { min-width: 0 !important; padding: 0 10px !important; justify-content: center; text-align: center; text-decoration: none; display: inline-flex; align-items: center; }
+.btn.wa { background: #25d366; color: #062b14; border-color: #25d366; font-weight: 800; }
+.daily-res { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); margin: 6px 0 8px; }
+.dr-sq { font-size: 24px; letter-spacing: 3px; } .dr-st { font-weight: 800; color: var(--brass); white-space: nowrap; }
+.ch-bar { margin: 2px 0 8px; padding: 8px 12px; border-radius: 12px; background: rgba(255,79,139,.12); border: 1px solid rgba(255,79,139,.35); font-size: 14.5px; }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin: 8px 0; text-align: center; }
+.vs span { display: flex; flex-direction: column; padding: 10px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 13px; color: var(--muted); } .vs span b { color: var(--fg); font-size: 16px; } .vs i { font-style: normal; font-weight: 800; color: var(--dim); }
+.fr-names { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fr-names .field, .fr-names .field span { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.fr-names input, #nm-in { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: 600 16px var(--f-body); }
+.fr-names input:focus, #nm-in:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+.fr-turn { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); font-size: 17px; margin-bottom: 8px; }
+.fr-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #888; flex: none; } .fr-turn.w .fr-dot { background: #f7efdc; } .fr-turn.b .fr-dot { background: #1b1a22; border-color: #f7efdc; }
+.fr-check { font-style: normal; color: var(--bad); font-weight: 800; margin-left: auto; }
+.fr-feed { display: grid; gap: 6px; } .fr-msg { margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.4; }
+.fr-msg.good { border-color: rgba(61,220,151,.5); background: rgba(61,220,151,.08); } .fr-msg.warn { border-color: rgba(255,181,71,.5); background: rgba(255,181,71,.08); } .fr-msg.bad { border-color: rgba(255,93,108,.55); background: rgba(255,93,108,.09); }
+.actions.col { flex-direction: column; align-items: stretch; }
+.inst-steps { margin: 8px 0 14px; padding-left: 20px; line-height: 1.6; } .inst-ico { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--card-2); }
+@media (max-width: 880px) and (orientation: portrait) {
+  .share-row .btn { min-height: 42px; }
+}
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { display: none; } }
 </style>

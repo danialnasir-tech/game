@@ -1,0 +1,17 @@
+{
+  "name": "Chess Ascent",
+  "short_name": "Chess Ascent",
+  "description": "Learn chess from your very first move with Coach Leo: lessons, puzzles, a daily puzzle and games with friends.",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0b1a",
+  "theme_color": "#0e0b1a",
+  "categories": ["education", "games"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

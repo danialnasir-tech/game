@@ -6,6 +6,9 @@ fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive:
 fs.copyFileSync('dist/site.html', OUT + '/index.html');
 const packs = fs.readdirSync('dist').filter(f => /^voice-pack-\d+\.mp3$/.test(f));
 packs.forEach(f => fs.copyFileSync('dist/' + f, OUT + '/' + f));
+// installable app: manifest, icons and the offline service worker (its version changes with every build)
+['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'].forEach(f => fs.copyFileSync('pwa/' + f, OUT + '/' + f));
+fs.writeFileSync(OUT + '/sw.js', fs.readFileSync('pwa/sw.template.js', 'utf8').replace('__VERSION__', require('crypto').createHash('sha1').update(fs.readFileSync('dist/site.html')).digest('hex').slice(0, 10)));
 // optional Google sign-in settings: shipped switched off (placeholder), so the game never asks for an account
 fs.copyFileSync('chess-ascent-config.example.js', OUT + '/chess-ascent-config.js');
 fs.writeFileSync(OUT + '/.htaccess', [
@@ -13,6 +16,7 @@ fs.writeFileSync(OUT + '/.htaccess', [
   'DirectoryIndex index.html',
   'AddType audio/mpeg .mp3',
   'AddType application/javascript .js',
+  'AddType application/manifest+json .webmanifest',
   'AddDefaultCharset UTF-8',
   '<IfModule mod_deflate.c>',
   '  AddOutputFilterByType DEFLATE text/html application/javascript text/css',
@@ -23,7 +27,7 @@ fs.writeFileSync(OUT + '/.htaccess', [
   '  ExpiresByType text/html "access plus 0 seconds"',
   '</IfModule>',
   '<IfModule mod_headers.c>',
-  '  <FilesMatch "\\.(html|js)$">',
+  '  <FilesMatch "\\.(html|js|webmanifest)$">',
   '    Header set Cache-Control "no-cache"',
   '  </FilesMatch>',
   '</IfModule>', ''].join('\n'));

@@ -378,3 +378,19 @@ Object.assign(MORE_POOLS, {
   'intro_l-outposts': ["Outposts and prophylaxis. Thinking like a master."],
   'intro_l-convert': ["You're winning. Now let's make sure you actually win."]
 });
+
+// ===== Batch 10: daily puzzle, challenges, playing a friend =====
+Object.assign(MORE_POOLS, {
+  daily_start: ["Today's puzzle. Everyone in the world gets this same one.", "Here's the daily puzzle. Take your time, there's no clock.", "Daily puzzle time. Solve it, then dare your friends.", "Today's challenge. Fewer tries means a better score to share."],
+  daily_solved: ["Solved! Now share it and see if your friends can match you.", "There it is. Send it to a friend and compare.", "Done for today. Come back tomorrow for a new one.", "Nice. Your streak keeps growing."],
+  daily_perfect: ["First try! That's a perfect score. Show it off.", "Perfect, first try. Your friends will have to work to match that.", "Spot on, first attempt. Brilliant."],
+  challenge_intro: ["A friend has challenged you. Let's see if you can beat them.", "You've been challenged! Solve it in fewer tries to win.", "Somebody thinks this is too hard for you. Prove them wrong."],
+  challenge_win: ["You win! Fewer tries than your friend. Send it back to them.", "Victory! Now challenge them back.", "You beat them. Time to rub it in, nicely."],
+  challenge_tie: ["A tie! Equally sharp. Send them a new one.", "Same score. Neither of you blinked."],
+  challenge_lose: ["They got this one. Challenge them back and win the next.", "Close! Send them a puzzle of your own."],
+  friend_start: ["Two players, one board. I'll keep an eye on both of you.", "Friendly game! I'll point out the good moves and the slips.", "Let's play. Pass the phone after every move."],
+  friend_good: ["Great move!", "Oh, nice one.", "That's a strong move.", "Well played.", "Lovely. That's what I like to see."],
+  friend_careful: ["Careful! That was a big mistake.", "Ooh, that gives something away.", "Watch out, that piece is in danger now.", "Hmm, that one hurts."],
+  friend_mate: ["Checkmate! What a game.", "That's checkmate. Shake hands, and play again!", "Game over. Well played, both of you."],
+  friend_draw: ["It's a draw. A fair result.", "Draw! Nobody could break through."]
+});

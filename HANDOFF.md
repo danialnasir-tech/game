@@ -156,3 +156,18 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   instructions need (minimum about 31% of the height). Lesson, practice and mission screens keep their buttons pinned at the bottom.
 - Phone home shows the "Next up" card, the next first step and a "Course map, today's goals and your rating" button; the rest opens on tap.
 - Checked at 393x750, 390x844, 360x740 and 375x667 (every Foundations lesson step, practice, mission, home).
+
+## Growth features: daily puzzle, challenge links, play a friend, installable app
+- **Daily puzzle** (`MODES.daily`): `dailyNo()` counts days from 1 Oct 2026; `dailyPuzzle(n)` picks the same puzzle for everyone
+  (easy-to-medium tactic, lowest hash of id+day). Results in `S.dailyPz[n]`, `dailyStreak()`. Result screen: Wordle-style squares,
+  share text, a 1080x1350 PNG share card (`shareCard()`, drawn on a canvas), WhatsApp button, copy link, save picture.
+- **Challenge links**: `challengeLink()` puts the puzzle (fen, solution, explanation), the sender's name and tries in the link
+  (`#c=` + base64url JSON), so no server is needed. Opening one goes straight to `MODES.challenge` (before onboarding for new
+  visitors), then "You beat Sara!" and a "Learn chess free with Coach Leo" button. Practice and Puzzle-trainer screens get
+  "Challenge a friend" after a solve. The link uses `shareUrl` from chess-ascent-config.js (falls back to the current address).
+- **Play a friend** (`MODES.friend`): pass-and-play with names, optional coach tips for both sides (engine `analyzeMove` +
+  `grade()`), board turns to the mover, take back, resign/draw, checkmate/stalemate detection, rematch with swapped colours, share.
+- **Installable app**: `pwa/` holds the manifest, icons and `sw.template.js`; make-website.js copies them and writes `sw.js` with a
+  version hash. Offline: the page and voice packs are cached. Install button in Settings and a home card after the first lesson
+  (Android/desktop prompt; iPhone gets Share → Add to Home Screen steps).
+- Voice pools: `daily_*`, `challenge_*`, `friend_*`.
