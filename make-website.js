@@ -43,7 +43,8 @@ fs.writeFileSync(OUT + '/READ-ME-FIRST.txt', [
   '  index.html               the whole game',
   '  voice-pack-1..' + packs.length + '.mp3       Coach Leo\'s voice (' + packs.length + ' files, loaded when needed)',
   '  .htaccess                makes the voice files load fast (hidden file: make sure your upload includes it)',
-  '  chess-ascent-config.js   optional Google sign-in. Leave it as it is to keep sign-in switched off.',
+  '  chess-ascent-config.js   settings: put your website address in shareUrl (used in shared links). Google sign-in is optional.',
+  '  sw.js, manifest.webmanifest, icon-*.png   make it installable as an app and work offline',
   '',
   'Updating later: upload the new files over the old ones. Players keep their progress.',
   ''].join('\n'));
@@ -53,7 +54,7 @@ try {
   const packs = fs.readdirSync(OUT).filter(f => /^voice-pack-\d+\.mp3$/.test(f)).sort((a, b) => parseInt(a.slice(11)) - parseInt(b.slice(11)));
   const half = Math.ceil(packs.length / 2);
   execSync('cd out && rm -f chess-ascent-website*.zip && zip -qr chess-ascent-website.zip chess-ascent-website');
-  execSync('cd ' + OUT + ' && zip -qX ../chess-ascent-website-part1.zip index.html .htaccess READ-ME-FIRST.txt chess-ascent-config.js ' + packs.slice(0, half).join(' '));
+  execSync('cd ' + OUT + ' && zip -qX ../chess-ascent-website-part1.zip index.html .htaccess READ-ME-FIRST.txt chess-ascent-config.js sw.js manifest.webmanifest icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png ' + packs.slice(0, half).join(' '));
   execSync('cd ' + OUT + ' && zip -qX ../chess-ascent-website-part2.zip ' + packs.slice(half).join(' '));
 } catch (e) { console.log('zip not available; upload the folder itself'); }
 console.log('website folder', OUT, '| files', fs.readdirSync(OUT).length + 1, '| size', mb.toFixed(1) + ' MB');
