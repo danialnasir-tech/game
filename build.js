@@ -1,12 +1,12 @@
 const fs=require('fs');
-let js=['chesscore.js','engine.js','data.js','puzzles2.js','puzzles-starter.js','puzzles-themed.js','defences.js','arena.js','missions.js','voicelines.js','icons.js','board2d.js','app.js'].filter(f=>fs.existsSync(f)).map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
+let js=['chesscore.js','engine.js','data.js','lessons2.js','puzzles2.js','puzzles-starter.js','puzzles-themed.js','defences.js','arena.js','missions.js','voicelines.js','icons.js','board2d.js','app.js'].filter(f=>fs.existsSync(f)).map(f=>fs.readFileSync(f,'utf8')).join('\n;\n');
 const t=fs.readFileSync('template.html','utf8');
 const vf=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
 // A clip whose line text has changed since it was recorded stays silent (text only) until it is re-recorded.
 // dist/voice-manifest.json holds the generator's hash (voice id + text) for every recorded clip.
 (function(){ if(!fs.existsSync('dist/voice-manifest.json')) return;
   const crypto=require('crypto'), man=JSON.parse(fs.readFileSync('dist/voice-manifest.json','utf8'));
-  const D=require('./data.js');D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'),require('./puzzles-starter.js'),fs.existsSync('./puzzles-themed.js')?require('./puzzles-themed.js'):[]);const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);const V=require('./voicelines.js');
+  const D=require('./data.js');(function(){const X2=require('./lessons2.js');Object.assign(D.LESSONS,X2.LESSONS2);Object.keys(X2.LESSONS2_EXT||{}).forEach(k=>{if(D.LESSONS[k])D.LESSONS[k].steps=D.LESSONS[k].steps.concat(X2.LESSONS2_EXT[k]);});})();D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'),require('./puzzles-starter.js'),fs.existsSync('./puzzles-themed.js')?require('./puzzles-themed.js'):[]);const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);const V=require('./voicelines.js');
   const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(),V.VARIANT_LINES(),V.MOVE_LINES(),V.MORE_LINES(D),X.DEFENCE_LINES());
   const h=t=>crypto.createHash('sha1').update('B52raBK48m23qWYbwchQ'+t).digest('hex').slice(0,12); let stale=[];
   lines.forEach(l=>{ if(vf[l.id]&&man[l.id]&&man[l.id]!==h(l.text)){ delete vf[l.id]; stale.push(l.id); } });

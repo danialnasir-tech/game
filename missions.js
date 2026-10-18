@@ -7,17 +7,17 @@ var MISSIONS = {
   'l-pieces': [
     { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
       text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
-    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander',
+    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6'],
       text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
-    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander',
+    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
       text: 'Now a real opening that many club players use, called the London System: d4, Bf4, e3, Nf3. Read each move and play it.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
   'l-firstmoves': [
-    { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', sol: ['e2e4', 'g1f3', 'b1c3'],
+    { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6', 'Nf6'], sol: ['e2e4', 'g1f3', 'b1c3'],
       text: 'In three moves: one pawn in the centre and both knights out.', tip: 'e4 or d4 first, then Nf3 and Nc3.' },
-    { id: 'fm-castle', title: 'Ready, Set, Castle', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', limit: 4, par: 4, coach: 'wander', sol: ['e2e4', 'g1f3', 'f1c4', 'e1g1'],
+    { id: 'fm-castle', title: 'Ready, Set, Castle', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', limit: 4, par: 4, coach: 'wander', replies: ['e5', 'Nc6', 'Bc5'], sol: ['e2e4', 'g1f3', 'f1c4', 'e1g1'],
       text: 'Castle within four moves. Clear the squares between your king and the rook first.', tip: 'e4, Nf3, then a bishop out, then O-O.' },
-    { id: 'fm-long', title: 'The Long Way', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', side: 'w', castleSide: 'q', limit: 6, par: 5, coach: 'wander', sol: ['d2d4', 'b1c3', 'c1f4', 'd1d2', 'e1c1'],
+    { id: 'fm-long', title: 'The Long Way', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'castle', side: 'w', castleSide: 'q', limit: 6, par: 5, coach: 'wander', replies: ['d5', 'Nf6', 'e6', 'Be7', 'O-O'], sol: ['d2d4', 'b1c3', 'c1f4', 'd1d2', 'e1c1'],
       text: 'Castle queenside, O-O-O, within six moves. Three pieces stand in the way this time.', tip: 'd4, Nc3, a bishop out, the queen out, then O-O-O.' }
   ],
   'l-rook': [
@@ -79,6 +79,12 @@ var MISSIONS = {
 };
 // The friendly coach: walks his king, never captures, and keeps away from the pieces you are hunting,
 // so a beginner can focus on the piece they just learned. Falls back to any legal move.
+// The coach's reply: a real opening move when the mission names one (replies[n] after your n-th move), otherwise a gentle move.
+function missionReply(m, g, n, rnd) {
+  var want = m.replies && m.replies[n - 1];
+  if (want) { var hit = g.moves().filter(function (x) { return x.san.replace(/[+#]/g, '') === want; })[0]; if (hit) return hit; }
+  return missionWander(g, rnd);
+}
 function missionWander(g, rnd) {
   rnd = rnd || Math.random;
   var all = g.moves(), quiet = all.filter(function (m) { return !m.captured && !/\+/.test(m.san); }), kings = quiet.filter(function (m) { return m.piece === 'k'; });
@@ -90,6 +96,12 @@ function missionWander(g, rnd) {
   // a king step next to one of his own pieces would guard it, so prefer squares two or more away
   var far = pool.filter(function (m) { return m.piece !== 'k' || own.every(function (o) { return dist(m.to, o) >= 2; }); });
   if (far.length) pool = far;
+  // and never a move that suddenly attacks one of the player's pieces (or the squares they are heading for)
+  var safe = kings.length ? pool : pool.filter(function (m) {
+    g.move(m); var parts = g.fen().split(' '); parts[1] = me; parts[3] = '-'; var t = new g.constructor(parts.join(' '));
+    var hits = t.moves().some(function (x) { return x.captured; }); g.undo(); return !hits;
+  });
+  if (safe.length) pool = safe;
   return pool[Math.floor(rnd() * pool.length)];
 }
 function missionMaterial(g, color) {
@@ -116,4 +128,4 @@ function missionCheck(m, g, mv, st) {
   if (g.inStalemate()) return 'stalemate';
   return null;
 }
-if (typeof module !== 'undefined') module.exports = { MISSIONS: MISSIONS, missionWander: missionWander, missionCheck: missionCheck, missionMaterial: missionMaterial };
+if (typeof module !== 'undefined') module.exports = { MISSIONS: MISSIONS, missionReply: missionReply, missionWander: missionWander, missionCheck: missionCheck, missionMaterial: missionMaterial };

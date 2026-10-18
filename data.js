@@ -1,10 +1,10 @@
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
   { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-pieces', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate', 'l-firstmoves'] },
-  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, opening principles and the first tactics that win games at this level.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
-  { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Discovered attacks, double check, removing defenders and the mating patterns that end games.', lessons: ['l-discovered', 'l-defender', 'l-patterns'] },
-  { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Opposition, the Lucena and Philidor, pawn breaks and pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
-  { id: 's5', name: 'Mastery', band: '1600 – 2000', min: 1600, blurb: 'Calculation, outposts, prophylaxis and converting a winning position.', lessons: ['l-calc', 'l-outposts', 'l-convert'] }
+  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, spotting your opponent\'s threats, good and bad captures, opening principles and the first tactics.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
+  { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Loose pieces, two-move combinations, attacking the king, discovered attacks and the mating patterns that end games.', lessons: ['l-discovered', 'l-defender', 'l-patterns'] },
+  { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Candidate moves, defending against the opponent\'s ideas, winning endgames, the Lucena and Philidor, pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
+  { id: 's5', name: 'Mastery', band: '1600 – 2000', min: 1600, blurb: 'Deep calculation, outposts, prophylaxis and converting a winning position.', lessons: ['l-calc', 'l-outposts', 'l-convert'] }
 ];
 
 var LESSONS = {
@@ -17,8 +17,7 @@ var LESSONS = {
       { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'Where a file and a rank cross, you get a square. The d-file crosses rank 4 here, so this square is called d4. Always the letter first, then the number.', files: ['d'], ranks: [4], tags: { d4: 'd4' } },
       { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'Every square works the same way. Here are a few more: a1 in the bottom-left corner, h8 in the top-right, e2 and g5. Find each one by going along to the letter, then up to the number.', tags: { a1: 'a1', h8: 'h8', e2: 'e2', g5: 'g5' }, zones: [[['a1', 'h8', 'e2', 'g5'], 'C']] },
       { t: 'read', fen: '8/8/8/8/8/8/8/8 w - - 0 1', text: 'The four squares in the middle are the most important ones in chess: d4, e4, d5 and e5. They are called the centre. You will hear about them a lot.', tags: { d4: 'd4', e4: 'e4', d5: 'd5', e5: 'e5' }, zones: [[['d4', 'e4', 'd5', 'e5'], 'C']] },
-      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'e2', 'a8', 'h1', 'c6', 'f5'], text: 'Your turn! Tap the square I name. Letter first, then count up.', done: 'Six for six. You can read the board now.' },
-      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['b3', 'g7', 'e5', 'a1', 'h4', 'd8'], text: 'One more round, a little faster this time.', done: 'You know the board. Next, you meet the pieces that live on it.' }
+      { t: 'squares', fen: '8/8/8/8/8/8/8/8 w - - 0 1', targets: ['d4', 'a8', 'e2', 'g5'], text: 'Your turn! Tap the square I name. Letter first, then count up.', done: 'Four for four. You can read the board, and the next lesson brings in the pieces.' },
     ]
   },
   'l-pieces': {
@@ -407,4 +406,37 @@ LESSONS['l-rookmate'] = {
   addAfter(3, null, 'l-rookmate');
   var e = STAGES[3].lessons; e.splice(e.indexOf('l-rookmate'), 1); e.unshift('l-rookmate');
 })();
-if (typeof module !== 'undefined') module.exports = { STAGES: STAGES, LESSONS: LESSONS, OPENINGS: OPENINGS, PUZZLES: PUZZLES, COACH_LEVELS: COACH_LEVELS };
+
+// What costs points at each level, and the lesson that fixes it. Used by the "Your level" plan.
+var RATING_GUIDE = [
+  { min: 0, max: 400, name: 'Under 400', focus: 'Learn every rule, then stop giving pieces away.', mistakes: [
+    { t: 'Pieces left hanging', d: 'A piece moves to a square where it can simply be taken, or an attacked piece is forgotten.', lesson: 'l-values' },
+    { t: 'Free pieces not taken', d: 'The opponent leaves something undefended and nobody notices.', lesson: 'l-captures' },
+    { t: 'Stalemate instead of mate', d: 'A won game becomes a draw because the enemy king has no legal move.', lesson: 'l-check' },
+    { t: 'Early queen attacks', d: 'Quick mates on f7 or f2 catch you out.', lesson: 'l-traps' }] },
+  { min: 400, max: 800, name: '400 – 800', focus: 'Stop one-move blunders: see every threat before you move.', mistakes: [
+    { t: 'One-move blunders', d: 'Games are decided by a piece left hanging or a threat that was never noticed.', lesson: 'l-threats' },
+    { t: 'Bad captures', d: 'Taking with the wrong piece, or taking a defended piece and losing more.', lesson: 'l-captures' },
+    { t: 'Slow, aimless openings', d: 'Moving the same piece twice, early queen trips, no castling.', lesson: 'l-principles' },
+    { t: 'Simple forks missed', d: 'Knight and queen forks win or lose most material at this level.', lesson: 'l-forks' },
+    { t: 'Won games not finished', d: 'Not knowing how to mate with queen or rook, or stalemating.', lesson: 'l-qmate' }] },
+  { min: 800, max: 1200, name: '800 – 1200', focus: 'Two-move tactics and loose pieces, for you and against you.', mistakes: [
+    { t: 'Loose pieces', d: 'Undefended pieces fall to forks, skewers and checks that hit two things.', lesson: 'l-loose' },
+    { t: 'Two-move tactics missed', d: 'One-move captures are seen; a check followed by a capture is not.', lesson: 'l-twomove' },
+    { t: 'Weak back rank', d: 'A king with no escape square gets mated by a single rook.', lesson: 'l-backrank' },
+    { t: 'King left in the centre', d: 'Not castling, or opening the pawns in front of the king.', lesson: 'l-kingsafety' },
+    { t: 'Pins not used or not seen', d: 'Pinned pieces are attacked again, or walked into.', lesson: 'l-pins' }] },
+  { min: 1200, max: 1600, name: '1200 – 1600', focus: 'Compare candidate moves, respect the opponent\'s ideas, win endgames.', mistakes: [
+    { t: 'Playing the first good-looking move', d: 'No comparison of candidates, so the better move is missed.', lesson: 'l-candidates' },
+    { t: 'Opponent\'s ideas ignored', d: 'Two- and three-move threats arrive as a surprise.', lesson: 'l-defence' },
+    { t: 'Endgames thrown away', d: 'Passive kings, wrong pawn pushes, miscounted races.', lesson: 'l-endgame-play' },
+    { t: 'Rook endgames', d: 'The most common endgame, and the one most often misplayed.', lesson: 'l-rook-end' },
+    { t: 'No plan in the middlegame', d: 'Moves without a target once the opening is over.', lesson: 'l-structure' }] },
+  { min: 1600, max: 3000, name: '1600 – 2000', focus: 'Deeper, tidier calculation and converting small advantages.', mistakes: [
+    { t: 'Calculation errors in long lines', d: 'A defence or quiet move is missed three moves deep.', lesson: 'l-deep' },
+    { t: 'Advantages not converted', d: 'Better positions drift into draws.', lesson: 'l-convert' },
+    { t: 'No prophylaxis', d: 'The opponent\'s plan is not stopped before it starts.', lesson: 'l-outposts' },
+    { t: 'Imprecise rook endings', d: 'Lucena and Philidor positions misplayed.', lesson: 'l-rook-end' },
+    { t: 'Candidate moves skipped', d: 'Forcing options are not listed before calculating.', lesson: 'l-calc' }] }
+];
+if (typeof module !== 'undefined') module.exports = { STAGES: STAGES, LESSONS: LESSONS, OPENINGS: OPENINGS, PUZZLES: PUZZLES, COACH_LEVELS: COACH_LEVELS, RATING_GUIDE: RATING_GUIDE };

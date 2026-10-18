@@ -69,7 +69,7 @@ for (const id in M.MISSIONS) { if (ONLY && ONLY.indexOf(id) < 0) continue;
       let fails = 0;
       for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
         const h = new Game(g.fen()), st = { caps: 0 }, rnd = seeded(seed * 7919); let won = 0;
-        for (let n = 1; n <= m.limit && !won; n++) { const u = m.sol[n - 1]; const x = h.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); if (!x) break; if (M.missionCheck(m, h, x, st) === 'win') won = n; else { const c = M.missionWander(h, rnd); if (!c) break; h.move(c); } }
+        for (let n = 1; n <= m.limit && !won; n++) { const u = m.sol[n - 1]; const x = h.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); if (!x) break; if (M.missionCheck(m, h, x, st) === 'win') won = n; else { const c = M.missionReply(m, h, n, rnd); if (!c) break; h.move(c); } }
         if (!won) fails++;
       }
       if (fails > 1) err(m.id, fails + '/8 seeds: plan did not finish'); else if (fails) console.log(m.id, 'plan blocked by 1 of 8 random coach replies (player can adapt)'); else console.log(m.id, 'plan works against 8 coach seeds');

@@ -1280,4 +1280,19 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .share-row .btn { min-height: 42px; }
 }
 @media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { display: none; } }
+.pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 2px; }
+.pick-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 14px; border: 2px solid var(--line); background: var(--card-2); color: var(--fg); font-size: 18px; }
+.pick-btn b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 15px; color: #0b0f17; }
+.pick-btn.a b { background: #4cc9f0; } .pick-btn.b b { background: #ffd23f; }
+.pick-btn.right { border-color: var(--good); background: rgba(61,220,151,.12); } .pick-btn.wrong { border-color: var(--bad); background: rgba(255,93,108,.1); opacity: .75; }
+.lv-card { margin: 12px 0; padding: 14px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.lv-h { font: 800 17px/1.25 var(--f-display); margin: 4px 0 4px; }
+.lv-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,.06); }
+.lv-ico { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: rgba(255,181,71,.18); color: var(--warn); }
+.lv-row.done .lv-ico { background: rgba(61,220,151,.18); color: var(--good); }
+.lv-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lv-t b { font-size: 14px; } .lv-t span { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.lv-acts { display: flex; gap: 6px; flex: none; }
+.cc-link { display: flex; gap: 8px; margin-top: 8px; } .cc-link input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg); font: 600 15px var(--f-body); }
+.cc-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.06); } .cc-row span { width: 60px; color: var(--muted); } .cc-row b { flex: 1; font-family: var(--f-mono); }
+.cc-row em { font-style: normal; font-weight: 800; } .cc-row em.up { color: var(--good); } .cc-row em.down { color: var(--bad); }
 </style>

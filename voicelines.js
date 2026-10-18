@@ -33,6 +33,7 @@ function VOICE_LINES(data, opts) {
     data.LESSONS[id].steps.forEach(function (s, i) {
       out.push({ id: 'L-' + id + '-' + i, text: s.text, group: 'lessons' });
       if (s.done) out.push({ id: 'L-' + id + '-' + i + '-d', text: s.done, group: 'lessons' });
+      if (s.options) s.options.forEach(function (o, k) { out.push({ id: 'L-' + id + '-' + i + '-' + k, text: o.why, group: 'lessons' }); });
     });
   });
   data.PUZZLES.forEach(function (p) { out.push({ id: 'P-' + p.id, text: p.explain, group: 'puzzles' }); });
