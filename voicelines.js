@@ -395,3 +395,14 @@ Object.assign(MORE_POOLS, {
   friend_mate: ["Checkmate! What a game.", "That's checkmate. Shake hands, and play again!", "Game over. Well played, both of you."],
   friend_draw: ["It's a draw. A fair result.", "Draw! Nobody could break through."]
 });
+
+// ===== Batch 11: chess.com hub, your own mistakes, 30-Day Ascent =====
+Object.assign(MORE_POOLS, {
+  mc_connected: ["Connected! I'm downloading every game you've played.", "Got your account. Let me fetch all your games.", "Account found. Give me a moment to bring in your games."],
+  mc_scan_start: ["I'm checking your games now, every single move. Keep using the app if you like.", "Scanning your games for mistakes. This takes a few minutes.", "Let me replay your games with the engine and find what is costing you points."],
+  mc_scan_done: ["Done. I've turned your worst moments into puzzles. Let's fix them.", "Scan complete. Your chess DNA is ready.", "Finished. Now we know exactly what to train."],
+  mine_start: ["These positions are from your own games. Let's get them right this time.", "Your own mistakes, second chance. Find the better move.", "Same position as your game. This time, find the move that works."],
+  mine_right: ["That's it! That one won't catch you again.", "Yes. Next time this comes up in a game, you'll know.", "Fixed. That is how you stop repeating mistakes.", "Exactly. Better than the game!"],
+  prog_start: ["Day one of the 30-Day Ascent. Twenty minutes, every day. Let's climb.", "The climb starts now. Small steps every day add up fast."],
+  prog_done: ["Thirty days! You reached the summit. I'm proud of you.", "That's the whole climb. Look how far you've come."]
+});

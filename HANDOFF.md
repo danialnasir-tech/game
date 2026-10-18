@@ -186,3 +186,21 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   (rapid, blitz, bullet, daily). Refreshes in the background every 6 hours.
 - Coach missions with a full board now use real opening replies (`replies`), and the coach's gentle moves never attack your pieces.
 - `node tests/audit-moves.js` lists every requested move that lands on an attacked square.
+
+## My chess.com, my mistakes, 30-Day Ascent
+- **My chess.com** (`MODES.mychess`, Progress tab → card, Coach tab → "Played on chess.com?"): one input accepts a username, @name or
+  profile link (`ccParse`); a game link alone gets a clear message. Loads the profile and ratings, then **every monthly archive**
+  (`mcLoadAll`), cached in IndexedDB (`IDB`, key `m:<archive url>`; past months are downloaded once, the current month refreshes after
+  an hour). Tabs: Overview (totals, rating chart per time control, plain-language insights from `mcInsights`), Games (filters, tap for a
+  full engine review), Mistakes (chess DNA).
+- **Find my mistakes** (`scanGames`): engine-checks your last 20 rated games in the background (about 10 s a game), records phase
+  accuracy and problem types (`problemOf`) in `S.dna`, and saves up to 4 mistakes per game as personal puzzles in `S.myPz`.
+- **Train my mistakes** (`MODES.mine`): your position, what you played and how it was punished; any move within 0.7 pawns of the
+  engine's best counts. Spaced repetition: 1, 3, 7, 16, 35 days.
+- **30-Day Ascent** (`MODES.program`, home card after two lessons): 15/20/30 minutes a day; daily tasks are Warm-up, Learn (your
+  biggest weakness from the DNA or the rating guide), Fix your mistakes (or puzzles), Play (every third day a rated chess.com game).
+  Tasks tick off automatically (`progMark` hooks in lessons, practice, warm-up, games, mistakes). Weekly check-ins on days 7/14/21/28;
+  day 30 shows the summit screen with a shareable certificate (rating before → after).
+- Errors: in the claude.ai preview chess.com cannot be reached (the page may not contact other sites); the app says so. On a real
+  website the chess.com public API works without any key.
+- Reset (Settings → Start over) also clears the IndexedDB game cache.

@@ -4826,6 +4826,17 @@ Object.assign(MORE_POOLS, {
   friend_draw: ["It's a draw. A fair result.", "Draw! Nobody could break through."]
 });
 
+// ===== Batch 11: chess.com hub, your own mistakes, 30-Day Ascent =====
+Object.assign(MORE_POOLS, {
+  mc_connected: ["Connected! I'm downloading every game you've played.", "Got your account. Let me fetch all your games.", "Account found. Give me a moment to bring in your games."],
+  mc_scan_start: ["I'm checking your games now, every single move. Keep using the app if you like.", "Scanning your games for mistakes. This takes a few minutes.", "Let me replay your games with the engine and find what is costing you points."],
+  mc_scan_done: ["Done. I've turned your worst moments into puzzles. Let's fix them.", "Scan complete. Your chess DNA is ready.", "Finished. Now we know exactly what to train."],
+  mine_start: ["These positions are from your own games. Let's get them right this time.", "Your own mistakes, second chance. Find the better move.", "Same position as your game. This time, find the move that works."],
+  mine_right: ["That's it! That one won't catch you again.", "Yes. Next time this comes up in a game, you'll know.", "Fixed. That is how you stop repeating mistakes.", "Exactly. Better than the game!"],
+  prog_start: ["Day one of the 30-Day Ascent. Twenty minutes, every day. Let's climb.", "The climb starts now. Small steps every day add up fast."],
+  prog_done: ["Thirty days! You reached the summit. I'm proud of you.", "That's the whole climb. Look how far you've come."]
+});
+
 ;
 // Vector chess piece icons (45x45 viewBox). Font-free so they render identically on every device.
 var PIECE_PATHS = {
@@ -5035,7 +5046,7 @@ function BOARD2D_FACTORY() {
     return freshState();
   }
   // Erase everything Chess Ascent keeps in this browser (progress, account, settings).
-  function wipeAll() { try { Object.keys(localStorage).forEach(function (k) { if (/^chess-ascent/.test(k)) localStorage.removeItem(k); }); } catch (e) { } }
+  function wipeAll() { try { Object.keys(localStorage).forEach(function (k) { if (/^chess-ascent/.test(k)) localStorage.removeItem(k); }); } catch (e) { } try { indexedDB.deleteDatabase('chess-ascent'); } catch (e) { } }
   // Test link: opening the site with ?fresh (or #fresh) always starts like a brand-new player.
   try { if (/[?&#]fresh\b/.test(location.search + location.hash)) wipeAll(); } catch (e) { }
   var S = loadState();
@@ -6238,7 +6249,7 @@ function BOARD2D_FACTORY() {
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { mychess: 'progress', program: 'path', mine: 'path', daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
@@ -6254,7 +6265,7 @@ function BOARD2D_FACTORY() {
     setLayout();
   }
   // Phone layout: board-first screens get a full-width square board; browsing screens get a small board and more room.
-  var BOARD_MODES = { daily: 1, challenge: 1, friend: 1, drill: 1, warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
+  var BOARD_MODES = { mine: 1, daily: 1, challenge: 1, friend: 1, drill: 1, warmup: 1, lesson: 1, opening: 1, puzzles: 1, rush: 1, review: 1, practice: 1, stagetest: 1, vision: 1, mission: 1 };
   function setLayout() {
     var m = document.body.dataset.mode, board = !!BOARD_MODES[m] || (m === 'play' && PL && PL.g);
     document.body.dataset.layout = board ? 'board' : 'browse';
@@ -6402,9 +6413,9 @@ function BOARD2D_FACTORY() {
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        socialRow() + installCard() +
+        progCard() + socialRow() + installCard() +
         warmupCard() +
-        (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
+        (S.prog ? '' : discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
@@ -6754,7 +6765,7 @@ function BOARD2D_FACTORY() {
     LS.finished = true;
     var prev = S.lessons[LS.id], wasLocked = { play: isLocked('play'), openings: isLocked('openings') };
     S.lessons[LS.id] = { done: true, stars: Math.max(stars, prev && prev.stars || 0) };
-    today().lesson = true; today().lessons = (today().lessons || 0) + 1; addXP(50); save();
+    today().lesson = true; today().lessons = (today().lessons || 0) + 1; addXP(50); save(); progMark('learn');
     Badges.award('first_lesson');
     var stI = stageOf(LS.id), stDone = stageComplete(stI);
     if (stDone) Badges.award('stage_' + (stI + 1));
@@ -7443,7 +7454,7 @@ function BOARD2D_FACTORY() {
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
         '<button class="test-out an-entry" data-act="friend"><span class="to-ico" aria-hidden="true">👥</span><span><b>Play a friend on this device</b><span>Pass the phone after each move. I give tips to both of you.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
-        '<button class="test-out an-entry" data-act="goAnalyze"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
+        '<button class="test-out an-entry" data-act="mychess"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
         '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">' + (S.puzzle.rating < 500 ? 'Start here' : 'Your level') + '</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
@@ -7724,7 +7735,7 @@ function BOARD2D_FACTORY() {
       var mean = accs.reduce(function (s, x) { return s + x; }, 0) / (accs.length || 1), harm = accs.length / accs.reduce(function (s, x) { return s + 1 / Math.max(5, x); }, 0);
       var acc = mine.length ? Math.round((mean + harm) / 2) : null;
       var count = function (k) { return mine.filter(function (l) { return l.label === k; }).length; };
-      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length });
+      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length }); progMark('play');
       if (S.games.length > 200) S.games.shift();
       var plies = PL.g.history().length, real = plies >= 20 || result !== 'loss' || /Checkmate/.test(msg) || beginnerMode();
       if (real) today().game = true;
@@ -8280,7 +8291,7 @@ function BOARD2D_FACTORY() {
     if (!DR) return;
     if (DR.k + 1 < DR.list.length) { DR.k++; return MODES.drill.load(); }
     var okN = DR.res.filter(function (x) { return x === true; }).length, n = DR.list.length, lid = DR.lid;
-    S.drills = S.drills || {}; S.drills[lid] = Math.max(S.drills[lid] || 0, okN); save();
+    S.drills = S.drills || {}; S.drills[lid] = Math.max(S.drills[lid] || 0, okN); save(); progMark('learn');
     document.body.dataset.layout = 'browse'; IX.enabled = false;
     if (okN >= n - 1) { Sound.play('win'); confetti(); }
     Voice.say([V(okN >= n - 1 ? 'drill_done_great' : 'drill_done_ok')]);
@@ -8680,6 +8691,12 @@ function BOARD2D_FACTORY() {
       '<div class="actions plain"><button class="btn ghost small" data-act="ccRefresh">↻ Update</button><button class="btn ghost small" data-act="ccUntrack">Stop tracking</button></div>' +
       '<p class="muted small">Ratings move up and down with every game. Look at the trend over two to four weeks of steady training.</p></section>';
   }
+  function ccCard() {
+    var c = S.cc;
+    if (!c) return '<button class="prog-card cc" data-act="mychess"><span class="pc-ico">♞</span><span class="pc-t"><b>Connect your chess.com</b><span>All your games, your patterns, puzzles from your own mistakes</span></span><span class="an-go">→</span></button>';
+    var st = c.stats || {}, k = CC_KINDS.filter(function (x) { return st[x[0]]; })[0], b = k && S.ccTrack && S.ccTrack.base && S.ccTrack.base[k[0]], d = b ? st[k[0]] - b : 0;
+    return '<button class="prog-card cc" data-act="mychess"><span class="pc-ico">' + (c.avatar ? '<img src="' + esc(c.avatar) + '" alt="">' : '♞') + '</span><span class="pc-t"><b>' + esc(c.user) + (k ? ' · ' + k[2] + ' ' + st[k[0]] + (d ? ' (' + (d > 0 ? '+' : '') + d + ')' : '') : '') + '</b><span>' + ((S.myPz || []).length ? duePz().length + ' of your mistakes to train · ' : '') + 'Games, stats and patterns</span></span><span class="an-go">→</span></button>';
+  }
   ACT.ccTrack = function () {
     var inp = $('#cc-track-in'), u = inp && inp.value.trim(), msg = $('#cc-track-msg'); if (!u) return;
     msg.textContent = 'Looking up ' + u + '…';
@@ -8692,6 +8709,389 @@ function BOARD2D_FACTORY() {
   ACT.ccRefresh = function () { var t = S.ccTrack; if (!t) return; ccStats(t.user).then(function (st) { t.last = st; t.checked = Date.now(); save(); MODES.progress.enter(); toast('Updated.'); }).catch(function () { toast('Could not reach chess.com right now.'); }); };
   ACT.ccUntrack = function () { S.ccTrack = null; save(); MODES.progress.enter(); };
   function ccAutoRefresh() { var t = S.ccTrack; if (t && t.user && Date.now() - (t.checked || 0) > 6 * 36e5) ccStats(t.user).then(function (st) { t.last = st; t.checked = Date.now(); save(); }).catch(function () { }); }
+
+  // ================= My chess.com: profile, every game, stats, mistakes =================
+  // Games are cached in IndexedDB month by month; past months never change, so they are only downloaded once.
+  var IDB = (function () {
+    var dbp = null;
+    function db() {
+      if (!dbp) dbp = new Promise(function (res, rej) {
+        try { var r = indexedDB.open('chess-ascent', 1); r.onupgradeneeded = function () { r.result.createObjectStore('kv'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; } catch (e) { rej(e); }
+      });
+      return dbp;
+    }
+    return {
+      get: function (k) { return db().then(function (d) { return new Promise(function (res) { try { var q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = function () { res(q.result); }; q.onerror = function () { res(undefined); }; } catch (e) { res(undefined); } }); }).catch(function () { return undefined; }); },
+      set: function (k, v) { return db().then(function (d) { return new Promise(function (res) { try { var t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = function () { res(true); }; t.onerror = function () { res(false); }; } catch (e) { res(false); } }); }).catch(function () { return false; }); }
+    };
+  })();
+  // Anything a player might paste: a username, @name, a profile link, or a game link
+  function ccParse(s) {
+    s = String(s || '').trim();
+    var game = ccLinkId(s), m = /chess\.com\/(?:member|players?)\/([\w-]+)/i.exec(s);
+    if (m) return { user: m[1], game: game };
+    if (/^https?:|chess\.com/i.test(s)) return { user: null, game: game };
+    return { user: s.replace(/^@/, '').replace(/\s+/g, ''), game: game };
+  }
+  function ccErrorText(e) {
+    if (e && e.code === 'offline' && document.documentElement.classList.contains('framed')) return 'This preview page is not allowed to contact chess.com. Open the game on your own website and it will work there.';
+    return ccError(e);
+  }
+  var DRAWS = /agreed|repetition|stalemate|insufficient|50move|timevsinsufficient/;
+  function ccSlim(x, user) {
+    var me = String(x.white.username).toLowerCase() === user.toLowerCase() ? 'w' : 'b', mine = me === 'w' ? x.white : x.black, opp = me === 'w' ? x.black : x.white;
+    var eco = /\[ECOUrl "([^"]*)"\]/.exec(x.pgn || ''), name = eco ? decodeURIComponent(eco[1].split('/').pop()).replace(/-/g, ' ').replace(/\s\d.*$/, '') : '';
+    var term = /\[Termination "([^"]*)"\]/.exec(x.pgn || '');
+    return { id: String(x.url || '').split('/').pop(), url: x.url, t: x.end_time, tc: x.time_class, rated: x.rated !== false, me: me, my: mine.rating, opp: opp.username, or: opp.rating,
+      res: mine.result === 'win' ? 'win' : DRAWS.test(mine.result) ? 'draw' : 'loss', how: mine.result === 'win' ? opp.result : mine.result, op: name.split(' ').slice(0, 4).join(' '),
+      acc: x.accuracies ? x.accuracies[me === 'w' ? 'white' : 'black'] : null, pgn: x.pgn, term: term ? term[1] : '' };
+  }
+  var MC = { games: null, loading: null, tab: 'overview', f: { tc: 'all', res: 'all' }, show: 30 };
+  function mcLoadAll(user, onProgress) {
+    var all = [], now = new Date(), curKey = now.getUTCFullYear() + '/' + String(now.getUTCMonth() + 1).padStart(2, '0');
+    return CC.archives(user).then(function (months) {
+      var k = 0;
+      function next() {
+        if (k >= months.length) return all;
+        var url = months[k++], current = url.indexOf(curKey) >= 0;
+        return IDB.get('m:' + url).then(function (hit) {
+          if (hit && (!current || Date.now() - hit.at < 36e5)) return hit.games;
+          return CC.get(url).then(function (j) { var g = (j.games || []).filter(ccStandard).map(function (x) { return ccSlim(x, user); }); IDB.set('m:' + url, { at: Date.now(), games: g }); return g; });
+        }).then(function (g) { all = all.concat(g); onProgress(k, months.length, all.length); return next(); });
+      }
+      return next();
+    });
+  }
+  function mcStats(games) {
+    var st = { n: games.length, w: 0, d: 0, l: 0, tc: {}, col: { w: [0, 0, 0], b: [0, 0, 0] }, ops: {}, lossHow: {}, vs: { up: [0, 0], eq: [0, 0], down: [0, 0] }, hours: { morning: [0, 0], afternoon: [0, 0], evening: [0, 0], night: [0, 0] }, hist: {}, best: 0, streak: 0 };
+    var cur = 0;
+    games.slice().sort(function (a, b) { return a.t - b.t; }).forEach(function (g) {
+      var sc = g.res === 'win' ? 1 : g.res === 'draw' ? 0.5 : 0;
+      st[g.res[0]]++;
+      var t = st.tc[g.tc] = st.tc[g.tc] || { n: 0, w: 0, d: 0, l: 0 }; t.n++; t[g.res[0]]++;
+      var c = st.col[g.me]; c[0]++; c[1] += sc;
+      if (g.op) { var o = st.ops[g.op] = st.ops[g.op] || { n: 0, s: 0, me: g.me }; o.n++; o.s += sc; }
+      if (g.res === 'loss') st.lossHow[g.how] = (st.lossHow[g.how] || 0) + 1;
+      var diff = (g.or || 0) - (g.my || 0), b = diff > 100 ? 'up' : diff < -100 ? 'down' : 'eq'; st.vs[b][0]++; st.vs[b][1] += sc;
+      var h = new Date(g.t * 1000).getHours(), hb = h >= 5 && h < 12 ? 'morning' : h < 17 && h >= 12 ? 'afternoon' : h >= 17 && h < 22 ? 'evening' : 'night'; st.hours[hb][0]++; st.hours[hb][1] += sc;
+      if (g.rated && g.my) (st.hist[g.tc] = st.hist[g.tc] || []).push(g.my);
+      if (g.res === 'win') { cur++; if (cur > st.best) st.best = cur; } else cur = 0;
+    });
+    return st;
+  }
+  var pct = function (s, n) { return n ? Math.round(s / n * 100) : 0; };
+  function mcInsights(st) {
+    var out = [];
+    var ops = Object.keys(st.ops).map(function (k) { return { k: k, n: st.ops[k].n, p: pct(st.ops[k].s, st.ops[k].n) }; }).filter(function (o) { return o.n >= 5; }).sort(function (a, b) { return a.p - b.p; });
+    if (ops.length) out.push('Weakest opening: <b>' + esc(ops[0].k) + '</b>, ' + ops[0].p + '% score in ' + ops[0].n + ' games.');
+    if (ops.length > 1) out.push('Best opening: <b>' + esc(ops[ops.length - 1].k) + '</b>, ' + ops[ops.length - 1].p + '% in ' + ops[ops.length - 1].n + ' games.');
+    var hrs = Object.keys(st.hours).map(function (k) { return { k: k, n: st.hours[k][0], p: pct(st.hours[k][1], st.hours[k][0]) }; }).filter(function (x) { return x.n >= 10; }).sort(function (a, b) { return b.p - a.p; });
+    if (hrs.length > 1 && hrs[0].p - hrs[hrs.length - 1].p >= 6) out.push('You score <b>' + hrs[0].p + '% in the ' + hrs[0].k + '</b> but only ' + hrs[hrs.length - 1].p + '% at ' + (hrs[hrs.length - 1].k === 'night' ? 'night' : 'in the ' + hrs[hrs.length - 1].k) + '.');
+    var losses = st.l || 1, to = st.lossHow.timeout || 0, mated = st.lossHow.checkmated || 0;
+    if (to / losses >= 0.2) out.push('<b>' + pct(to, losses) + '% of your losses are on time.</b> Play a slower time control or move faster in easy positions.');
+    if (mated / losses >= 0.35) out.push('<b>' + pct(mated, losses) + '% of your losses end in checkmate.</b> King safety is your biggest leak.');
+    var up = st.vs.up, down = st.vs.down;
+    if (down[0] >= 10 && pct(down[1], down[0]) < 60) out.push('Against lower-rated players you score only ' + pct(down[1], down[0]) + '%. Those games should be wins: avoid early risks.');
+    if (up[0] >= 10) out.push('Against stronger players you score ' + pct(up[1], up[0]) + '%.');
+    var cw = st.col.w, cb = st.col.b;
+    if (cw[0] >= 10 && cb[0] >= 10 && Math.abs(pct(cw[1], cw[0]) - pct(cb[1], cb[0])) >= 8) out.push('You score ' + pct(cw[1], cw[0]) + '% with White and ' + pct(cb[1], cb[0]) + '% with Black. ' + (pct(cw[1], cw[0]) < pct(cb[1], cb[0]) ? 'Your White openings need work.' : 'Your Black defences need work.'));
+    return out;
+  }
+  // ---- engine scan of recent games: every one of your moves, the mistakes become your own puzzles
+  var SCAN = null;
+  function scanGames(list) {
+    if (SCAN && !SCAN.done) return;
+    SCAN = { list: list, k: 0, n: list.length, found: 0, agg: {}, phase: { open: [], mid: [], end: [] }, accs: [], done: false, tok: Date.now() };
+    var tok = SCAN.tok;
+    S.myPz = S.myPz || [];
+    var have = {}; S.myPz.forEach(function (p) { have[p.id] = 1; });
+    function nextGame() {
+      if (!SCAN || SCAN.tok !== tok) return;
+      if (SCAN.k >= SCAN.n) { SCAN.done = true; S.dna = { at: Date.now(), n: SCAN.n, agg: SCAN.agg, phase: { open: avgA(SCAN.phase.open), mid: avgA(SCAN.phase.mid), end: avgA(SCAN.phase.end) }, acc: avgA(SCAN.accs) }; save(); Voice.say([V('mc_scan_done')]); return mcRefresh(); }
+      var gm = SCAN.list[SCAN.k++], P = parsePGN(gm.pgn); if (P.error) return nextGame();
+      var g = new Game(P.startFen), plies = [], i = 0;
+      P.sans.forEach(function (san) { var before = g.fen(), mover = g.turn(), r = g.move(san); if (r && mover === gm.me) plies.push({ i: i, fen: before, r: r }); i++; });
+      var j = 0, gameAcc = [], perGame = 0;
+      function nextMove() {
+        if (!SCAN || SCAN.tok !== tok) return;
+        if (j >= plies.length) { if (gameAcc.length) SCAN.accs.push(avgA(gameAcc)); mcRefresh(); return setTimeout(nextGame, 0); }
+        var q = plies[j++], uci = q.r.from + q.r.to + (q.r.promotion || '');
+        Eng.call('analyzeMove', q.fen, uci, 30, 220).then(function (a) {
+          if (a) {
+            var drop = Math.max(0, winChance(a.bestScore) - winChance(a.playedScore)) * 100, acc = Math.max(0, Math.min(100, 103.17 * Math.exp(-0.04354 * drop) - 3.17));
+            gameAcc.push(acc);
+            var nonPawn = 0; new Game(q.fen).boardArray().forEach(function (row) { row.forEach(function (p) { if (p && p.type !== 'p' && p.type !== 'k') nonPawn += VAL[p.type]; }); });
+            var ph = q.i < 24 ? 'open' : nonPawn <= 26 ? 'end' : 'mid'; SCAN.phase[ph].push(acc);
+            var bad = a.loss >= 180 && a.bestScore > -250 && !(a.playedScore > 400);
+            if (bad) {
+              var l = { cls: 'x', key: a.loss >= 300 ? 'blunder' : 'mistake', bs: a.bestScore, ps: a.playedScore, rs: a.reply ? a.reply.score : null, rc: a.reply && a.reply.captured || null, best: a.best, loss: a.loss };
+              var pk = problemOf(l) || 'missedBetter'; SCAN.agg[pk] = (SCAN.agg[pk] || 0) + 1;
+              var id = gm.id + ':' + q.i;
+              if (!have[id] && perGame < 4 && a.best) {
+                have[id] = 1; perGame++; SCAN.found++;
+                S.myPz.push({ id: id, fen: q.fen, best: a.best.from + a.best.to + (a.best.promotion || ''), bestSan: a.bestSan, played: q.r.san, loss: a.loss, kind: pk, opp: gm.opp, t: gm.t, me: gm.me, url: gm.url, reply: a.replySan || '', lvl: 0, due: 0 });
+              }
+            }
+          }
+          setTimeout(nextMove, 0);
+        }, function () { setTimeout(nextMove, 0); });
+      }
+      nextMove();
+    }
+    S.myPz = S.myPz.slice(-300);
+    nextGame(); mcRefresh();
+  }
+  function avgA(a) { return a.length ? Math.round(a.reduce(function (s, x) { return s + x; }, 0) / a.length) : null; }
+  function mcRefresh() { if (current === MODES.mychess) MODES.mychess.render(); }
+  function duePz() { var now = Date.now(); return (S.myPz || []).filter(function (p) { return (p.due || 0) <= now && (p.lvl || 0) < 5; }).sort(function (a, b) { return (a.lvl || 0) - (b.lvl || 0) || b.loss - a.loss; }); }
+
+  MODES.mychess = {
+    label: 'My chess.com',
+    enter: function (arg) {
+      setupBoard(Game.START, { orient: 'w' }); document.body.dataset.layout = 'browse';
+      if (arg && arg.tab) MC.tab = arg.tab;
+      var cc = S.cc;
+      if (cc && cc.user && !MC.games && !MC.loading) MODES.mychess.load(false);
+      MODES.mychess.render();
+    },
+    connect: function (raw) {
+      var P = ccParse(raw);
+      if (!P.user) { MC.err = P.game ? 'That is a game link. Type your chess.com username here first; after that you can open any of your games.' : 'Type your chess.com username, like MagnusCarlsen.'; return MODES.mychess.render(); }
+      MC.err = null; MC.busy = 'Looking up ' + P.user + '…'; MODES.mychess.render();
+      var u = P.user;
+      Promise.all([CC.get(CC.base + encodeURIComponent(u.toLowerCase())), ccStats(u)]).then(function (r) {
+        var pr = r[0];
+        S.cc = { user: pr.username || u, name: pr.name || '', avatar: pr.avatar || '', country: (pr.country || '').split('/').pop(), joined: pr.joined, title: pr.title || '', url: pr.url, stats: r[1], at: Date.now() };
+        S.ccUser = S.cc.user;
+        if (!S.ccTrack || S.ccTrack.user !== S.cc.user) S.ccTrack = { user: S.cc.user, since: Date.now(), base: r[1], last: r[1], checked: Date.now() };
+        save(); MC.busy = null; MC.games = null; Voice.say([V('mc_connected')]);
+        MODES.mychess.load(true);
+      }).catch(function (e) { MC.busy = null; MC.err = ccErrorText(e); MODES.mychess.render(); });
+    },
+    load: function (fresh) {
+      var u = S.cc.user; MC.loading = { k: 0, n: 0, g: 0 }; MODES.mychess.render();
+      mcLoadAll(u, function (k, n, g) { MC.loading = { k: k, n: n, g: g }; if (current === MODES.mychess && (k % 3 === 0 || k === n)) MODES.mychess.render(); })
+        .then(function (all) { MC.games = all.sort(function (a, b) { return b.t - a.t; }); MC.loading = null; MC.stats = mcStats(MC.games); S.cc.nGames = MC.games.length; save(); MODES.mychess.render(); })
+        .catch(function (e) { MC.loading = null; MC.err = ccErrorText(e); MODES.mychess.render(); });
+    },
+    render: function () {
+      var cc = S.cc;
+      if (!cc || !cc.user) {
+        setPanel('<div class="eyebrow">Your real games</div><h1 class="h1">Connect chess.com</h1>' +
+          '<p class="lede">I download every game you have played, find your patterns, and turn your own mistakes into training. Free, no password: chess.com games are public.</p>' +
+          '<div class="cc-link big"><input id="mc-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Username or profile link" value="' + esc(S.ccUser || '') + '"><button class="btn primary" data-act="mcConnect">' + (MC.busy ? '…' : 'Connect') + '</button></div>' +
+          (MC.busy ? '<p class="status">' + esc(MC.busy) + '</p>' : '') + (MC.err ? '<div class="status bad">' + esc(MC.err) + '</div>' : '') +
+          '<ul class="mc-list"><li>📈 Ratings and every game, all years</li><li>🧬 Your chess DNA: the mistakes that cost you most</li><li>🎯 Puzzles made from your own blunders</li><li>📊 Rating tracked while you train</li></ul>');
+        var inp = $('#mc-in'); if (inp) inp.onkeydown = function (e) { if (e.key === 'Enter') ACT.mcConnect(); };
+        return;
+      }
+      var st = cc.stats || {}, tabs = [['overview', 'Overview'], ['games', 'Games'], ['dna', 'Mistakes']];
+      var head = '<div class="mc-head">' + (cc.avatar ? '<img class="mc-av" src="' + esc(cc.avatar) + '" alt="">' : '<span class="mc-av ph">♞</span>') +
+        '<div class="mc-who"><b>' + (cc.title ? '<em class="mc-title">' + esc(cc.title) + '</em> ' : '') + esc(cc.user) + '</b><span>' + esc([cc.name, cc.country].filter(Boolean).join(' · ')) + '</span></div>' +
+        '<button class="btn ghost small" data-act="mcSwitch">Change</button></div>' +
+        '<div class="mc-ratings">' + CC_KINDS.filter(function (k) { return st[k[0]]; }).map(function (k) { var b = S.ccTrack && S.ccTrack.base && S.ccTrack.base[k[0]], d = b ? st[k[0]] - b : 0; return '<span><i>' + k[2] + '</i><b>' + st[k[0]] + '</b>' + (d ? '<em class="' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + d + '</em>' : '') + '</span>'; }).join('') + '</div>' +
+        '<div class="seg mc-tabs">' + tabs.map(function (t) { return '<button class="' + (MC.tab === t[0] ? 'on' : '') + '" data-act="mcTab" data-t="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+      var body = '';
+      if (MC.err) body += '<div class="status bad">' + esc(MC.err) + '</div>';
+      if (MC.loading) body += '<div class="an-prog"><div class="an-prog-top"><b>Downloading your games' + (MC.loading.n ? ' · month ' + MC.loading.k + ' of ' + MC.loading.n : '') + '</b><span class="mono">' + MC.loading.g + '</span></div><div class="ms-bar"><i style="width:' + (MC.loading.n ? Math.round(MC.loading.k / MC.loading.n * 100) : 4) + '%"></i></div></div>';
+      if (MC.tab === 'overview') body += MODES.mychess.overview();
+      else if (MC.tab === 'games') body += MODES.mychess.gameList();
+      else body += MODES.mychess.dna();
+      setPanel(head + body);
+      MC.stats && MC.tab === 'overview' && MC.stats.hist[MC.histTc || mcMainTc()] && drawSpark($('#mc-spark'), MC.stats.hist[MC.histTc || mcMainTc()].slice(-120));
+    },
+    overview: function () {
+      var s = MC.stats; if (!s) return MC.loading ? '' : '<p class="muted">No games loaded yet.</p>';
+      var tc = MC.histTc || mcMainTc(), ins = mcInsights(s);
+      var tcs = Object.keys(s.tc).sort(function (a, b) { return s.tc[b].n - s.tc[a].n; });
+      return '<div class="mc-grid"><span><b>' + s.n.toLocaleString() + '</b>games</span><span><b>' + pct(s.w, s.n) + '%</b>won</span><span><b>' + pct(s.d, s.n) + '%</b>drawn</span><span><b>' + s.best + '</b>best win streak</span></div>' +
+        '<div class="mc-chart"><div class="seg small">' + tcs.filter(function (t) { return s.hist[t] && s.hist[t].length > 3; }).map(function (t) { return '<button class="' + (t === tc ? 'on' : '') + '" data-act="mcTc" data-t="' + t + '">' + t + '</button>'; }).join('') + '</div><canvas id="mc-spark" width="320" height="70" aria-label="Rating history"></canvas></div>' +
+        (ins.length ? '<div class="mc-ins"><div class="eyebrow">What your games say</div>' + ins.slice(0, 4).map(function (t) { return '<p>' + t + '</p>'; }).join('') + '</div>' : '') +
+        '<div class="actions"><button class="btn primary" data-act="mcTab" data-t="dna">🧬 Find my mistakes</button><button class="btn ghost" data-act="mcTab" data-t="games">All games →</button></div>';
+    },
+    gameList: function () {
+      var gs = MC.games || []; if (!gs.length) return MC.loading ? '' : '<p class="muted">No games found.</p>';
+      var f = MC.f, list = gs.filter(function (g) { return (f.tc === 'all' || g.tc === f.tc) && (f.res === 'all' || g.res === f.res); });
+      var tcs = ['all'].concat(Object.keys(MC.stats ? MC.stats.tc : {}));
+      return '<div class="mc-filters"><select id="mc-ftc">' + tcs.map(function (t) { return '<option value="' + t + '"' + (f.tc === t ? ' selected' : '') + '>' + (t === 'all' ? 'All time controls' : t) + '</option>'; }).join('') + '</select>' +
+        '<select id="mc-fres">' + [['all', 'All results'], ['win', 'Wins'], ['loss', 'Losses'], ['draw', 'Draws']].map(function (r) { return '<option value="' + r[0] + '"' + (f.res === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select></div>' +
+        '<p class="muted small">' + list.length.toLocaleString() + ' games · tap one for a full move-by-move review</p>' +
+        '<div class="an-games">' + list.slice(0, MC.show).map(function (g) {
+          var d = new Date(g.t * 1000);
+          return '<button class="an-game ' + g.res + '" data-act="mcGame" data-id="' + esc(g.id) + '"><span class="an-res">' + (g.res === 'win' ? 'W' : g.res === 'draw' ? '½' : 'L') + '</span><span class="an-gt"><b>vs ' + esc(g.opp) + ' <span class="muted">(' + (g.or || '?') + ')</span></b><span>' + (g.me === 'w' ? '♙ White' : '♟ Black') + ' · ' + esc(g.tc) + ' · ' + d.toLocaleDateString() + (g.op ? ' · ' + esc(g.op) : '') + '</span></span>' + (g.acc ? '<span class="mono small">' + Math.round(g.acc) + '%</span>' : '') + '</button>';
+        }).join('') + '</div>' + (list.length > MC.show ? '<div class="actions"><button class="btn ghost wide" data-act="mcMore">Show more</button></div>' : '');
+    },
+    dna: function () {
+      var dna = S.dna, n = (S.myPz || []).length, due = duePz().length, html = '';
+      if (SCAN && !SCAN.done) {
+        var p = SCAN.n ? Math.round((SCAN.k - 1 + 0.5) / SCAN.n * 100) : 0;
+        html += '<div class="an-prog"><div class="an-prog-top"><b>Checking game ' + Math.max(1, SCAN.k) + ' of ' + SCAN.n + '</b><span class="mono">' + Math.max(0, p) + '%</span></div><div class="ms-bar"><i style="width:' + Math.max(3, p) + '%"></i></div><p class="muted small">' + SCAN.found + ' of your mistakes found so far. You can keep using the app; I keep working.</p></div>';
+      }
+      if (dna) {
+        var agg = Object.keys(dna.agg).map(function (k) { return { k: k, n: dna.agg[k] }; }).sort(function (a, b) { return b.n - a.n; }), tot = agg.reduce(function (s, x) { return s + x.n; }, 0) || 1;
+        html += '<div class="mc-dna"><div class="eyebrow">Your chess DNA · ' + dna.n + ' games checked</div>' +
+          '<div class="mc-phase">' + [['open', 'Opening'], ['mid', 'Middlegame'], ['end', 'Endgame']].map(function (x) { var v = dna.phase[x[0]]; return '<span><i>' + x[1] + '</i><b>' + (v != null ? v + '%' : '–') + '</b></span>'; }).join('') + '</div>' +
+          agg.slice(0, 3).map(function (a) { var P = PROBLEMS[a.k], L = lessonFor(a.k); return '<div class="lv-row"><span class="lv-ico">!</span><span class="lv-t"><b>' + esc(P.t) + ' · ' + pct(a.n, tot) + '%</b><span class="lv-fix">' + esc(P.fix) + '</span></span>' + (L ? '<span class="lv-acts"><button class="btn small" data-act="lesson" data-id="' + L + '">Fix it</button></span>' : '') + '</div>'; }).join('') + '</div>';
+      }
+      html += '<div class="actions">' + (n ? '<button class="btn primary" data-act="mine">🎯 Train my mistakes' + (due ? ' · ' + due + ' due' : '') + '</button>' : '') +
+        (!SCAN || SCAN.done ? '<button class="btn' + (n ? ' ghost' : ' primary') + '" data-act="mcScan" data-n="20">' + (dna ? '↻ Check my latest 20 games' : '🧬 Check my last 20 games') + '</button>' : '<button class="btn ghost" data-act="mcStop">Stop</button>') + '</div>' +
+        (!dna && !(SCAN && !SCAN.done) ? '<p class="muted small">I replay every move you made with the engine (about 10 seconds a game), then turn your worst moments into puzzles you train until you stop making them.</p>' : '');
+      return html;
+    },
+    leave: function () { }
+  };
+  function mcMainTc() { var s = MC.stats; if (!s) return 'rapid'; return Object.keys(s.hist).sort(function (a, b) { return s.hist[b].length - s.hist[a].length; })[0] || 'rapid'; }
+  ACT.mychess = function () { go('mychess'); };
+  ACT.mcConnect = function () { var i = $('#mc-in'); MODES.mychess.connect(i ? i.value : ''); };
+  ACT.mcSwitch = function () { S.cc = null; MC.games = null; MC.stats = null; save(); MODES.mychess.render(); };
+  ACT.mcTab = function (d) { MC.tab = d.t; MODES.mychess.render(); };
+  ACT.mcTc = function (d) { MC.histTc = d.t; MODES.mychess.render(); };
+  ACT.mcMore = function () { MC.show += 40; MODES.mychess.render(); };
+  ACT.mcGame = function (d) { var g = (MC.games || []).filter(function (x) { return x.id === d.id; })[0]; if (g) go('analyze', { pgn: g.pgn, color: g.me }); };
+  ACT.mcScan = function (d) { var gs = (MC.games || []).filter(function (g) { return g.rated !== false; }).slice(0, +d.n || 20); if (!gs.length) return toast('Your games are still downloading.'); MC.tab = 'dna'; Voice.say([V('mc_scan_start')]); scanGames(gs); };
+  ACT.mcStop = function () { if (SCAN) { SCAN.tok = 0; SCAN.done = true; } mcRefresh(); };
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'mc-ftc') { MC.f.tc = e.target.value; MC.show = 30; MODES.mychess.render(); }
+    if (e.target && e.target.id === 'mc-fres') { MC.f.res = e.target.value; MC.show = 30; MODES.mychess.render(); }
+  });
+
+  // ================= Train my mistakes: puzzles made from your own games =================
+  var MZ = null, GAPS_MZ = [1, 3, 7, 16, 35];
+  MODES.mine = {
+    label: 'My mistakes',
+    enter: function () {
+      var list = duePz().slice(0, 5); if (!list.length) list = (S.myPz || []).slice().sort(function (a, b) { return (a.lvl || 0) - (b.lvl || 0); }).slice(0, 5);
+      if (!list.length) { go('mychess', { tab: 'dna' }); return; }
+      MZ = { list: list, k: 0, ok: 0 }; Voice.say([V('mine_start')], true); MODES.mine.load();
+    },
+    load: function () {
+      var p = MZ.list[MZ.k]; MZ.tries = 0; MZ.over = false; MZ.hint = 0;
+      var g = setupBoard(p.fen, { drop: true, orient: p.me });
+      IX.enabled = true; IX.canMove = function (c) { return c === g.turn() && !MZ.over; }; IX.onMove = MODES.mine.onMove;
+      MODES.mine.render();
+    },
+    render: function (msg, kind) {
+      var p = MZ.list[MZ.k], d = new Date(p.t * 1000), what = p.kind && PROBLEMS[p.kind] ? PROBLEMS[p.kind].t.toLowerCase() : 'a mistake';
+      setPanel('<div class="eyebrow">My mistakes · ' + (MZ.k + 1) + ' of ' + MZ.list.length + '</div><h1 class="h1">Your game vs ' + esc(p.opp) + '</h1>' +
+        '<div class="coach-card"><div class="coach-tag">' + d.toLocaleDateString() + ' · ' + (p.me === 'w' ? 'White' : 'Black') + ' to move</div>' +
+        '<p class="coach-text">In the game you played <b class="mono">' + esc(p.played) + '</b>' + (p.reply ? ' and ' + esc(p.reply) + ' punished it' : '') + ' (' + esc(what) + '). <strong>Find a better move.</strong></p></div>' +
+        '<div id="status" class="status ' + (kind || '') + '">' + (msg || '') + '</div>' +
+        '<div class="actions">' + (MZ.over ? '<button class="btn primary" data-act="mineNext">' + (MZ.k + 1 < MZ.list.length ? 'Next mistake →' : 'Finish →') + '</button>' : '<button class="btn ghost" data-act="mineHint">' + (MZ.hint ? 'Show the move' : 'Hint') + '</button>') + '</div>');
+    },
+    onMove: function (mv, uci) {
+      var p = MZ.list[MZ.k], g = IX.game, fen = g.fen();
+      IX.enabled = false; MODES.mine.render('Checking your move…');
+      return Eng.call('analyzeMove', fen, uci, 30, 700).then(function (a) {
+        if (!MZ || MZ.list[MZ.k] !== p) return;
+        var good = uci === p.best || (a && a.loss <= 70);
+        var san = (new Game(fen).move(mv) || {}).san || uci;
+        if (!good) {
+          MZ.tries++; Sound.play('bad'); B3.flash('bad', [mv.to], 700);
+          var why = a && a.reply && a.reply.score > 90000 ? esc(a.replySan) + ' would be checkmate.' : a && a.reply && a.reply.captured ? 'Then ' + esc(a.replySan) + ' wins your ' + PIECE_NAME[a.reply.captured] + '.' : 'There is a clearly better move.';
+          if (san === p.played) why = 'That is the move you played in the game. ' + why;
+          Voice.say([V('drill_wrong')]);
+          IX.enabled = true; return MODES.mine.render('<strong>' + esc(san) + ' is not it.</strong> ' + why + ' Try again.', 'bad');
+        }
+        return applyMove(g, mv).then(function () {
+          MZ.over = true; var clean = MZ.tries === 0 && MZ.hint < 2;
+          if (clean) { MZ.ok++; p.lvl = Math.min(5, (p.lvl || 0) + 1); } else p.lvl = Math.max(0, (p.lvl || 0) - 1);
+          p.due = Date.now() + GAPS_MZ[Math.min(GAPS_MZ.length - 1, p.lvl || 0)] * 864e5; p.seen = (p.seen || 0) + 1; save();
+          S.prog && progMark('mine', 1);
+          B3.burst(mv.to); Sound.play('good'); addXP(clean ? 12 : 5); Voice.say([V(clean ? 'mine_right' : 'drill_right_late')]);
+          MODES.mine.render('<strong>' + (clean ? 'Yes!' : 'Got it.') + '</strong> ' + esc(san) + (uci === p.best ? ' is the engine\'s top move.' : ' works too. The engine\'s top move was ' + esc(p.bestSan) + '.') + (clean ? ' This one comes back in ' + GAPS_MZ[Math.min(GAPS_MZ.length - 1, p.lvl)] + ' days to make it stick.' : ' You will see it again tomorrow.'), 'good');
+        });
+      });
+    },
+    leave: function () { }
+  };
+  ACT.mine = function () { go('mine'); };
+  ACT.mineHint = function () { if (!MZ || MZ.over) return; var p = MZ.list[MZ.k]; MZ.hint++; if (MZ.hint === 1) { B3.markers('hint', [p.best.slice(0, 2)]); MODES.mine.render('💡 Move this piece.'); } else { B3.arrows([[p.best.slice(0, 2), p.best.slice(2, 4), 'g']]); MODES.mine.render('💡 Play the green arrow.'); } };
+  ACT.mineNext = function () {
+    if (!MZ) return; if (MZ.k + 1 < MZ.list.length) { MZ.k++; return MODES.mine.load(); }
+    var left = duePz().length; document.body.dataset.layout = 'browse'; IX.enabled = false;
+    Voice.say([V(MZ.ok >= MZ.list.length - 1 ? 'drill_done_great' : 'drill_done_ok')]);
+    setPanel('<div class="eyebrow">My mistakes</div><h1 class="h1">' + MZ.ok + ' of ' + MZ.list.length + ' fixed first time</h1><p class="lede">Each one comes back later until you never make it again. ' + (left ? left + ' more are waiting.' : 'Nothing else is due today.') + '</p>' +
+      '<div class="actions">' + (left ? '<button class="btn primary" data-act="mine">Next 5 →</button>' : '') + (S.prog ? '<button class="btn' + (left ? ' ghost' : ' primary') + '" data-act="program">Today\'s plan</button>' : '') + '<button class="btn ghost" data-act="goPath">Home</button></div>');
+  };
+
+  // ================= 30-Day Ascent: 20 minutes a day =================
+  function progDay() { var p = S.prog; if (!p) return 0; var s = new Date(p.start + 'T00:00:00'), n = Math.floor((new Date(dayKey() + 'T00:00:00') - s) / 864e5) + 1; return Math.max(1, n); }
+  function progToday() { var p = S.prog, k = dayKey(); p.days = p.days || {}; return p.days[k] = p.days[k] || {}; }
+  function progMark(task, n) { if (!S.prog) return; var t = progToday(); t[task] = (t[task] || 0) + (n || 1); save(); }
+  function progFocus() {
+    var r = myLevel(), g = guideFor(r), dna = S.dna, top = null;
+    if (dna && dna.agg) { var k = Object.keys(dna.agg).sort(function (a, b) { return dna.agg[b] - dna.agg[a]; })[0]; if (k) { var L = lessonFor(k); if (L) top = { lesson: L, t: PROBLEMS[k].t }; } }
+    var undone = g.mistakes.filter(function (m) { return LESSONS[m.lesson] && !lessonDone(m.lesson); })[0];
+    return top && !lessonDone(top.lesson) ? top : undone ? { lesson: undone.lesson, t: undone.t } : top || { lesson: nextLesson(), t: 'Next lesson' };
+  }
+  function progTasks() {
+    var t = progToday(), day = progDay(), f = progFocus(), mineDue = duePz().length, mins = S.prog.mins || 20, rl = day % 3 === 0 && S.cc;
+    var learnL = f.lesson && LESSONS[f.lesson], learnDone = !!t.learn;
+    return [
+      { k: 'warm', ico: '🧠', t: 'Warm-up', s: 'Quick questions from your lessons', m: 3, done: !!t.warm, act: 'progWarm' },
+      { k: 'learn', ico: '📘', t: learnL ? (lessonDone(f.lesson) ? 'Practise: ' : 'Learn: ') + learnL.title : 'Learn', s: f.t ? 'Your focus: ' + f.t : 'Next lesson on your path', m: Math.round(mins * 0.3), done: learnDone, act: 'progLearn' },
+      { k: 'mine', ico: '🎯', t: mineDue ? 'Fix your mistakes' : 'Puzzles at your level', s: mineDue ? mineDue + ' from your own games' : '5 puzzles', m: Math.round(mins * 0.25), done: (t.mine || 0) >= (mineDue ? 3 : 1) || (!mineDue && today().puzzles >= 5), act: 'progMine' },
+      { k: 'play', ico: rl ? '♟' : '🤖', t: rl ? 'Play one rated game on chess.com' : 'Play the coach', s: rl ? 'Then come back: I check it for mistakes' : 'One game with tips, then review it', m: Math.round(mins * 0.3), done: !!t.play, act: rl ? 'progReal' : 'progPlay' }
+    ];
+  }
+  MODES.program = {
+    label: '30-Day Ascent',
+    enter: function () {
+      setupBoard(Game.START, { orient: 'w' }); document.body.dataset.layout = 'browse';
+      var p = S.prog;
+      if (!p) {
+        setPanel('<div class="eyebrow">The program</div><h1 class="h1">30-Day Ascent</h1>' +
+          '<p class="lede">Twenty minutes a day for 30 days, built around the mistakes that cost points at your level' + (S.dna ? ' and in your own games' : '') + '.</p>' +
+          '<ul class="mc-list"><li>🧠 3 min warm-up: keep what you learned</li><li>📘 6 min lesson on your biggest weakness</li><li>🎯 5 min fixing your own mistakes</li><li>♟ 6 min playing, then a check of your game</li></ul>' +
+          '<div class="field"><span>Time per day</span><div class="seg">' + [15, 20, 30].map(function (m) { return '<button class="' + (m === 20 ? 'on' : '') + '" data-act="progMins" data-m="' + m + '">' + m + ' min</button>'; }).join('') + '</div></div>' +
+          (S.cc ? '<p class="muted small">Your chess.com rating today is recorded, so you can see the real change on day 30.</p>' : '<p class="muted small"><button class="link" data-act="mychess">Connect chess.com</button> to track your real rating and train on your own games.</p>') +
+          '<div class="actions"><button class="btn primary big wide" data-act="progStart">▶ Start day 1</button></div>');
+        return;
+      }
+      var day = progDay();
+      if (day > 30) return MODES.program.finish();
+      var tasks = progTasks(), done = tasks.filter(function (x) { return x.done; }).length, check = [7, 14, 21, 28].indexOf(day) >= 0;
+      var cells = ''; for (var i = 1; i <= 30; i++) { var dk = new Date(new Date(p.start + 'T00:00:00').getTime() + (i - 1) * 864e5), rec = p.days && p.days[dayKey(dk)], n = rec ? ['warm', 'learn', 'mine', 'play'].filter(function (k) { return rec[k]; }).length : 0; cells += '<span class="pg-cell l' + n + (i === day ? ' today' : '') + '">' + i + '</span>'; }
+      setPanel('<div class="eyebrow">30-Day Ascent · day ' + day + ' of 30</div><h1 class="h1">' + (done === tasks.length ? 'Today is done! 🎉' : 'Today\'s 20 minutes') + '</h1>' +
+        '<div class="pg-cells">' + cells + '</div>' +
+        '<div class="pg-tasks">' + tasks.map(function (x) { return '<button class="pg-task' + (x.done ? ' done' : '') + '" data-act="' + x.act + '"><span class="pg-ico">' + (x.done ? '✓' : x.ico) + '</span><span class="pg-t"><b>' + esc(x.t) + '</b><span>' + esc(x.s) + '</span></span><span class="pg-m">' + x.m + ' min</span></button>'; }).join('') + '</div>' +
+        (check ? '<div class="mc-ins"><div class="eyebrow">Weekly check-in</div><p>Week ' + (day / 7) + ' done. ' + (S.cc ? '<button class="link" data-act="mychess">See your chess.com rating and re-check your latest games →</button>' : 'Connect chess.com to see your real rating change.') + '</p></div>' : '') +
+        trackerMini());
+    },
+    finish: function () {
+      var p = S.prog, t = S.ccTrack, kind = t && CC_KINDS.filter(function (k) { return t.base[k[0]] && t.last && t.last[k[0]]; })[0];
+      var line = kind ? kind[2] + ' ' + t.base[kind[0]] + ' → ' + t.last[kind[0]] : 'Training rating ' + Math.round(S.puzzle.rating);
+      var daysDone = Object.keys(p.days || {}).filter(function (k) { var r = p.days[k]; return r.learn || r.mine || r.play; }).length;
+      var text = 'I completed the 30-Day Ascent on Chess Ascent ♞\n' + line + ' · ' + daysDone + ' training days';
+      document.body.dataset.layout = 'browse';
+      setPanel('<div class="eyebrow">30-Day Ascent</div><h1 class="h1">You reached the summit! 🏔</h1><p class="lede">' + daysDone + ' training days. ' + esc(line) + '.</p>' +
+        shareBlock({ text: text, url: shareBase(), card: { fen: Game.START, title: '30-Day Ascent ✓', marks: ['g', 'g', 'g'], line: line, sub: (playerName() || 'A Chess Ascent player') + ' · ' + daysDone + ' training days' } }) +
+        '<div class="actions plain"><button class="btn ghost" data-act="progRestart">Start a new 30 days</button><button class="btn ghost" data-act="goPath">Home</button></div>');
+      confetti(); Voice.say([V('prog_done')]);
+    },
+    leave: function () { }
+  };
+  function trackerMini() {
+    var t = S.ccTrack; if (!t || !t.base) return '';
+    var k = CC_KINDS.filter(function (x) { return t.base[x[0]]; })[0]; if (!k) return '';
+    var a = t.base[k[0]], b = t.last && t.last[k[0]] || a, d = b - a;
+    return '<p class="muted small pg-track">chess.com ' + k[2].toLowerCase() + ': ' + a + ' when you started → <b>' + b + '</b> ' + (d ? '(' + (d > 0 ? '+' : '') + d + ')' : '') + '</p>';
+  }
+  function progCard() {
+    if (!S.prog) return lessonsDone() >= 2 ? '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>Start the 30-Day Ascent</b><span>20 minutes a day, built on your weak spots</span></span><span class="an-go">→</span></button>' : '';
+    var day = progDay(); if (day > 30) return '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>30-Day Ascent complete!</b><span>Get your certificate</span></span><span class="an-go">→</span></button>';
+    var tasks = progTasks(), done = tasks.filter(function (x) { return x.done; }).length;
+    return '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>Day ' + day + ' of 30 · ' + done + ' of ' + tasks.length + ' done</b><span>' + (done === tasks.length ? 'All done today. See you tomorrow!' : 'Next: ' + esc(tasks.filter(function (x) { return !x.done; })[0].t)) + '</span></span><span class="an-go">→</span></button>';
+  }
+  ACT.program = function () { go('program'); };
+  ACT.progMins = function (d) { MODES.program.mins = +d.m; document.querySelectorAll('[data-act="progMins"]').forEach(function (b) { b.classList.toggle('on', b.dataset.m === d.m); }); };
+  ACT.progStart = function () { S.prog = { start: dayKey(), mins: MODES.program.mins || 20, days: {}, base: S.ccTrack ? S.ccTrack.last : null, baseTrain: Math.round(S.puzzle.rating) }; save(); Voice.say([V('prog_start')]); MODES.program.enter(); };
+  ACT.progRestart = function () { S.prog = null; save(); MODES.program.enter(); };
+  ACT.progWarm = function () { if (srsDue().length) go('warmup'); else { progMark('warm'); toast('Nothing to review today. Warm-up done!'); MODES.program.enter(); } };
+  ACT.progLearn = function () { var f = progFocus(); if (!f.lesson) return go('path'); if (lessonDone(f.lesson) && hasDrill(f.lesson)) go('drill', f.lesson); else go('lesson', f.lesson); };
+  ACT.progMine = function () { if (duePz().length) go('mine'); else go('puzzles'); };
+  ACT.progPlay = function () { go('play'); };
+  ACT.progReal = function () { window.open('https://www.chess.com/play/online', '_blank'); progMark('play'); toast('Good luck! Come back after the game and open My chess.com to check it.'); setTimeout(function () { if (current === MODES.program) MODES.program.enter(); }, 400); };
 
   // ================= Analyze a game from chess.com (or any PGN) =================
   // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
@@ -8854,8 +9254,10 @@ function BOARD2D_FACTORY() {
       var html = '<div class="eyebrow">Game analysis</div><h1 class="h1">Analyze a game</h1>' +
         '<p class="lede">Bring a game from chess.com, or any PGN. I check every one of your moves, then tell you what went wrong, why, and which lesson fixes it.</p>' +
         '<div class="seg an-tabs"><button class="' + (tab === 'cc' ? 'on' : '') + '" data-act="anTab" data-t="cc">chess.com</button><button class="' + (tab === 'pgn' ? 'on' : '') + '" data-act="anTab" data-t="pgn">Paste PGN</button></div>';
+      if (AN.err) html += '<div class="status bad" id="an-err">' + esc(AN.err) + '</div>';
       if (tab === 'cc') {
-        html += '<div class="an-form"><label class="an-lab">Your chess.com username<input id="an-user" class="an-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. MagnusCarlsen" value="' + esc(AN.user) + '"></label>' +
+        html += '<button class="prog-card cc" data-act="mychess"><span class="pc-ico">♞</span><span class="pc-t"><b>' + (S.cc ? 'My chess.com: all ' + (S.cc.nGames ? S.cc.nGames.toLocaleString() + ' ' : '') + 'games' : 'Connect chess.com: every game you played') + '</b><span>Stats, patterns and puzzles from your own mistakes</span></span><span class="an-go">→</span></button>' +
+          '<div class="an-form"><label class="an-lab">Your chess.com username<input id="an-user" class="an-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. MagnusCarlsen" value="' + esc(AN.user) + '"></label>' +
           '<label class="an-lab">Game link <span class="muted">(optional)</span><input id="an-link" class="an-in" autocomplete="off" spellcheck="false" placeholder="https://www.chess.com/game/live/…" value="' + esc(AN.link) + '"></label>' +
           '<div class="actions"><button class="btn primary" data-act="anFetch">' + (AN.busy === 'fetch' ? 'Loading…' : 'Find my games') + '</button><button class="btn" data-act="anPatterns">Find my patterns</button></div></div>';
         if (AN.games) html += '<div class="sect-head"><h2>Recent games</h2><span class="muted small">tap one to analyze</span></div><div class="an-games">' + (AN.games.length ? AN.games.map(function (x, k) {
@@ -8871,7 +9273,6 @@ function BOARD2D_FACTORY() {
           '<div class="an-side"><span class="muted small">You played</span><div class="seg">' + [['w', 'White' + (h.White ? ' (' + esc(h.White) + ')' : '')], ['b', 'Black' + (h.Black ? ' (' + esc(h.Black) + ')' : '')]].map(function (x) { var on = (AN.side || sideOf(h, S.ccUser) || 'w') === x[0]; return '<button class="' + (on ? 'on' : '') + '" data-act="anSide" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
           '<div class="actions"><button class="btn primary wide" data-act="anPgn">Analyze this game</button></div></div>';
       }
-      if (AN.err) html += '<div class="status bad">' + esc(AN.err) + '</div>';
       if (hist.length) html += '<div class="sect-head"><h2>Analyzed before</h2></div><div class="an-hist">' + hist.map(function (x) { return '<div class="an-h"><b>vs ' + esc(x.opp) + '</b><span>' + (x.acc != null ? x.acc + '% · ' : '') + esc(x.top ? PROBLEMS[x.top].t : 'No big problems') + '</span></div>'; }).join('') + '</div>';
       setPanel(html);
       var u = $('#an-user'); if (u) u.oninput = function () { AN.user = ccUser(u.value); };
@@ -9004,7 +9405,7 @@ function BOARD2D_FACTORY() {
     leave: function () { AN = null; }
   };
   function parsePGNHeaders(text) { var h = {}, m, re = /\[(\w+)\s+"((?:[^"\\]|\\.)*)"\]/g; while ((m = re.exec(text || ''))) h[m[1]] = m[2]; return h; }
-  function readAnInputs() { var u = $('#an-user'), lk = $('#an-link'), ta = $('#an-pgn'); if (u) AN.user = ccUser(u.value); if (lk) AN.link = lk.value.trim(); if (ta) AN.pgn = ta.value; }
+  function readAnInputs() { var u = $('#an-user'), lk = $('#an-link'), ta = $('#an-pgn'); if (u) { var P = ccParse(u.value); AN.user = P.user || (S.cc && S.cc.user) || ''; if (P.game && !(lk && lk.value.trim())) AN.link = u.value.trim(); } if (lk && lk.value.trim()) AN.link = lk.value.trim(); if (ta) AN.pgn = ta.value; }
   ACT.goAnalyze = function () { go('analyze'); };
   ACT.anTab = function (d) { readAnInputs(); AN.tab = d.t; AN.err = null; MODES.analyze.render(); };
   ACT.anSide = function (d) { readAnInputs(); AN.side = d.c; MODES.analyze.render(); };
@@ -9019,8 +9420,8 @@ function BOARD2D_FACTORY() {
       if (!AN || AN.tok !== tok) return;
       AN.busy = null;
       if (id) { var x = list[0], P = parsePGN(x.pgn); if (P.error) { AN.err = P.error; return MODES.analyze.render(); } return MODES.analyze.run({ sans: P.sans, startFen: P.startFen, headers: P.headers, color: String(x.white.username).toLowerCase() === u.toLowerCase() ? 'w' : 'b' }); }
-      AN.games = list; MODES.analyze.render();
-    }, function (e) { if (!AN || AN.tok !== tok) return; AN.busy = null; AN.err = ccError(e); MODES.analyze.render(); });
+      AN.games = list; MODES.analyze.render(); var gl = document.querySelector('.an-games'); if (gl) gl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, function (e) { if (!AN || AN.tok !== tok) return; AN.busy = null; AN.err = ccErrorText(e); MODES.analyze.render(); toast(AN.err); });
   };
   ACT.anPick = function (d) { var x = AN.games[+d.k]; if (!x) return; var P = parsePGN(x.pgn); if (P.error) { AN.err = P.error; return MODES.analyze.render(); } MODES.analyze.run({ sans: P.sans, startFen: P.startFen, headers: P.headers, color: String(x.white.username).toLowerCase() === AN.user.toLowerCase() ? 'w' : 'b' }); };
   ACT.anPatterns = function () { readAnInputs(); if (!AN.user) { AN.err = 'Type your chess.com username first.'; return MODES.analyze.render(); } S.ccUser = AN.user; save(); MODES.analyze.patterns(AN.user); };
@@ -9145,7 +9546,7 @@ function BOARD2D_FACTORY() {
       });
     },
     finish: function () {
-      var n = WU.list.length; today().warm = (today().warm || 0) + 1; addXP(10 + WU.ok * 3); save();
+      var n = WU.list.length; today().warm = (today().warm || 0) + 1; addXP(10 + WU.ok * 3); save(); progMark('warm');
       if (WU.ok === n) { confetti(); Sound.play('win'); }
       document.body.dataset.layout = 'browse';
       setPanel('<button class="back" data-act="goPath">← Path</button><div class="eyebrow">Daily warm-up done · +' + (10 + WU.ok * 3) + ' XP</div><h1 class="h1">' + WU.ok + ' of ' + n + ' remembered</h1>' +
@@ -9572,7 +9973,7 @@ function BOARD2D_FACTORY() {
       var bestWinLevel = null;
       COACH_LEVELS.forEach(function (l) { if (games.some(function (g) { return g.result === 'win' && g.level === l.id; })) bestWinLevel = l; });
       setPanel('<div class="eyebrow">Day ' + Math.min(dayNumber(), 30) + ' of 30 · Streak ' + S.streak + '</div><h1 class="h1">Your progress</h1>' +
-        levelPlanHtml() + trackerHtml() +
+        progCard() + ccCard() + levelPlanHtml() +
         (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Check your chess.com games</b><span>Find the mistakes you repeat and the lesson that fixes each one.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="hero-stat"><div><div class="muted small">Training rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + ' · started at ' + S.band + '</div></div><canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
         '<div class="stat-grid">' +
@@ -10233,7 +10634,7 @@ function BOARD2D_FACTORY() {
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
@@ -10998,14 +11399,15 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
   body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
   /* home fits one screen: the next step first, everything else one tap away */
-  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card):not(.prog-card) { display: none !important; }
   body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
   body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
   body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }
   .home-more { display: flex !important; align-items: center; gap: 10px; width: 100%; margin: 6px 0 0; padding: 9px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); color: var(--fg); text-align: left; font-size: 14px; }
   .home-more b { flex: 1; }
   body[data-layout="browse"] .b2-tag { display: none; }
-  body[data-mode="path"] .stage { display: none !important; }
+  body[data-mode="mychess"] .lv-fix { display: none; } body[data-mode="mychess"] .mc-ins p:nth-of-type(n+3) { display: none; } body[data-mode="mychess"] .mc-head { margin-bottom: 6px; } body[data-mode="mychess"] .mc-av { width: 42px; height: 42px; } body[data-mode="mychess"] .mc-ratings { margin-bottom: 6px; } body[data-mode="mychess"] .mc-ratings span { padding: 5px 9px; } body[data-mode="mychess"] .mc-ratings b { font-size: 17px; }
+  body[data-mode="path"] .stage, body[data-mode="mychess"] .stage, body[data-mode="program"] .stage, body[data-mode="progress"] .stage { display: none !important; }
   /* the coach's words are already written in the panel on these screens */
   body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble, body[data-mode="daily"] #app > .coach-bubble, body[data-mode="challenge"] #app > .coach-bubble, body[data-mode="friend"] #app > .coach-bubble { display: none !important; }
 }
@@ -11057,4 +11459,35 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .cc-link { display: flex; gap: 8px; margin-top: 8px; } .cc-link input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg); font: 600 15px var(--f-body); }
 .cc-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.06); } .cc-row span { width: 60px; color: var(--muted); } .cc-row b { flex: 1; font-family: var(--f-mono); }
 .cc-row em { font-style: normal; font-weight: 800; } .cc-row em.up { color: var(--good); } .cc-row em.down { color: var(--bad); }
+.prog-card { display: flex; align-items: center; gap: 12px; width: 100%; margin: 10px 0 0; padding: 12px 14px; border-radius: 18px; border: 1px solid rgba(196,255,61,.35); background: linear-gradient(135deg, rgba(196,255,61,.12), rgba(255,79,139,.08)); color: var(--fg); text-align: left; }
+.prog-card.cc { border-color: rgba(76,201,240,.35); background: linear-gradient(135deg, rgba(76,201,240,.12), rgba(139,92,255,.08)); }
+.pc-ico { font-size: 26px; flex: none; width: 40px; height: 40px; display: grid; place-items: center; } .pc-ico img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.pc-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .pc-t b { font-size: 15px; } .pc-t span { font-size: 12.5px; color: var(--muted); }
+.cc-link.big input { font-size: 17px; padding: 12px 14px; }
+.mc-list { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; } .mc-list li { padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14.5px; }
+.mc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; } .mc-av { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; flex: none; } .mc-av.ph { display: grid; place-items: center; background: var(--card-2); font-size: 26px; }
+.mc-who { flex: 1; min-width: 0; display: flex; flex-direction: column; } .mc-who b { font: 800 19px var(--f-display); } .mc-who span { font-size: 13px; color: var(--muted); } .mc-title { font-style: normal; background: #b33; color: #fff; border-radius: 4px; padding: 0 4px; font-size: 12px; }
+.mc-ratings { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; } .mc-ratings span { flex: 1; min-width: 70px; display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.mc-ratings i { font-style: normal; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; } .mc-ratings b { font: 800 20px var(--f-mono); } .mc-ratings em { font-style: normal; font-size: 12px; font-weight: 800; } .mc-ratings em.up { color: var(--good); } .mc-ratings em.down { color: var(--bad); }
+.mc-tabs { margin-bottom: 10px; }
+.mc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 10px; } .mc-grid span { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 11.5px; color: var(--muted); text-align: center; } .mc-grid b { font: 800 18px var(--f-mono); color: var(--fg); }
+.mc-chart { padding: 8px 10px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-bottom: 10px; } .mc-chart canvas { width: 100%; height: 70px; } .seg.small button { padding: 4px 10px; font-size: 12px; }
+.mc-ins { padding: 10px 12px; border-radius: 14px; background: rgba(255,210,63,.07); border: 1px solid rgba(255,210,63,.3); margin-bottom: 10px; } .mc-ins p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; }
+.mc-filters { display: flex; gap: 8px; margin-bottom: 6px; } .mc-filters select { flex: 1; padding: 9px 10px; border-radius: 12px; background: var(--card); color: var(--fg); border: 1px solid var(--line); font: 600 14px var(--f-body); }
+.mc-dna { padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-bottom: 10px; }
+.mc-phase { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 4px; } .mc-phase span { display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 10px; background: var(--bg-2); } .mc-phase i { font-style: normal; font-size: 11.5px; color: var(--muted); } .mc-phase b { font: 800 18px var(--f-mono); }
+.pg-cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 6px 0 12px; } .pg-cell { aspect-ratio: 1; display: grid; place-items: center; border-radius: 6px; font-size: 10.5px; background: rgba(255,255,255,.05); color: var(--dim); }
+.pg-cell.l1 { background: rgba(196,255,61,.18); } .pg-cell.l2 { background: rgba(196,255,61,.32); } .pg-cell.l3 { background: rgba(196,255,61,.5); color: #0b0f17; } .pg-cell.l4 { background: #c4ff3d; color: #0b0f17; font-weight: 800; } .pg-cell.today { outline: 2px solid var(--sky); }
+.pg-tasks { display: grid; gap: 8px; } .pg-task { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); color: var(--fg); text-align: left; }
+.pg-task.done { opacity: .7; border-color: rgba(61,220,151,.5); } .pg-ico { font-size: 22px; flex: none; width: 30px; text-align: center; } .pg-task.done .pg-ico { color: var(--good); font-weight: 800; }
+.pg-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .pg-t b { font-size: 15px; } .pg-t span { font-size: 12.5px; color: var(--muted); } .pg-m { font: 700 12px var(--f-mono); color: var(--dim); }
+.pg-track { margin-top: 10px; }
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) {
+  body[data-mode="mychess"] .mc-chart canvas { height: 46px; } body[data-mode="mychess"] .mc-chart { padding: 6px 8px; margin-bottom: 6px; }
+  body[data-mode="mychess"] .mc-grid span { padding: 5px 2px; } body[data-mode="mychess"] .mc-grid b { font-size: 15px; }
+  body[data-mode="mychess"] .mc-ins p:nth-of-type(n+2) { display: none; } body[data-mode="mychess"] .mc-ins { padding: 8px 10px; margin-bottom: 6px; }
+  body[data-mode="mychess"] .mc-dna .lv-row { padding: 6px 0; } body[data-mode="mychess"] .mc-phase span { padding: 5px; }
+  body[data-mode="program"] .pg-cells { gap: 3px; margin: 4px 0 8px; } body[data-mode="program"] .pg-cell { aspect-ratio: auto; height: 20px; }
+  body[data-mode="program"] .pg-task { padding: 9px 12px; } body[data-mode="program"] .h1 { font-size: 22px; }
+}
 </style>
