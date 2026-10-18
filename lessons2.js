@@ -98,36 +98,36 @@ var LESSONS2 = {
    },
    {
     "t": "threat",
-    "fen": "K4k2/8/1B6/4P3/8/3q4/5r2/8 w - - 0 1",
+    "fen": "5b1r/2p5/3pkB2/pp6/qP2P2p/PR6/3N1PPP/4K1R1 w - - 0 29",
     "text": "Their move next. Which of your pieces is in trouble?",
     "targets": [
-     "f2"
+     "h8"
     ],
-    "show": "b6c5",
-    "done": "They play Bc5+, and your rook on f2 is lost. Spotting this one move earlier is how you stop losing pieces.",
-    "src": "g025"
+    "show": "f6h8",
+    "done": "They play Bxh8, and your rook on h8 is lost. Spotting this one move earlier is how you stop losing pieces.",
+    "src": "x49"
    },
    {
     "t": "threat",
-    "fen": "1r2kr2/pp1b1p2/3ppQpp/2pP3n/P1B1P2K/1N5P/1P4P1/2N4R b - - 0 25",
+    "fen": "2kr3r/p2b1p1p/7p/p2Pb3/1qPQP3/2N3P1/P3KP1P/1R3R2 w - - 0 21",
     "text": "Look from the other side. What will they take?",
     "targets": [
-     "f6"
+     "e5"
     ],
-    "show": "h5f6",
-    "done": "They play Nxf6, and your queen on f6 is lost. That is why strong players look at the opponent's checks first.",
-    "src": "y015"
+    "show": "d4e5",
+    "done": "They play Qxe5, and your bishop on e5 is lost. That is why strong players look at the opponent's checks first.",
+    "src": "y065"
    },
    {
     "t": "threat",
-    "fen": "r2n2r1/pppk1p1p/4b1p1/4p2q/PBP1P2b/1Q1P1BPP/1P3P2/1R3RK1 w - - 2 20",
+    "fen": "4k2r/pp3p2/8/3rPbp1/3N1P2/8/PP4PP/R3K2R w KQ - 0 27",
     "text": "Something of yours is hanging. Tap it before they do.",
     "targets": [
-     "h5"
+     "f5"
     ],
-    "show": "f3h5",
-    "done": "They play Bxh5, and your queen on h5 is lost. One look from their side of the board saves games like this.",
-    "src": "y053"
+    "show": "d4f5",
+    "done": "They play Nxf5, and your bishop on f5 is lost. One look from their side of the board saves games like this.",
+    "src": "y192"
    },
    {
     "t": "read",
@@ -227,54 +227,54 @@ var LESSONS2 = {
    },
    {
     "t": "choice",
-    "fen": "r1r3k1/ppp3p1/3qP2p/b3B3/2n1PQ2/8/P3KPPP/1R3B1R b - - 0 21",
+    "fen": "1r2kr2/pp1b1p2/3ppQpp/2pP3n/P1B1P2K/1N5P/1P4P1/2N4R b - - 0 25",
     "text": "Both look tempting. Which one really wins?",
     "options": [
      {
-      "u": "d6e5",
-      "why": "Qxe5 looks tempting, but it does not work. The answer Qxe5 wins your queen."
+      "u": "g6g5",
+      "why": "g5+ looks tempting, but it does not work. The answer Kxh5 wins your knight."
      },
      {
-      "u": "c4e5",
-      "why": "Nxe5. Nxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
+      "u": "h5f6",
+      "why": "Nxf6. Nxf6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."
      }
     ],
     "best": 1,
-    "src": "y002"
+    "src": "y015"
    },
    {
     "t": "choice",
-    "fen": "1rb1k1nr/p1pp1ppp/p7/4q3/4P3/4BN2/PPP2PPP/RN2K2R w KQk - 0 9",
+    "fen": "4qk1r/5ppp/r1P2n2/3P4/Q4P2/5N2/4B2P/4K1R1 w - - 0 29",
     "text": "Which capture is safe, and which is a trap?",
     "options": [
      {
-      "u": "e3a7",
-      "why": "Bxa7 looks tempting, but it does not work. The answer Qxb2 wins your pawn."
+      "u": "a4b4",
+      "why": "Qb4+ looks tempting, but it does not work. After Kg8 the advantage is gone."
      },
      {
-      "u": "f3e5",
-      "why": "Nxe5. Nxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."
+      "u": "a4a6",
+      "why": "Qxa6. Qxa6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."
      }
     ],
     "best": 1,
-    "src": "y013"
+    "src": "y028"
    },
    {
     "t": "choice",
-    "fen": "r5k1/5p2/p1nPp2p/1B3p2/3Q4/8/1P4b1/3RK3 b - - 0 43",
+    "fen": "4k1r1/rppq1p1p/1b1p2p1/4p2n/3nP1BP/p1NPB3/PPPQ1PP1/R3K1R1 b - - 0 22",
     "text": "Think about the recapture. A or B?",
     "options": [
      {
-      "u": "c6d4",
-      "why": "Nxd4. Nxd4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."
+      "u": "d7g4",
+      "why": "Qxg4. Qxg4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
      },
      {
-      "u": "a6b5",
-      "why": "axb5 looks tempting, but it does not work. After Qg1 the advantage is gone."
+      "u": "d4c2",
+      "why": "Nxc2+ looks tempting, but it does not work. The answer Qxc2 wins your knight."
      }
     ],
     "best": 0,
-    "src": "y022"
+    "src": "y064"
    }
   ]
  },
@@ -334,36 +334,36 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "5R1r/3k2p1/p2p2p1/1q1Pp3/1P2p2P/6P1/3B2P1/4KR2 b - - 0 35",
+    "fen": "5rk1/1p1bnq2/r2p2p1/p2PN2p/P3R3/1P1Q4/2P2PPP/1R1K4 b - - 0 24",
     "text": "An enemy piece has no defender. Go and win it.",
     "sol": [
-     "h8f8"
+     "d6e5"
     ],
     "hint": "Look for a move that attacks two things at once, or a check that hits a loose piece.",
-    "done": "Rxf8 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead.",
-    "src": "x42"
+    "done": "dxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead.",
+    "src": "y020"
    },
    {
     "t": "move",
-    "fen": "r5k1/p1nq4/3np1P1/7R/2R5/1p6/P3QPP1/5K2 b - - 0 36",
+    "fen": "r1b1kb1r/ppp2ppp/4p3/3p1q2/3PN3/P2Q1N2/1PP2PPP/R1B1K1R1 b Qkq - 0 12",
     "text": "Find the double attack on the loose pieces.",
     "sol": [
-     "d6c4"
+     "d5e4"
     ],
     "hint": "Look for a move that attacks two things at once, or a check that hits a loose piece.",
-    "done": "Nxc4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead.",
-    "src": "y021"
+    "done": "dxe4 attacks two targets at once and only one can be saved. You come out a piece ahead.",
+    "src": "y050"
    },
    {
     "t": "move",
-    "fen": "6k1/5pp1/8/p1p1p2p/2P1P1q1/P1Q5/K3R2P/8 b - - 0 52",
+    "fen": "1rbk2r1/ppp1p3/3pq3/3P1p1Q/1RP1n3/2P4P/P4PP1/2B1K2R w K - 0 20",
     "text": "Which move hits two things at once?",
     "sol": [
-     "g4e2"
+     "d5e6"
     ],
     "hint": "Look for a move that attacks two things at once, or a check that hits a loose piece.",
-    "done": "Qxe2+ attacks two targets at once and only one can be saved. You come out a rook ahead.",
-    "src": "y041"
+    "done": "dxe6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead.",
+    "src": "y105"
    },
    {
     "t": "threat",
@@ -378,25 +378,25 @@ var LESSONS2 = {
    },
    {
     "t": "threat",
-    "fen": "3r4/pp2r2k/2p3p1/7p/P2PR2P/1PPK4/6P1/8 w - - 0 34",
+    "fen": "r1b5/1p3kp1/3b1p1r/p1n4p/2N5/2P2NP1/P4P1P/BR2R1K1 w - - 0 35",
     "text": "Their turn. What are they about to win from you?",
     "targets": [
-     "e7"
+     "d6"
     ],
-    "show": "e4e7",
-    "done": "They play Rxe7+, and your rook on e7 is lost. Threats like this decide most club games.",
-    "src": "y048"
+    "show": "c4d6",
+    "done": "They play Nxd6+, and your bishop on d6 is lost. Threats like this decide most club games.",
+    "src": "y054"
    },
    {
     "t": "threat",
-    "fen": "r1b1kb1r/p1p2ppp/2pqp3/3pN2n/3P1B2/4P3/PPPQ1PPP/RN2K2R w KQkq - 0 9",
+    "fen": "r1b1k2r/p1p2ppp/2p5/1Q4q1/4n3/2N1P3/PP3PPP/R3K2R w KQkq - 0 14",
     "text": "Find your piece that is in danger before they move.",
     "targets": [
-     "f7"
+     "c6"
     ],
-    "show": "e5f7",
-    "done": "They play Nxf7, and your pawn on f7 is lost. Before every move, ask what their last move attacks.",
-    "src": "y147"
+    "show": "b5c6",
+    "done": "They play Qxc6+, and your pawn on c6 is lost. Before every move, ask what their last move attacks.",
+    "src": "y432"
    }
   ]
  },
@@ -454,93 +454,93 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "8/5Q2/3K4/8/n7/4P3/8/k7 w - - 0 1",
+    "fen": "1Q6/1K1n2k1/8/8/3N4/8/8/8 w - - 0 1",
     "text": "A check or capture first, then the prize. Find it.",
     "sol": [
-     "f7a7",
-     "a1a2",
-     "a7a4"
+     "b8c7",
+     "g7f8",
+     "c7d7"
     ],
     "hint": "Start with a check or a capture, then look for the second blow.",
-    "done": "Your move pins a black piece on a4: it cannot move away without exposing the more valuable piece behind it on a1. So you win material.",
-    "src": "g031"
+    "done": "Your move pins a black piece on d7: it cannot move away without exposing the more valuable piece behind it on g7. So you win material.",
+    "src": "g032"
    },
    {
     "t": "move",
-    "fen": "8/8/7R/8/3Pn1p1/8/8/K3k3 w - - 0 1",
+    "fen": "1R6/7n/8/8/7k/8/2KN4/8 w - - 0 1",
     "text": "Calculate two moves. What is the forcing start?",
     "sol": [
-     "h6e6",
-     "g4g3",
-     "e6e4"
+     "b8h8",
+     "h4g5",
+     "h8h7"
     ],
     "hint": "Start with a check or a capture, then look for the second blow.",
-    "done": "Your move pins a black piece on e4: it cannot move away without exposing the more valuable piece behind it on e1. So you win material.",
-    "src": "g036"
+    "done": "Your move pins a black piece on h7: it cannot move away without exposing the more valuable piece behind it on h4. So you win material.",
+    "src": "g037"
    },
    {
     "t": "move",
-    "fen": "1r6/p7/8/1k6/4K3/8/8/6R1 w - - 0 1",
+    "fen": "3q4/1p6/8/3k4/8/5K2/7R/8 w - - 0 1",
     "text": "Force their reply, then win something. Your move.",
     "sol": [
-     "g1b1",
-     "b5a6",
-     "b1b8"
+     "h2d2",
+     "d5c6",
+     "d2d8"
     ],
     "hint": "Start with a check or a capture, then look for the second blow.",
-    "done": "Check! The king must step off the line, and then you capture the piece behind it on b8.",
-    "src": "g040"
+    "done": "Check! The king must step off the line, and then you capture the piece behind it on d8.",
+    "src": "g043"
    },
    {
     "t": "choice",
-    "fen": "1k5r/2p5/p1nr4/1p3PP1/1P3Q2/2P3K1/4q1N1/3R2R1 b - - 2 47",
+    "fen": "4k3/8/8/4n3/8/8/1Q6/4K3 b - - 0 1",
     "text": "Two forcing moves. Which one actually wins?",
     "options": [
      {
-      "u": "d6d1",
-      "why": "Rxd1. Rxd1 starts a forcing sequence: Rxd1 Qxd1. You come out a rook ahead."
+      "u": "e5f3",
+      "why": "Nf3+ looks tempting, but it does not work. After Kf2 the advantage is gone."
      },
      {
-      "u": "e2g2",
-      "why": "Qxg2+ looks tempting, but it does not work. The answer Kxg2 wins your queen."
+      "u": "e5d3",
+      "why": "Nd3+. Nd3+ forks the king and the queen."
      }
     ],
-    "best": 0,
-    "src": "x33"
+    "best": 1,
+    "src": "p10"
    },
    {
     "t": "choice",
-    "fen": "4nk1r/2p1ppbp/3p2p1/3P2B1/1r6/2N2KP1/1P3P1P/R3R3 w - - 0 24",
+    "fen": "2q1kr2/1r4p1/1pb1p3/p1p1P3/P1Pp2P1/RP1P1NB1/4QPK1/7R b - - 0 40",
     "text": "Calculate both forcing lines. A or B?",
     "options": [
      {
-      "u": "e1e7",
-      "why": "Rxe7 looks tempting, but it does not work. After Rb8 the advantage is gone."
+      "u": "f8f3",
+      "why": "Rxf3 looks tempting, but it does not work. After Kg1 the advantage is gone."
      },
      {
-      "u": "g5e7",
-      "why": "Bxe7+. Bxe7+ attacks two targets at once and only one can be saved. You come out material ahead."
+      "u": "c6f3",
+      "why": "Bxf3+. Bxf3+ attacks two targets at once and only one can be saved. You come out a queen ahead."
      }
     ],
     "best": 1,
-    "src": "y037"
+    "src": "y174"
    },
    {
     "t": "choice",
-    "fen": "2q1k2r/p4pp1/7p/1NppP3/2P5/5b2/PP1K1PPP/1R5R w k - 0 22",
+    "fen": "q3kb1r/p1p1n1pp/1p6/1N6/P1P1p3/1N6/5PPP/R4RK1 w k - 0 23",
     "text": "Both moves force a reply. Which reply helps you?",
     "options": [
      {
-      "u": "g2f3",
-      "why": "gxf3 looks tempting, but it does not work. After Qc6 the advantage is gone."
+      "u": "b5c7",
+      "why": "Nxc7+. Nxc7+ attacks two targets at once and only one can be saved. You come out a queen ahead."
      },
      {
       "u": "b5d6",
-      "why": "Nd6+. Nd6+ attacks two targets at once and only one can be saved. You come out a queen ahead."
+      "why": "Nd6+ looks tempting, but it does not work. The answer cxd6 wins your knight."
      }
     ],
-    "best": 1,
-    "src": "y197"
+    "best": 0,
+    "src": "y294"
    }
   ]
  },
@@ -587,81 +587,82 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "7Q/3k4/5R2/8/8/p3p3/4K3/8 w - - 0 61",
+    "fen": "r2kr3/2pn3p/p6b/3b1p2/1pNP1p2/2PB4/PP4q1/R1BK4 b - - 2 29",
     "text": "Their king shield has holes. Strike now.",
     "sol": [
-     "h8g7",
-     "d7e8",
-     "f6f8"
+     "d5f3",
+     "d3e2",
+     "g2e2"
     ],
     "anyMate": true,
     "hint": "Start with a check. Which squares around the king are covered?",
-    "done": "Qg7+ and after Ke8, Rf8# the king has no escape.",
-    "src": "x46"
+    "done": "Bf3+ and after Be2, Qxe2# the king has no escape.",
+    "src": "y062"
    },
    {
     "t": "move",
-    "fen": "1rbqkb2/1ppp2pr/5P2/p7/2QNN3/P3P3/1P4pP/2KR1R2 w - - 0 21",
+    "fen": "3r4/5R2/bp1pk2p/8/1PPK1n2/P3p2P/8/5R2 w - - 5 47",
     "text": "Count the defenders around the king, then attack.",
     "sol": [
-     "f6f7",
-     "e8e7",
-     "d4f5"
+     "f1f4",
+     "e3e2",
+     "f4f6"
     ],
     "anyMate": true,
     "hint": "Start with a check. Which squares around the king are covered?",
-    "done": "f7+ and after Ke7, Nf5# the king has no escape.",
-    "src": "y042"
+    "done": "R1xf4 and after e2, R4f6# the king has no escape.",
+    "src": "y090"
    },
    {
     "t": "move",
-    "fen": "4rr2/1pk2ppp/4q3/p1b4R/8/8/PPPP2PP/R1BQ3K b - - 9 24",
+    "fen": "8/2k5/7R/3P2pP/p2q4/5p1b/2P5/4K3 b - - 5 60",
     "text": "Checks first. Find the move that breaks through.",
     "sol": [
-     "e6e1",
-     "d1e1",
-     "e8e1"
+     "f3f2",
+     "e1e2",
+     "f2f1q"
     ],
     "anyMate": true,
     "hint": "Start with a check. Which squares around the king are covered?",
-    "done": "Qe1+ and after Qxe1, Rxe1# the king has no escape.",
-    "src": "y067"
+    "done": "f2+ and after Ke2, f1=Q# the king has no escape.",
+    "src": "y266"
    },
    {
     "t": "move",
-    "fen": "3k4/2p2p2/p2p2q1/1p1b4/Pb1P1P2/1P6/1BP1NK2/2R5 b - a3 0 34",
+    "fen": "r1k4r/8/2p5/2P1pbP1/3pp3/P4P2/1P2Q2q/R3RK2 b - - 4 52",
     "text": "The king is short of squares. Find the finish.",
     "sol": [
-     "g6g2",
-     "f2e3",
-     "g2f3"
+     "f5h3",
+     "e2g2",
+     "h2g2"
     ],
     "anyMate": true,
     "hint": "Start with a check. Which squares around the king are covered?",
-    "done": "Qg2+ and after Ke3, Qf3# the king has no escape.",
-    "src": "y082"
+    "done": "Bh3+ and after Qg2, Qxg2# the king has no escape.",
+    "src": "y291"
    },
    {
     "t": "threat",
-    "fen": "7k/1R6/5N2/8/8/8/8/6K1 w - - 0 1",
+    "fen": "2k4r/6pp/2prp1n1/p1b1p3/2P1P1P1/PR5P/3N4/1RB1K3 w - - 14 32",
     "text": "It is your opponent's move. Your king is in danger. Where is the threat?",
     "targets": [
-     "h8"
+     "c8"
     ],
-    "show": "b7h7",
-    "done": "They play Rh7# and it ends in checkmate. Spotting this one move earlier is how you stop losing pieces.",
-    "src": "p14"
+    "show": "b3b8",
+    "done": "They play Rb8+ and it ends in checkmate. Before every move, ask what their last move attacks.",
+    "src": "x03"
    },
    {
     "t": "threat",
-    "fen": "8/1p6/3k4/2pp3p/2b4P/5qr1/2K4R/8 b - - 1 45",
+    "fen": "7k/8/2pb3r/3p4/PPb1pq2/2P4P/1K6/R3R3 b - - 1 50",
     "text": "Their move. How are they planning to attack your king?",
     "targets": [
-     "c2"
+     "c3",
+     "b2"
     ],
-    "show": "f3c3",
-    "done": "They play Qc3+ and it ends in checkmate. That is why strong players look at the opponent's checks first.",
-    "src": "x26"
+    "show": "f4d2",
+    "done": "They play Qd2+ and it ends in checkmate. Spotting this one move earlier is how you stop losing pieces.",
+    "src": "x47"
    }
   ]
  },
@@ -700,122 +701,122 @@ var LESSONS2 = {
    },
    {
     "t": "choice",
-    "fen": "5r2/4P2k/7P/4r3/2p5/3n2P1/p5K1/8 b - - 0 53",
+    "fen": "r4br1/pp5p/2kPQ1pn/q1p1p3/4Pp2/PPN4P/2P2PP1/3R1RK1 w - - 3 22",
     "text": "Two candidate moves. Calculate both. Which one works?",
     "options": [
      {
-      "u": "f8f2",
-      "why": "Rf2+. Rf2+ and after Kh3, Rh5+, Kg4, Rff5, e8=Q, Nf2# the king has no escape."
+      "u": "d6d7",
+      "why": "d7+. d7+ and after Kc7, Nd5+, Kb8, Qe8+, Qd8, Qxd8# the king has no escape."
      },
      {
-      "u": "e5e2",
-      "why": "Re2+ looks tempting, but it does not work. After Kh3 the advantage is gone."
+      "u": "e6g8",
+      "why": "Qxg8 looks tempting, but it does not work. The answer Nxg8 wins your queen."
      }
     ],
     "best": 0,
-    "src": "y045"
+    "src": "y170"
    },
    {
     "t": "choice",
-    "fen": "3r2k1/1p3pp1/p1p5/8/P5P1/6P1/1P1B2q1/2K5 b - - 2 37",
+    "fen": "1r6/7k/b1p1p3/p2p1p1p/p2P1P2/P1P1P1R1/2PK1B2/R7 w - - 18 53",
     "text": "A strong player would compare these two. Which is right?",
     "options": [
      {
-      "u": "g2d2",
-      "why": "Qxd2+. Qxd2+ and after Kb1, Qd1+, Ka2, Qxa4+, Kb1, Rd1# the king has no escape."
+      "u": "a1h1",
+      "why": "Rh1. Rh1 and after Kh6, Rg5, Be2, Kxe2, c5, Rhxh5# the king has no escape."
      },
      {
-      "u": "d8d2",
-      "why": "Rxd2 looks tempting, but it does not work. After b4 the advantage is gone."
+      "u": "g3g7",
+      "why": "Rg7+ looks tempting, but it does not work. The answer Kxg7 wins your rook."
      }
     ],
     "best": 0,
-    "src": "y175"
+    "src": "y332"
    },
    {
     "t": "choice",
-    "fen": "K7/5p2/5k2/1p6/2b5/8/8/6q1 b - - 5 50",
+    "fen": "3r2nr/ppp1kpp1/2p4p/Q4b2/P3Pq2/N7/1PP1K1PP/R4BR1 b - - 1 15",
     "text": "List the replies to each move, then choose.",
     "options": [
      {
-      "u": "c4d5",
-      "why": "Bd5+. Bd5+ and after Kb8, Qb6+, Kc8, Be6# the king has no escape."
+      "u": "f5g4",
+      "why": "Bg4+. Bg4+ and after Ke1, Qe3+, Be2, Qxe2# the king has no escape."
      },
      {
-      "u": "g1a7",
-      "why": "Qa7+ looks tempting, but it does not work. The answer Kxa7 wins your queen."
+      "u": "f4f1",
+      "why": "Qxf1+ looks tempting, but it does not work. The answer Kxf1 wins your queen."
      }
     ],
     "best": 0,
-    "src": "x59"
+    "src": "x50"
    },
    {
     "t": "choice",
-    "fen": "8/8/p6P/8/k2r4/5P2/1b3K2/7q b - - 3 59",
+    "fen": "2k2b2/pp5p/8/P4p2/1P1r4/3Pq3/2P2R2/6K1 b - - 2 32",
     "text": "Both are forcing. Only one survives the best defence.",
     "options": [
      {
-      "u": "h1h2",
-      "why": "Qh2+. Qh2+ and after Ke1, Bc3+, Kf1, Rd1# the king has no escape."
+      "u": "d4f4",
+      "why": "Rf4. Rf4 and after d4, Qxf2+, Kh1, Rh4# the king has no escape."
      },
      {
-      "u": "h1f3",
-      "why": "Qxf3+ looks tempting, but it does not work. The answer Kxf3 wins your queen."
+      "u": "e3f2",
+      "why": "Qxf2+ looks tempting, but it does not work. The answer Kxf2 wins your queen."
      }
     ],
     "best": 0,
-    "src": "y156"
+    "src": "y262"
    },
    {
     "t": "choice",
-    "fen": "8/3n3p/1p4k1/8/P7/P4PP1/5P2/1R1R2K1 w - - 1 39",
+    "fen": "r7/7k/p1pP4/np6/8/P5Q1/1P5P/5RK1 w - - 1 50",
     "text": "Which candidate holds up when you check their reply?",
     "options": [
      {
-      "u": "d1d7",
-      "why": "Rxd7. Rxd7 and after b5, Rxb5, Kf6, Rb6+, Ke5, Rh6, Kf5, Rd5# the king has no escape."
+      "u": "g3g6",
+      "why": "Qg6+ looks tempting, but it does not work. The answer Kxg6 wins your queen."
      },
      {
-      "u": "b1b6",
-      "why": "Rxb6+ looks tempting, but it does not work. The answer Nxb6 wins your rook."
-     }
-    ],
-    "best": 0,
-    "src": "y163"
-   },
-   {
-    "t": "choice",
-    "fen": "2k2B2/1pp5/6p1/p2N3p/P7/6P1/1Pb2K1P/4R3 w - - 2 33",
-    "text": "Calculate to the end of each line. A or B?",
-    "options": [
-     {
-      "u": "e1e8",
-      "why": "Re8+. Re8+ and after Kd7, Nf6+, Kc6, Re6# the king has no escape."
-     },
-     {
-      "u": "d5e7",
-      "why": "Ne7+ looks tempting, but it does not work. After Kd7 the advantage is gone."
-     }
-    ],
-    "best": 0,
-    "src": "x21"
-   },
-   {
-    "t": "choice",
-    "fen": "r3k1r1/p2b3Q/2q1p3/3p4/1p1P3P/1P3R2/P1P3P1/3K1R2 w - - 1 31",
-    "text": "Do not trust the first impression. Compare both.",
-    "options": [
-     {
-      "u": "h7d7",
-      "why": "Qxd7+ looks tempting, but it does not work. The answer Kxd7 wins your queen."
-     },
-     {
-      "u": "h7g8",
-      "why": "Qxg8+. Qxg8+ and after Ke7, Rf7+, Kd6, Qg3+, e5, Qxe5# the king has no escape."
+      "u": "f1f4",
+      "why": "Rf4. Rf4 and after Nc4, Rh4# the king has no escape."
      }
     ],
     "best": 1,
-    "src": "y004"
+    "src": "y218"
+   },
+   {
+    "t": "choice",
+    "fen": "1r1r4/5k2/p2pbp2/1qp4p/1n5Q/4PB1P/3N1PP1/R2K1R2 b - - 7 34",
+    "text": "Calculate to the end of each line. A or B?",
+    "options": [
+     {
+      "u": "b5f1",
+      "why": "Qxf1+ looks tempting, but it does not work. The answer Nxf1 wins your queen."
+     },
+     {
+      "u": "e6b3",
+      "why": "Bb3+. Bb3+ and after Ke1, Nd3+, Ke2, Nf4+, Ke1, Qe2+, Bxe2, Nxg2# the king has no escape."
+     }
+    ],
+    "best": 1,
+    "src": "y207"
+   },
+   {
+    "t": "choice",
+    "fen": "7k/5p1p/1r4p1/3Q4/8/p5PP/P1r5/4R2K w - - 0 42",
+    "text": "Do not trust the first impression. Compare both.",
+    "options": [
+     {
+      "u": "d5d4",
+      "why": "Qd4+. Qd4+ and after f6, Re8+, Kg7, Re7+, Kf8, Qd8# the king has no escape."
+     },
+     {
+      "u": "d5a8",
+      "why": "Qa8+ looks tempting, but it does not work. After Kg7 the advantage is gone."
+     }
+    ],
+    "best": 0,
+    "src": "x01"
    }
   ]
  },
@@ -837,82 +838,86 @@ var LESSONS2 = {
    },
    {
     "t": "threat",
-    "fen": "6k1/N1p2p1p/p5p1/3pPb2/1n1P3Q/1K4NP/1PP3P1/4q3 b - - 2 31",
+    "fen": "3r2k1/1p3pp1/p1p5/8/P5P1/6P1/1P1B2q1/2K5 b - - 2 37",
     "text": "Your opponent is to move, and they have a strong idea. What are they threatening?",
     "targets": [
-     "c2",
-     "b3"
+     "d2",
+     "a4",
+     "c1"
     ],
-    "show": "f5c2",
-    "done": "They play Bxc2+ and it ends in checkmate. Seeing their idea first gives you time to stop it.",
-    "src": "y040"
+    "show": "g2d2",
+    "done": "They play Qxd2+ and it ends in checkmate. Seeing their idea first gives you time to stop it.",
+    "src": "y175"
    },
    {
     "t": "threat",
-    "fen": "r4br1/pp5p/2kPQ1pn/q1p1p3/4Pp2/PPN4P/2P2PP1/3R1RK1 w - - 3 22",
+    "fen": "rk6/3Q3p/2p2p2/p7/Pp3PPP/3P4/1B2K3/8 w - - 0 38",
     "text": "Sit on their side of the board. What would you play?",
     "targets": [
-     "c6"
+     "f6",
+     "a8",
+     "b8"
     ],
-    "show": "d6d7",
-    "done": "They play d7+ and it ends in checkmate. Threats like this decide most club games.",
-    "src": "y170"
+    "show": "b2f6",
+    "done": "They play Bxf6 and it ends in checkmate. Threats like this decide most club games.",
+    "src": "y370"
    },
    {
     "t": "threat",
-    "fen": "3r2nr/ppp1kpp1/2p4p/Q4b2/P3Pq2/N7/1PP1K1PP/R4BR1 b - - 1 15",
+    "fen": "r2k4/1b1nbQBp/pp2p3/8/2P1PN1p/q1P5/P5P1/3RK2R w K - 1 36",
     "text": "They have a two-move idea. Where will it land?",
     "targets": [
-     "e2"
+     "e6",
+     "d8"
     ],
-    "show": "f5g4",
-    "done": "They play Bg4+ and it ends in checkmate. Before every move, ask what their last move attacks.",
-    "src": "x50"
+    "show": "f4e6",
+    "done": "They play Nxe6+ and it ends in checkmate. Before every move, ask what their last move attacks.",
+    "src": "y437"
    },
    {
     "t": "threat",
-    "fen": "3r4/1p2k2p/p5p1/2p5/P1P3p1/8/2r2pK1/8 b - - 1 57",
+    "fen": "8/3n3p/1p4k1/8/P7/P4PP1/5P2/1R1R2K1 w - - 1 39",
     "text": "Find their threat before it happens.",
     "targets": [
-     "g2"
+     "d7",
+     "g6"
     ],
-    "show": "f2f1q",
-    "done": "They play f1=Q+ and it ends in checkmate. Spotting this one move earlier is how you stop losing pieces.",
-    "src": "y142"
+    "show": "d1d7",
+    "done": "They play Rxd7 and it ends in checkmate. Spotting this one move earlier is how you stop losing pieces.",
+    "src": "y163"
    },
    {
     "t": "threat",
-    "fen": "8/1K3p1k/8/6p1/8/8/5p1r/8 b - - 0 58",
+    "fen": "r1b1k1nr/pppp1ppp/2n5/4P3/8/2Q2N2/PqP1PPPP/RN2KB1R b KQkq - 0 8",
     "text": "What is the target of their next move?",
     "targets": [
-     "b7"
+     "e1"
     ],
-    "show": "f2f1q",
-    "done": "They play f1=Q and it ends in checkmate. That is why strong players look at the opponent's checks first.",
-    "src": "y135"
+    "show": "b2c1",
+    "done": "They play Qc1# and it ends in checkmate. That is why strong players look at the opponent's checks first.",
+    "src": "p25"
    },
    {
     "t": "threat",
-    "fen": "r1bq2r1/p4p2/1np1pkp1/7p/2pPP3/5P2/PPNQ2PP/R1B3KR w - - 1 25",
+    "fen": "r3kb1Q/pp2q3/2p4p/4R2p/2P5/P3P3/1P4PP/3R2K1 w - - 0 26",
     "text": "Prophylaxis starts here: what do they want?",
     "targets": [
-     "f6"
+     "e8"
     ],
-    "show": "d2g5",
-    "done": "They play Qg5+ and it ends in checkmate. One look from their side of the board saves games like this.",
-    "src": "x09"
+    "show": "h8h7",
+    "done": "They play Qh7 and it ends in checkmate. One look from their side of the board saves games like this.",
+    "src": "y058"
    },
    {
     "t": "threat",
-    "fen": "1r3k2/p2Q2r1/p7/2p5/4pP2/P7/1PP3R1/5KN1 w - - 8 43",
+    "fen": "5r2/1p2n1pp/p3k3/6q1/8/7P/1Q6/4K2b b - - 5 48",
     "text": "Their best move hurts. Which piece or square does it hit?",
     "targets": [
-     "g7",
-     "f8"
+     "e1"
     ],
-    "show": "g2g7",
-    "done": "They play Rxg7 and it ends in checkmate. Their pieces were already aimed there. The clue was on the board.",
-    "src": "x29"
+    "show": "g5g3",
+    "done": "They play Qg3+ and it ends in checkmate. Their pieces were already aimed there. The clue was on the board.",
+    "src": "y181"
    }
   ]
  },
@@ -955,19 +960,8 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "3r4/4Qp2/2p1q3/p3kp2/8/6PP/1P3N1K/8 w - - 2 50",
-    "text": "Every tempo counts here. Find the winning move.",
-    "sol": [
-     "e7d8"
-    ],
-    "hint": "Count the moves: who gets there first?",
-    "done": "Qxd8 is the only move that keeps the win. You come out a rook ahead.",
-    "src": "x19"
-   },
-   {
-    "t": "move",
     "fen": "r1b5/Qpp2n2/7p/8/4k3/P6P/1PPK2P1/8 w - - 2 31",
-    "text": "Count the moves, then play.",
+    "text": "Every tempo counts here. Find the winning move.",
     "sol": [
      "a7a8"
     ],
@@ -977,19 +971,8 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "8/kp3N2/p6P/8/3p1r2/1P6/2n2P2/3R2K1 w - - 0 43",
-    "text": "Active king, passed pawns. What is the best move?",
-    "sol": [
-     "h6h7"
-    ],
-    "hint": "Count the moves: who gets there first?",
-    "done": "h7 is the only move that keeps the win. It leaves you with a winning position.",
-    "src": "x44"
-   },
-   {
-    "t": "move",
     "fen": "6k1/7r/4p1p1/2R4p/2q5/5N1P/1P3PP1/6K1 w - - 0 37",
-    "text": "Only one move keeps the win. Find it.",
+    "text": "Count the moves, then play.",
     "sol": [
      "c5c4"
     ],
@@ -999,14 +982,36 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "4k2r/1p4Bp/p2P4/5p2/8/P2n4/6K1/R7 b k - 0 29",
-    "text": "Precision time: which move wins?",
+    "fen": "4b3/1p2kp2/8/1P5r/4PPK1/1P2R1P1/6P1/8 w - - 0 44",
+    "text": "Active king, passed pawns. What is the best move?",
     "sol": [
-     "h8g8"
+     "g4h5"
     ],
     "hint": "Count the moves: who gets there first?",
-    "done": "Rg8 is the only move that keeps the win. It leaves you with a winning position.",
-    "src": "x64"
+    "done": "Kxh5 is the only move that keeps the win. You come out a rook ahead.",
+    "src": "y063"
+   },
+   {
+    "t": "move",
+    "fen": "8/8/3K1k2/7p/p7/P1N2B1P/2r5/8 b - - 1 54",
+    "text": "Only one move keeps the win. Find it.",
+    "sol": [
+     "c2c3"
+    ],
+    "hint": "Count the moves: who gets there first?",
+    "done": "Rxc3 is the only move that keeps the win. You come out a piece ahead.",
+    "src": "y074"
+   },
+   {
+    "t": "move",
+    "fen": "8/8/5k2/7p/rB5P/3PK1P1/8/8 b - - 3 56",
+    "text": "Precision time: which move wins?",
+    "sol": [
+     "a4b4"
+    ],
+    "hint": "Count the moves: who gets there first?",
+    "done": "Rxb4 is the only move that keeps the win. You come out a piece ahead.",
+    "src": "y077"
    }
   ]
  },
@@ -1048,41 +1053,37 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "6k1/2pR1ppp/8/p1K3P1/B7/1P1r3P/4q3/8 b - - 5 36",
+    "fen": "r6k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1",
     "text": "Several precise moves are needed. Find the first.",
     "sol": [
-     "d3c3",
-     "c5d5",
-     "e2e6",
-     "d5d4",
-     "e6e3",
-     "d4d5",
-     "c3c5"
+     "d5g8",
+     "a8g8",
+     "h6f7"
     ],
     "anyMate": true,
     "hint": "Forcing moves first. What is the opponent's only reply?",
-    "done": "Rc3+ and after Kd5, Qe6+, Kd4, Qe3+, Kd5, Rc5# the king has no escape.",
-    "src": "x31"
+    "done": "Qg8+ Rxg8 Nf7 smothered mate.",
+    "src": "p30"
    },
    {
     "t": "move",
-    "fen": "3Q4/8/8/8/4k3/8/2p3P1/2R2K2 w - - 1 52",
+    "fen": "8/8/4k3/KR2p3/3r4/8/7p/6q1 b - - 1 57",
     "text": "See the end of the line, then play.",
     "sol": [
-     "c1e1",
-     "e4f5",
-     "d8d5",
-     "f5g6",
-     "e1e6",
-     "g6f7",
-     "d5d7",
-     "f7f8",
-     "e6e8"
+     "g1a1",
+     "a5b6",
+     "d4d6",
+     "b6c7",
+     "a1a7",
+     "b5b7",
+     "a7c5",
+     "c7b8",
+     "d6d8"
     ],
     "anyMate": true,
     "hint": "Forcing moves first. What is the opponent's only reply?",
-    "done": "Re1+ and after Kf5, Qd5+, Kg6, Re6+, Kf7, Qd7+, Kf8, Re8# the king has no escape.",
-    "src": "y096"
+    "done": "Qa1+ and after Kb6, Rd6+, Kc7, Qa7+, Rb7, Qc5+, Kb8, Rd8# the king has no escape.",
+    "src": "y038"
    },
    {
     "t": "move",
@@ -1104,82 +1105,185 @@ var LESSONS2 = {
    },
    {
     "t": "move",
-    "fen": "r1b1k3/ppp4p/3p1P2/3P4/6PP/1KPRn3/P3q3/8 b q - 1 30",
+    "fen": "r4b2/1p1q4/p1n1bp1p/3pkp2/4pNr1/1B4P1/PPPN1P1P/R2Q1RK1 w - - 8 22",
     "text": "Forcing moves only. Calculate to the end.",
     "sol": [
-     "e2c2",
-     "b3a3",
-     "e3c4",
-     "a3b4",
-     "a7a5",
-     "b4c4",
-     "c2a4"
+     "d2c4",
+     "d5c4",
+     "f4g6",
+     "g4g6",
+     "f2f4",
+     "e4f3",
+     "f1e1"
     ],
     "anyMate": true,
     "hint": "Forcing moves first. What is the opponent's only reply?",
-    "done": "Qc2+ and after Ka3, Nc4+, Kb4, a5+, Kxc4, Qa4# the king has no escape.",
-    "src": "y203"
+    "done": "Nc4+ and after dxc4, Ng6+, Rxg6, f4+, exf3, Re1# the king has no escape.",
+    "src": "y187"
    },
    {
     "t": "move",
-    "fen": "r7/pp3k2/2Pp4/7p/3N1pb1/2QBq2p/PP4P1/n4K1R b - - 0 25",
+    "fen": "8/3k4/6p1/4p1P1/K3P3/2q5/P4P2/8 b - - 0 44",
     "text": "Find the move that wins by force.",
     "sol": [
-     "h3g2",
-     "f1g2",
-     "g4h3",
-     "h1h3",
-     "a8g8",
-     "d3g6",
-     "g8g6",
-     "h3g3",
-     "g6g3",
-     "g2f1",
-     "g3g1"
+     "d7c6",
+     "f2f3",
+     "c6c5",
+     "a2a3",
+     "c3c4",
+     "a4a5",
+     "c4b5"
     ],
     "anyMate": true,
     "hint": "Forcing moves first. What is the opponent's only reply?",
-    "done": "hxg2+ and after Kxg2, Bh3+, Rxh3, Rg8+, Bg6+, Rxg6+, Rg3, Rxg3+, Kf1, Rg1# the king has no escape.",
-    "src": "y157"
+    "done": "Kc6 and after f3, Kc5, a3, Qc4+, Ka5, Qb5# the king has no escape.",
+    "src": "y325"
    },
    {
     "t": "choice",
-    "fen": "r6k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1",
+    "fen": "1rb5/p4Q1p/n1pR2q1/4p1pk/8/4P1pP/4KP2/2R5 w - - 2 38",
     "text": "Two serious candidates. Only one survives deep calculation.",
     "options": [
      {
-      "u": "h6f7",
-      "why": "Nf7+ looks tempting, but it does not work. After Kg8 the advantage is gone."
+      "u": "d6g6",
+      "why": "Rxg6. Rxg6 and after Rb2+, Kd1, Bg4+, f3, Bxf3+, Qxf3+, Kxg6, Rxc6+, Kg7, Qf6+, Kg8, Rc8# the king has no escape."
      },
      {
-      "u": "d5g8",
-      "why": "Qg8+. Qg8+ Rxg8 Nf7 smothered mate."
+      "u": "f7g6",
+      "why": "Qxg6+ looks tempting, but it does not work. The answer hxg6 wins your queen."
      }
     ],
-    "best": 1,
-    "src": "p30"
+    "best": 0,
+    "src": "y070"
    },
    {
     "t": "choice",
-    "fen": "8/8/4k3/KR2p3/3r4/8/7p/6q1 b - - 1 57",
+    "fen": "8/4qp2/1k4p1/1p6/1Rn1b2P/2P2P2/8/B3K3 b - - 1 50",
     "text": "Deep line A or deep line B? Calculate both.",
     "options": [
      {
-      "u": "d4a4",
-      "why": "Ra4+ looks tempting, but it does not work. The answer Kxa4 wins your rook."
+      "u": "e7b4",
+      "why": "Qxb4 looks tempting, but it does not work. The answer cxb4 wins your queen."
      },
      {
-      "u": "g1a1",
-      "why": "Qa1+. Qa1+ and after Kb6, Rd6+, Kc7, Qa7+, Rb7, Qc5+, Kb8, Rd8# the king has no escape."
+      "u": "e4f3",
+      "why": "Bxf3+. Bxf3+ and after Kf2, Qe2+, Kg3, Qg2+, Kf4, Qg4# the king has no escape."
      }
     ],
     "best": 1,
-    "src": "y038"
+    "src": "x63"
+   }
+  ]
+ },
+ "l-pro-threats": {
+  "title": "See Their Combination First",
+  "minutes": 9,
+  "band": "1600 – 2000",
+  "goal": "At this level games turn on one hidden idea. Find the opponent's best combination before they do.",
+  "takeaways": [
+   "Every move, look at the position from your opponent's chair for a few seconds.",
+   "Ask what their most forcing move is, even if it looks crazy.",
+   "If you find their combination first, one quiet move often stops it."
+  ],
+  "steps": [
+   {
+    "t": "read",
+    "fen": "6k1/5pp1/7p/8/8/8/5PPP/3R2K1 b - - 0 1",
+    "zones": [
+     [
+      [
+       "f7",
+       "g7",
+       "h6"
+      ],
+      "C"
+     ]
+    ],
+    "text": "Strong players lose most games the same way: the opponent had a forcing idea, and nobody looked for it from their side. These positions are taken from real engine games. Your opponent is to move each time. Find their combination."
+   },
+   {
+    "t": "threat",
+    "fen": "8/2q1P1k1/8/8/8/8/8/K7 w - - 0 1",
+    "text": "Your opponent is to move. What is their combination aiming at?",
+    "targets": [
+     "c7"
+    ],
+    "show": "e7e8n",
+    "done": "They play e8=N+, and your queen on c7 is lost. Spotting this one move earlier is how you stop losing pieces.",
+    "src": "p27"
+   },
+   {
+    "t": "threat",
+    "fen": "r4k1N/pp3Bpp/3q4/2p2QB1/3n4/8/2P2PPP/R6K w - - 3 28",
+    "text": "Sit in their chair. Where does their attack land?",
+    "targets": [
+     "h7",
+     "f8"
+    ],
+    "show": "f5h7",
+    "done": "They play Qxh7 and it ends in checkmate. That is why strong players look at the opponent's checks first.",
+    "src": "y131"
+   },
+   {
+    "t": "threat",
+    "fen": "r3q2k/1b1p4/3P4/1p4Q1/p3BN1P/P4P2/1P6/K7 w - - 5 52",
+    "text": "They have a forcing line. What will it win?",
+    "targets": [
+     "h8"
+    ],
+    "show": "g5h6",
+    "done": "They play Qh6+ and it ends in checkmate. One look from their side of the board saves games like this.",
+    "src": "y395"
+   },
+   {
+    "t": "threat",
+    "fen": "2kn4/6p1/1p1Q4/5pp1/1P4P1/8/8/3R2K1 w - - 0 39",
+    "text": "Find the target of their combination.",
+    "targets": [
+     "b6",
+     "c8"
+    ],
+    "show": "d1c1",
+    "done": "They play Rc1+ and it ends in checkmate. Their pieces were already aimed there. The clue was on the board.",
+    "src": "y444"
+   },
+   {
+    "t": "threat",
+    "fen": "1k6/7p/2Q5/2pP4/p4N2/2P5/PP3P1P/1K6 w - - 3 47",
+    "text": "What is the first thing that falls if you do nothing?",
+    "targets": [
+     "b8"
+    ],
+    "show": "f4e6",
+    "done": "They play Ne6 and it ends in checkmate. Remember the pattern: next time you will see it coming.",
+    "src": "y081"
+   },
+   {
+    "t": "threat",
+    "fen": "8/8/8/5p1k/1P3P2/P2PK1p1/6B1/2R5 w - - 0 47",
+    "text": "Their move. Which square or piece breaks first?",
+    "targets": [
+     "h5"
+    ],
+    "show": "c1c6",
+    "done": "They play Rc6 and it ends in checkmate. Seeing their idea first gives you time to stop it.",
+    "src": "y119"
+   },
+   {
+    "t": "threat",
+    "fen": "2nkr3/1Q3pp1/4p3/3P2Pp/8/4R3/BpP2P1P/6K1 w - - 2 38",
+    "text": "Look for their most forcing move. What does it hit?",
+    "targets": [
+     "d8"
+    ],
+    "show": "e3c3",
+    "done": "They play Rc3 and it ends in checkmate. Threats like this decide most club games.",
+    "src": "y189"
    }
   ]
  }
 };
-var LESSONS2_PLACE = {"1":[["l-captures","l-values"],["l-threats","l-captures"]],"2":[["l-loose",null],["l-twomove","l-loose"],["l-kingsafety","l-twomove"]],"3":[["l-candidates",null],["l-defence","l-candidates"],["l-endgame-play","l-kp"]],"4":[["l-deep","l-calc"]]};
+var LESSONS2_PLACE = {"1":[["l-captures","l-values"],["l-threats","l-captures"]],"2":[["l-loose",null],["l-twomove","l-loose"],["l-kingsafety","l-twomove"]],"3":[["l-candidates",null],["l-defence","l-candidates"],["l-endgame-play","l-kp"]],"4":[["l-deep","l-calc"],["l-pro-threats","l-deep"]]};
 var LESSONS2_EXT = {
  "l-forks": [
   {
@@ -1198,54 +1302,54 @@ var LESSONS2_EXT = {
   },
   {
    "t": "move",
-   "fen": "3k4/2N5/8/6r1/8/8/2K5/8 w - - 0 1",
+   "fen": "1k6/7P/r3N3/8/8/7K/6r1/8 w - - 0 1",
    "text": "One move, two targets. Where?",
    "sol": [
-    "c7e6",
-    "d8c8",
-    "e6g5"
+    "h7h8q",
+    "b8a7",
+    "h3g2"
    ],
    "hint": "Look for a square that hits the king and another piece, or two loose pieces.",
-   "done": "Ne6+ attacks two pieces at once, and one of them is the king. Only one can be saved, so you win the other.",
-   "src": "g006",
+   "done": "Nh8+ attacks two pieces at once, and one of them is the king. Only one can be saved, so you win the other.",
+   "src": "g009",
    "ext": 1
   },
   {
    "t": "move",
-   "fen": "3k4/r7/8/8/1NK5/8/7b/8 w - - 0 1",
+   "fen": "2k5/4n3/8/2K2RP1/8/8/4n3/8 w - - 0 1",
    "text": "Which square attacks two things at once?",
    "sol": [
-    "b4c6",
-    "d8c8",
-    "c6a7"
+    "f5e5",
+    "c8b8",
+    "e5e7"
    ],
    "hint": "Look for a square that hits the king and another piece, or two loose pieces.",
-   "done": "Nc6+ attacks two pieces at once, and one of them is the king. Only one can be saved, so you win the other.",
-   "src": "g010",
-   "ext": 1
-  },
-  {
-   "t": "threat",
-   "fen": "8/4k3/8/7P/8/4n3/8/2n1K3 w - - 0 1",
-   "text": "Their move. Where is the fork coming?",
-   "targets": [
-    "e3"
-   ],
-   "show": "e1d2",
-   "done": "They play Kd2, and your knight on e3 is lost. Spotting this one move earlier is how you stop losing pieces.",
-   "src": "g023",
+   "done": "The pawn steps forward and attacks two pieces at once. Pawn forks win pieces for almost nothing.",
+   "src": "g022",
    "ext": 1
   },
   {
    "t": "threat",
    "fen": "4r3/2kP2p1/p6p/Pq3p2/1p3P1P/1N2bQP1/1PP5/3K1R2 b - - 0 44",
-   "text": "Your opponent has a fork ready. Which of your pieces will fall?",
+   "text": "Their move. Where is the fork coming?",
    "targets": [
     "d7"
    ],
    "show": "b5d7",
-   "done": "They play Qxd7+, and your pawn on d7 is lost. That is why strong players look at the opponent's checks first.",
+   "done": "They play Qxd7+, and your pawn on d7 is lost. Before every move, ask what their last move attacks.",
    "src": "x62",
+   "ext": 1
+  },
+  {
+   "t": "threat",
+   "fen": "5R2/kpp3r1/2p4p/p1P2b1P/P7/1P3P2/K5B1/8 b - - 0 40",
+   "text": "Your opponent has a fork ready. Which of your pieces will fall?",
+   "targets": [
+    "g2"
+   ],
+   "show": "g7g2",
+   "done": "They play Rxg2+, and your bishop on g2 is lost. Spotting this one move earlier is how you stop losing pieces.",
+   "src": "y052",
    "ext": 1
   }
  ],
@@ -1296,8 +1400,36 @@ var LESSONS2_EXT = {
  "l-skewers": [
   {
    "t": "move",
-   "fen": "8/7R/8/8/3k4/7p/3q4/5K2 w - - 0 1",
+   "fen": "1r6/p7/8/1k6/4K3/8/8/6R1 w - - 0 1",
    "text": "Skewer the king and win what is behind it.",
+   "sol": [
+    "g1b1",
+    "b5a6",
+    "b1b8"
+   ],
+   "hint": "Find a check along a line with something valuable behind the king.",
+   "done": "Check! The king must step off the line, and then you capture the piece behind it on b8.",
+   "src": "g040",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "3k1q2/K7/8/8/8/1R2N3/8/8 w - - 0 1",
+   "text": "Check along the line and collect the piece behind.",
+   "sol": [
+    "b3b8",
+    "d8e7",
+    "b8f8"
+   ],
+   "hint": "Find a check along a line with something valuable behind the king.",
+   "done": "Check! The king must step off the line, and then you capture the piece behind it on f8.",
+   "src": "g041",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/7R/8/8/3k4/7p/3q4/5K2 w - - 0 1",
+   "text": "Find the skewer.",
    "sol": [
     "h7d7",
     "d4c3",
@@ -1307,49 +1439,49 @@ var LESSONS2_EXT = {
    "done": "Check! The king must step off the line, and then you capture the piece behind it on d2.",
    "src": "g042",
    "ext": 1
-  },
-  {
-   "t": "move",
-   "fen": "3q4/1p6/8/3k4/8/5K2/7R/8 w - - 0 1",
-   "text": "Check along the line and collect the piece behind.",
-   "sol": [
-    "h2d2",
-    "d5c6",
-    "d2d8"
-   ],
-   "hint": "Find a check along a line with something valuable behind the king.",
-   "done": "Check! The king must step off the line, and then you capture the piece behind it on d8.",
-   "src": "g043",
-   "ext": 1
-  },
-  {
-   "t": "move",
-   "fen": "8/7r/8/8/7P/K2kp3/8/4Q3 w - - 0 1",
-   "text": "Find the skewer.",
-   "sol": [
-    "e1b1",
-    "d3c4",
-    "b1h7"
-   ],
-   "hint": "Find a check along a line with something valuable behind the king.",
-   "done": "Check! The king must step off the line, and then you capture the piece behind it on h7.",
-   "src": "g044",
-   "ext": 1
   }
  ],
  "l-discovered": [
   {
    "t": "move",
-   "fen": "7q/2k5/8/8/3N4/8/1B6/6K1 w - - 0 1",
+   "fen": "8/4QB1k/8/8/8/3b4/8/2K5 w - - 0 1",
    "text": "Move one piece to unleash another.",
    "sol": [
-    "d4b5",
-    "c7b6",
-    "b2h8"
+    "f7c4",
+    "h7h8",
+    "c4d3"
    ],
    "hint": "Which of your pieces is blocking your own rook, bishop or queen?",
-   "done": "A knight check unmasks the bishop on h8.",
-   "src": "p21",
+   "done": "Bc4+! Your piece steps off the line and uncovers an attack by the piece behind it, with check. Two threats in one move: Black cannot answer both.",
+   "src": "g055",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/1R1P3k/8/8/K6n/8/8/8 w - - 0 1",
+   "text": "Find the discovered attack.",
+   "sol": [
+    "d7d8q",
+    "h7g6",
+    "d8h4"
+   ],
+   "hint": "Which of your pieces is blocking your own rook, bishop or queen?",
+   "done": "d8=Q+! Your piece steps off the line and uncovers an attack by the piece behind it, with check. Two threats in one move: Black cannot answer both.",
+   "src": "g057",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/8/1Q6/8/3N4/3pk1K1/8/2n5 w - - 0 1",
+   "text": "Uncover your line piece with a threat of its own.",
+   "sol": [
+    "d4b3",
+    "e3e2",
+    "b3c1"
+   ],
+   "hint": "Which of your pieces is blocking your own rook, bishop or queen?",
+   "done": "Nb3+! Your piece steps off the line and uncovers an attack by the piece behind it, with check. Two threats in one move: Black cannot answer both.",
+   "src": "g060",
    "ext": 1
   }
  ],
@@ -1401,7 +1533,7 @@ var LESSONS2_EXT = {
     "g8"
    ],
    "show": "a6a8",
-   "done": "They play Ra8# and it ends in checkmate. Before every move, ask what their last move attacks.",
+   "done": "They play Ra8# and it ends in checkmate. Threats like this decide most club games.",
    "src": "g076",
    "ext": 1
   }
@@ -1422,28 +1554,28 @@ var LESSONS2_EXT = {
   },
   {
    "t": "move",
-   "fen": "8/p4k2/1p6/PP6/3Pb1n1/4b3/3r1p2/2R2K2 b - - 1 54",
+   "fen": "8/5kp1/p4p2/2p4p/q7/2p1BKP1/P2r4/8 b - - 5 56",
    "text": "Mate in one. Which pattern is it?",
    "sol": [
-    "g4h2"
+    "a4g4"
    ],
    "anyMate": true,
    "hint": "Count the squares around the king: which piece covers each one?",
-   "done": "Nh2# the king has no escape.",
-   "src": "x10",
+   "done": "Qg4# the king has no escape.",
+   "src": "x12",
    "ext": 1
   },
   {
    "t": "move",
-   "fen": "r1b5/N6p/kp1Q2p1/p3r2n/8/3nP3/P1P2PPP/1R1K3R w - - 0 32",
+   "fen": "1k2r3/1n2brp1/3p4/NQp1P3/5p1p/P3P3/1P4PP/R1R3K1 w - - 2 36",
    "text": "You have seen this picture before. Mate.",
    "sol": [
-    "d6b6"
+    "b5b7"
    ],
    "anyMate": true,
    "hint": "Count the squares around the king: which piece covers each one?",
-   "done": "Qxb6# the king has no escape.",
-   "src": "x20",
+   "done": "Qxb7# the king has no escape.",
+   "src": "x25",
    "ext": 1
   }
  ],
@@ -1468,25 +1600,25 @@ var LESSONS2_EXT = {
   },
   {
    "t": "choice",
-   "fen": "r1b3kq/2pnn1p1/p2p3p/b3p1P1/PP2P2P/2pP1P2/2P4R/1R1QK1B1 b - - 0 23",
-   "text": "Remove the defender, or the other move? A or B?",
+   "fen": "r4k2/1b2qp1p/1n4r1/p2p4/Q2P1B2/P1N2P2/1PP4P/R2B1K1R w - - 3 24",
+   "text": "One of these moves removes a key defender. Which?",
    "options": [
     {
-     "u": "h6g5",
-     "why": "hxg5 looks tempting, but it does not work. The answer hxg5 wins your pawn."
+     "u": "a4e8",
+     "why": "Qe8+ looks tempting, but it does not work. The answer Rxe8 wins your queen."
     },
     {
-     "u": "a5b6",
-     "why": "Bb6. Bb6 starts a forcing sequence. You come out a decisive edge ahead."
+     "u": "a4b3",
+     "why": "Qb3. Qb3 starts a forcing sequence. You come out a decisive edge ahead."
     }
    ],
    "best": 1,
-   "src": "y017",
+   "src": "y049",
    "ext": 1
   }
  ]
 };
-var LESSONS2_USED = ["g001","g025","y015","y053","y130","y198","x14","x45","y002","y013","y022","y028","y034","y065","y078","y100","y109","y153","p07","x42","y021","y041","y060","y084","y154","y172","y199","g019","y087","y039","x05","y048","y147","g017","g029","g035","g041","g047","g053","y174","p16","g015","g026","g031","g036","g040","g045","g050","p10","y152","g056","g060","g064","p18","x57","x33","y037","y197","g054","g055","g057","g058","g059","g061","g062","g063","g065","p11","x46","y042","y067","y082","y090","y138","x03","x47","y008","y019","y061","y137","y176","p14","x26","y003","y014","y046","y112","y161","p22","x08","y068","p23","p25","p26","y045","y175","x59","y156","y163","x21","y004","y095","y122","y191","y127","y085","y035","y129","x63","y106","y148","x61","y040","y170","x50","y142","y135","x09","x29","y059","y111","y190","y066","x48","y001","y119","y070","x67","y115","y185","y104","x18","x19","x36","x44","x54","x64","y063","y069","y074","y076","y077","y094","p28","x31","y096","y145","y203","y157","y164","y093","y159","x16","y200","y206","y005","y155","p30","y038","y134","y187","y044","y162","y126","y193","y029","x55","x65","y011","x39","g002","g006","g010","g014","g024","y036","y054","y168","g020","x69","g023","x62","y047","y052","y092","g018","x15","g027","g028","g030","g032","g033","g034","g037","g038","g039","p17","g042","g043","g044","g046","g048","g049","g051","g052","p13","p15","p21","g066","g067","g068","g069","g070","g071","g072","g073","g074","g075","g076","g077","p09","x10","x20","x25","y007","y016","y056","y097","y107","y149","y171","y186","x58","y017","y049","y051","y180","x53","y118","y121","y140"];
+var LESSONS2_USED = ["g001","x49","y065","y192","y290","y381","x14","x45","y015","y028","y064","y100","y150","y169","y199","y261","y285","y326","y342","p07","y020","y050","y105","y182","y238","y299","y347","y422","g020","x13","y098","x05","y054","y432","g029","g038","g047","y037","y388","p16","y309","g015","g026","g032","g037","g043","g049","p08","y152","y369","g058","g063","p18","x66","y305","p10","y174","y294","g054","g056","g059","g061","g064","p13","x15","x52","y228","y278","p11","y062","y090","y266","y291","y324","y393","p14","y008","y112","y281","y349","y445","y265","x03","x47","y014","y046","y137","y176","y302","y330","y356","y427","p22","y068","y378","y411","y170","y332","x50","y262","y218","y207","x01","y030","y122","y214","y286","y401","y408","x48","x30","y132","y429","x31","y134","y175","y370","y437","y163","p25","y058","y181","y243","y345","y271","y333","y001","y255","y397","y115","y269","y104","y249","x18","x36","x54","y063","y074","y077","y110","y144","y215","y295","y398","x17","p28","p30","y038","y145","y187","y325","x61","y044","y164","y355","y126","x16","y415","y206","y070","x63","y096","y148","y203","y344","y212","y157","y372","y162","y159","y029","y446","y426","g002","g009","g022","y036","y084","y217","y315","y387","y055","y352","x62","y052","y160","y235","g018","x69","x40","g027","g028","g030","g031","g033","g034","g035","g036","g039","p17","g040","g041","g042","g044","g045","g046","g048","g050","g051","g052","g055","g057","g060","g062","g065","p21","g066","g067","g068","g069","g070","g071","g072","g073","g074","g075","g076","g077","p09","x12","x25","y010","y056","y102","y149","y173","y213","y234","y245","y267","x58","y049","y180","y280","x33","y121","y248","y350","x57","p27","y131","y395","y444","y081","y119","y189","y360","y400","x67","y185","y374","y143","y093","y200","x65"];
 if (typeof LESSONS !== 'undefined') Object.keys(LESSONS2_EXT).forEach(function (k) { if (LESSONS[k] && !LESSONS[k].ext2) { LESSONS[k].steps = LESSONS[k].steps.concat(LESSONS2_EXT[k]); LESSONS[k].ext2 = true; } });
 if (typeof LESSONS !== 'undefined') { Object.keys(LESSONS2).forEach(function (k) { LESSONS[k] = LESSONS2[k]; }); Object.keys(LESSONS2_PLACE).forEach(function (i) { var L = STAGES[i].lessons; LESSONS2_PLACE[i].forEach(function (pr) { var at = L.indexOf(pr[0]); if (at >= 0) L.splice(at, 1); var a = pr[1] ? L.indexOf(pr[1]) : -1; if (pr[1] && a < 0) L.push(pr[0]); else L.splice(a + 1, 0, pr[0]); }); }); }
 if (typeof module !== 'undefined') module.exports = { LESSONS2: LESSONS2, LESSONS2_EXT: LESSONS2_EXT, LESSONS2_PLACE: LESSONS2_PLACE, LESSONS2_USED: LESSONS2_USED };

@@ -58,9 +58,13 @@ function threatFrom(p, text) {
   const done = 'They play ' + first.san + (mate ? ' and it ends in checkmate. ' : wonPiece ? ', and your ' + NAME[wonPiece.c] + ' on ' + wonPiece.sq + ' is lost. ' : '. ') + TAILS[(threatN++) % TAILS.length];
   return { t: 'threat', fen, text, targets: [...tap], show: p.sol[0], done, src: p.id };
 }
+const doneSeen = new Set();
 function moveFrom(p, text, hint) {
   used.add(p.id);
-  return { t: 'move', fen: fenOf(p), text, sol: p.sol, anyMate: p.theme === 'mate' || undefined, hint, done: p.explain, src: p.id };
+  let done = p.explain;
+  if (doneSeen.has(done)) { const g = new Game(fenOf(p)), r = U(g, p.sol[0]); done = (r ? r.san + '! ' : '') + done; }
+  doneSeen.add(done);
+  return { t: 'move', fen: fenOf(p), text, sol: p.sol, anyMate: p.theme === 'mate' || undefined, hint, done, src: p.id };
 }
 function gen(list, maker, text, ...rest) { const out = []; for (const p of list) { const t = Array.isArray(text) ? text[out.length % text.length] : text; const s = maker(p, t, ...rest); if (s) out.push(s); } return out; }
 const take = (arr, n) => arr.slice(0, n);
@@ -166,9 +170,17 @@ EXT['l-discovered'] = gen(pick(p => p.theme === 'discovered', 10), moveFrom, ['M
 EXT['l-backrank'] = gen(pick(p => p.backrank, 10), moveFrom, ['The king is stuck behind its pawns. Mate it.', 'Back rank! Find the mate.', 'No escape square. Deliver mate on the edge.'], 'Get a rook or queen to the back rank with check.').slice(0, 3)
   .concat(gen(pick(p => p.backrank, 10), threatFrom, 'Your king has no escape square. Their move. Where does the mate come from?').slice(0, 1));
 EXT['l-patterns'] = gen(pick(p => p.theme === 'mate' && p.sol.length === 1 && p.r >= 500 && p.r <= 1100, 12), moveFrom, ['Recognise the pattern and finish.', 'Mate in one. Which pattern is it?', 'You have seen this picture before. Mate.'], 'Count the squares around the king: which piece covers each one?').slice(0, 3);
-EXT['l-defender'] = gen(pick(p => /combo|defender/.test(p.theme) && p.r <= 1200, 10), choiceFrom, 'Remove the defender, or the other move? A or B?').slice(0, 2);
+EXT['l-defender'] = gen(pick(p => /combo|defender/.test(p.theme) && p.r <= 1200, 10), choiceFrom, ['Remove the defender, or the other move? A or B?', 'One of these moves removes a key defender. Which?']).slice(0, 2);
+L['l-pro-threats'] = {
+  title: 'See Their Combination First', minutes: 9, band: '1600 – 2000',
+  goal: 'At this level games turn on one hidden idea. Find the opponent\'s best combination before they do.',
+  takeaways: ['Every move, look at the position from your opponent\'s chair for a few seconds.', 'Ask what their most forcing move is, even if it looks crazy.', 'If you find their combination first, one quiet move often stops it.'],
+  steps: [
+    { t: 'read', fen: '6k1/5pp1/7p/8/8/8/5PPP/3R2K1 b - - 0 1', zones: [[['f7', 'g7', 'h6'], 'C']], text: 'Strong players lose most games the same way: the opponent had a forcing idea, and nobody looked for it from their side. These positions are taken from real engine games. Your opponent is to move each time. Find their combination.' }
+  ].concat(gen(pick(p => p.r >= 1250 && p.sol.length >= 3, 16), threatFrom, ['Your opponent is to move. What is their combination aiming at?', 'Sit in their chair. Where does their attack land?', 'They have a forcing line. What will it win?', 'Find the target of their combination.', 'What is the first thing that falls if you do nothing?', 'Their move. Which square or piece breaks first?', 'Look for their most forcing move. What does it hit?']).slice(0, 7))
+};
 // stage placement
-const PLACE = { 1: [['l-captures', 'l-values'], ['l-threats', 'l-captures']], 2: [['l-loose', null], ['l-twomove', 'l-loose'], ['l-kingsafety', 'l-twomove']], 3: [['l-candidates', null], ['l-defence', 'l-candidates'], ['l-endgame-play', 'l-kp']], 4: [['l-deep', 'l-calc']] };
+const PLACE = { 1: [['l-captures', 'l-values'], ['l-threats', 'l-captures']], 2: [['l-loose', null], ['l-twomove', 'l-loose'], ['l-kingsafety', 'l-twomove']], 3: [['l-candidates', null], ['l-defence', 'l-candidates'], ['l-endgame-play', 'l-kp']], 4: [['l-deep', 'l-calc'], ['l-pro-threats', 'l-deep']] };
 // sanity: verify the hand-written choice/threat steps with the engine too
 let problems = 0;
 Object.keys(EXT).forEach(id => EXT[id].forEach(st => { st.ext = 1; }));

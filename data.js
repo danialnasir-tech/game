@@ -434,6 +434,7 @@ var RATING_GUIDE = [
     { t: 'No plan in the middlegame', d: 'Moves without a target once the opening is over.', lesson: 'l-structure' }] },
   { min: 1600, max: 3000, name: '1600 – 2000', focus: 'Deeper, tidier calculation and converting small advantages.', mistakes: [
     { t: 'Calculation errors in long lines', d: 'A defence or quiet move is missed three moves deep.', lesson: 'l-deep' },
+    { t: 'The opponent\'s combination comes as a surprise', d: 'Their forcing ideas are not looked for from their side of the board.', lesson: 'l-pro-threats' },
     { t: 'Advantages not converted', d: 'Better positions drift into draws.', lesson: 'l-convert' },
     { t: 'No prophylaxis', d: 'The opponent\'s plan is not stopped before it starts.', lesson: 'l-outposts' },
     { t: 'Imprecise rook endings', d: 'Lucena and Philidor positions misplayed.', lesson: 'l-rook-end' },

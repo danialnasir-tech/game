@@ -3154,6 +3154,7 @@
     'l-candidates': { pick: function (p) { return fresh2(p) && /combo|mate|fork|discovered|skewer|pin/.test(p.theme) && p.sol.length <= 5 && p.r >= 900 && p.r <= 1600; }, ask: 'List your candidates, calculate, then play the best one.', hint: 'Checks, captures and threats. Follow each one to the end.' },
     'l-defence': { pick: function (p) { return fresh2(p) && /combo|mate|fork|discovered|skewer|pin/.test(p.theme) && p.sol.length <= 5 && p.r >= 1000 && p.r <= 1700; }, ask: 'Find the strongest move. Then ask what the defender could have done.', hint: 'What is the opponent\'s weakest point?' },
     'l-endgame-play': { pick: function (p) { return fresh2(p) && /endgame|promotion/.test(p.theme) && p.r >= 400 && p.r <= 1600; }, ask: 'Find the precise endgame move.', hint: 'Active king, passed pawns, count the moves.' },
+    'l-pro-threats': { pick: function (p) { return fresh2(p) && p.sol.length >= 3 && p.sol.length <= 7 && p.r >= 1200; }, ask: 'Now play their side: find the winning combination.', hint: 'The most forcing move first, even if it gives material away.' },
     'l-deep': { pick: function (p) { return fresh2(p) && p.sol.length >= 3 && p.sol.length <= 7 && p.r >= 1300; }, ask: 'Calculate the whole line, then play it.', hint: 'Forcing moves only. What is the only reply each time?' },
     'l-convert': { pick: function (p) { return (p.theme === 'combo' || p.theme === 'hanging') && p.r >= 700; }, ask: 'You are better. Find the cleanest way to win more.', hint: 'Forcing moves first, even when you are winning.' }
   };
