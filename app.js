@@ -1305,7 +1305,7 @@
     return null; // every stage is cleared
   }
   // Coach strength and opening difficulty that suit a rating
-  function levelForRating(r) { return r < 800 ? 'novice' : r < 1200 ? 'club' : r < 1600 ? 'strong' : r < 2000 ? 'expert' : 'master'; }
+  function levelForRating(r) { return r < 800 ? 'novice' : r < 1200 ? 'club' : r < 1600 ? 'strong' : r < 2000 ? 'expert' : r < 2400 ? 'master' : 'gm'; }
   function openingTier(r) { return r < 800 ? 0 : r < 1400 ? 1 : 2; }
   var TIER = { Beginner: 0, Intermediate: 1, Advanced: 2 };
   function stageOf(lessonId) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].lessons.indexOf(lessonId) >= 0) return i; return 0; }
@@ -3072,7 +3072,7 @@
         if (MS.n >= m.limit) return MODES.mission.finish(false, missionWhy(m, g, r, MS));
         MS.busy = true; MODES.mission.render();
         var fen = g.fen(), t0 = Date.now();
-        var job = m.coach === 'defend' ? Eng.call('pickMove', fen, levelById('master'), []).then(function (x) { return x && x.move; }) : Promise.resolve(missionReply(m, g, MS.n));
+        var job = m.coach === 'defend' ? Eng.call('pickMove', fen, levelById('gm'), []).then(function (x) { return x && x.move; }) : Promise.resolve(missionReply(m, g, MS.n));
         return job.then(function (cm) {
           setTimeout(function () {
             if (!MS || MS.g !== g || MS.over) return;
@@ -3172,12 +3172,12 @@
     }
     var show = function (mv) { if (!mv || !MS || MS.g !== g) return; B3.arrows([[mv.from, mv.to, 'g']]); B3.flash('hint', [mv.from], 2200); };
     if (m.goal === 'sequence') { var nx = new Game(g.fen()).move(m.seq[MS.st.k || 0]); show(nx); }
-    else if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+    else if (m.coach === 'defend') Eng.call('pickMove', g.fen(), levelById('gm'), []).then(function (x) { show(x && x.move); });
     else {
       // for capture goals, aim at the next capture; otherwise the whole goal. Fall back to the engine's move.
       if (m.goal === 'capture' || m.goal === 'captureAll') m = Object.assign({}, m, { goal: 'capture', count: (MS.st.caps || 0) + 1 });
       var mv = null; for (var d = 1; d <= 3 && !mv; d++) mv = reach(d, { caps: MS.st.caps || 0, k: MS.st.k });
-      if (mv) show(mv); else Eng.call('pickMove', g.fen(), levelById('master'), []).then(function (x) { show(x && x.move); });
+      if (mv) show(mv); else Eng.call('pickMove', g.fen(), levelById('gm'), []).then(function (x) { show(x && x.move); });
     }
     MODES.mission.render();
     var tip = $('.ms-tip'); if (tip && tip.scrollIntoView) tip.scrollIntoView({ block: 'nearest' });
@@ -5331,7 +5331,8 @@
     beat_club: { name: 'Club Player', text: 'Beat the Club coach (~1000).', icon: 'n' },
     beat_strong: { name: 'Strong Player', text: 'Beat the Strong coach (~1400).', icon: 'b' },
     beat_expert: { name: 'Expert Slayer', text: 'Beat the Expert coach (~1800).', icon: 'r' },
-    beat_master: { name: 'Master Slayer', text: 'Beat the Master coach (~2100).', icon: 'k' },
+    beat_master: { name: 'Master Slayer', text: 'Beat the Master coach (~2200).', icon: 'k' },
+    beat_gm: { name: 'Giant Killer', text: 'Beat the coach at full strength.', icon: 'k' },
     streak_3: { name: 'On a Roll', text: '3-day training streak.', icon: 'p' },
     streak_7: { name: 'Week Warrior', text: '7-day training streak.', icon: 'n' },
     streak_14: { name: 'Unstoppable', text: '14-day training streak.', icon: 'r' },

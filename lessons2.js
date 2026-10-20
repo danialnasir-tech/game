@@ -498,7 +498,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "e5f3",
-      "why": "Nf3+ looks tempting, but it does not work. After Kf2 the advantage is gone."
+      "why": "Nf3+ looks tempting, but it does not work. After Ke2 the advantage is gone."
      },
      {
       "u": "e5d3",
@@ -2215,7 +2215,7 @@ var LESSONS2_EXT = {
     },
     {
      "u": "a5d2",
-     "why": "Bd2+ looks tempting, but it does not work. The answer Kxd2 wins your bishop."
+     "why": "Bd2+ looks tempting, but it does not work. The answer Rxd2 wins your bishop."
     }
    ],
    "best": 0,

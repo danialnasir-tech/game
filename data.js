@@ -362,11 +362,14 @@ var PUZZLES = [
 ];
 
 var COACH_LEVELS = [
-  { id: 'novice', name: 'Novice', elo: 600, depth: 2, time: 400, margin: 130, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
-  { id: 'club', name: 'Club', elo: 1000, depth: 3, time: 600, margin: 45, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
-  { id: 'strong', name: 'Strong', elo: 1400, depth: 5, time: 900, margin: 18, blurb: 'Sees short combinations.' },
-  { id: 'expert', name: 'Expert', elo: 1800, depth: 8, time: 1400, margin: 0, blurb: 'Calculates deeply and rarely slips.' },
-  { id: 'master', name: 'Master', elo: 2200, depth: 40, time: 2500, margin: 0, blurb: 'Full strength. Your final boss.' }
+  // strength comes from a fixed search depth, so a level plays the same on a fast laptop and a slow phone.
+  // Calibrated against Stockfish 17.1 with its built-in Elo limit (tests/engine-calibration.md).
+  { id: 'novice', name: 'Novice', elo: 600, depth: 1, time: 400, margin: 150, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
+  { id: 'club', name: 'Club', elo: 1000, depth: 1, time: 500, margin: 80, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
+  { id: 'strong', name: 'Strong', elo: 1400, depth: 2, time: 700, margin: 45, blurb: 'Sees short combinations and takes what you leave.' },
+  { id: 'expert', name: 'Expert', elo: 1800, depth: 3, time: 1200, margin: 25, blurb: 'Solid and tactical. Punishes loose pieces and weak kings.' },
+  { id: 'master', name: 'Master', elo: 2200, depth: 5, time: 2000, margin: 0, blurb: 'Accurate in every phase. Rarely gives anything away.' },
+  { id: 'gm', name: 'Grandmaster', elo: 2600, depth: 60, time: 3000, margin: 0, blurb: 'Full strength. Thinks for 3 seconds a move. The ultimate test.' }
 ];
 
 

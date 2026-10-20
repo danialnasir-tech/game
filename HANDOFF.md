@@ -271,3 +271,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - One Coach Leo everywhere (`coachAvatar()` now matches the 3D Leo: grey hair, beard, glasses, maroon jacket).
 - Phones: no empty preview board on Arena, Openings and the coach-game setup; the Start game button sticks to the bottom.
 - Settings shows "Saved automatically on this device" instead of developer setup text. Header reads "0/4 today".
+
+## Stronger coach engine and honest levels (see tests/engine-calibration.md)
+- engine.js: PeSTO tapered evaluation, late ordering/qsearch skipping of losing captures, log LMR, late-move pruning,
+  root aspiration windows. +119 Elo over the previous engine (kept as tests/engine/engine-v1.js); vs Stockfish 17.1 limited
+  to 2600 it scores 26/40 where the old one scored 12/40.
+- Levels now use a fixed search depth (same strength on every device) calibrated against Stockfish's Elo limit:
+  Club d1, Strong d2, Expert d3, Master d5, and a new Grandmaster (full strength, 3 s; badge `beat_gm`). Defend missions
+  use Grandmaster. levelForRating gives Grandmaster from 2400.
