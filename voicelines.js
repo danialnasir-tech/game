@@ -34,6 +34,7 @@ function VOICE_LINES(data, opts) {
       out.push({ id: 'L-' + id + '-' + i, text: s.text, group: 'lessons' });
       if (s.done) out.push({ id: 'L-' + id + '-' + i + '-d', text: s.done, group: 'lessons' });
       if (s.options) s.options.forEach(function (o, k) { out.push({ id: 'L-' + id + '-' + i + '-' + k, text: o.why, group: 'lessons' }); });
+      var aq = s.ask || s.tap; if (aq) { out.push({ id: 'L-' + id + '-' + i + '-q', text: aq.q, group: 'lessons' }); if (aq.why) out.push({ id: 'L-' + id + '-' + i + '-w', text: aq.why, group: 'lessons' }); }
     });
   });
   data.PUZZLES.forEach(function (p) { out.push({ id: 'P-' + p.id, text: p.explain, group: 'puzzles' }); });
@@ -280,7 +281,7 @@ Object.assign(MORE_POOLS, {
 // Hands-on check after a "Concept" step that shows one lone piece: tap squares it can reach.
 var QUIZ_NEED = { r: 4, b: 3, q: 5, n: 3, k: 3 }, QUIZ_WORD = ['zero', 'one', 'two', 'three', 'four', 'five'], QUIZ_NAME = { r: 'rook', b: 'bishop', q: 'queen', n: 'knight', k: 'king' };
 function QUIZ_OF(step) {
-  if (!step || step.t !== 'read' || !step.fen || step.demo) return null;
+  if (!step || step.t !== 'read' || !step.fen || step.demo || step.ask || step.tap) return null;
   var rows = step.fen.split(' ')[0].split('/'), found = [];
   rows.forEach(function (row, ri) { var f = 0; for (var i = 0; i < row.length; i++) { var ch = row[i]; if (/\d/.test(ch)) { f += +ch; continue; } found.push({ ch: ch, sq: 'abcdefgh'[f] + (8 - ri) }); f++; } });
   if (found.length !== 1 || !QUIZ_NEED[found[0].ch.toLowerCase()] || found[0].ch !== found[0].ch.toUpperCase()) return null;

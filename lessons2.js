@@ -202,7 +202,7 @@ var LESSONS2 = {
      },
      {
       "u": "d2f4",
-      "why": "Bxf4. Bxf4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
+      "why": "Bxf4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
      }
     ],
     "best": 1,
@@ -215,7 +215,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d1h1",
-      "why": "Rxh1. Rxh1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."
+      "why": "Rxh1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."
      },
      {
       "u": "f5h4",
@@ -236,7 +236,7 @@ var LESSONS2 = {
      },
      {
       "u": "h5f6",
-      "why": "Nxf6. Nxf6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."
+      "why": "Nxf6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead."
      }
     ],
     "best": 1,
@@ -253,7 +253,7 @@ var LESSONS2 = {
      },
      {
       "u": "a4a6",
-      "why": "Qxa6. Qxa6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."
+      "why": "Qxa6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead."
      }
     ],
     "best": 1,
@@ -266,7 +266,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d7g4",
-      "why": "Qxg4. Qxg4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
+      "why": "Qxg4 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
      },
      {
       "u": "d4c2",
@@ -502,7 +502,7 @@ var LESSONS2 = {
      },
      {
       "u": "e5d3",
-      "why": "Nd3+. Nd3+ forks the king and the queen."
+      "why": "Nd3+ forks the king and the queen."
      }
     ],
     "best": 1,
@@ -519,7 +519,7 @@ var LESSONS2 = {
      },
      {
       "u": "c6f3",
-      "why": "Bxf3+. Bxf3+ attacks two targets at once and only one can be saved. You come out a queen ahead."
+      "why": "Bxf3+ attacks two targets at once and only one can be saved. You come out a queen ahead."
      }
     ],
     "best": 1,
@@ -532,7 +532,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "b5c7",
-      "why": "Nxc7+. Nxc7+ attacks two targets at once and only one can be saved. You come out a queen ahead."
+      "why": "Nxc7+ attacks two targets at once and only one can be saved. You come out a queen ahead."
      },
      {
       "u": "b5d6",
@@ -697,7 +697,7 @@ var LESSONS2 = {
       "b"
      ]
     ],
-    "text": "Players around 1200 to 1600 often play the first good-looking move. Masters train a different habit: name two or three candidates, compare them, then choose. In these exercises you see two candidates. Only one of them works."
+    "text": "Players around 1200 to 1600 often play the first good-looking move. Masters name two or three candidates, compare them, then choose. Here you get two candidates. Only one works."
    },
    {
     "t": "choice",
@@ -706,7 +706,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d6d7",
-      "why": "d7+. d7+ and after Kc7, Nd5+, Kb8, Qe8+, Qd8, Qxd8# the king has no escape."
+      "why": "d7+ and after Kc7, Nd5+, Kb8, Qe8+, Qd8, Qxd8# the king has no escape."
      },
      {
       "u": "e6g8",
@@ -723,7 +723,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "a1h1",
-      "why": "Rh1. Rh1 and after Kh6, Rg5, Be2, Kxe2, c5, Rhxh5# the king has no escape."
+      "why": "Rh1 and after Kh6, Rg5, Be2, Kxe2, c5, Rhxh5# the king has no escape."
      },
      {
       "u": "g3g7",
@@ -740,7 +740,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "f5g4",
-      "why": "Bg4+. Bg4+ and after Ke1, Qe3+, Be2, Qxe2# the king has no escape."
+      "why": "Bg4+ and after Ke1, Qe3+, Be2, Qxe2# the king has no escape."
      },
      {
       "u": "f4f1",
@@ -757,7 +757,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d4f4",
-      "why": "Rf4. Rf4 and after d4, Qxf2+, Kh1, Rh4# the king has no escape."
+      "why": "Rf4 and after d4, Qxf2+, Kh1, Rh4# the king has no escape."
      },
      {
       "u": "e3f2",
@@ -778,7 +778,7 @@ var LESSONS2 = {
      },
      {
       "u": "f1f4",
-      "why": "Rf4. Rf4 and after Nc4, Rh4# the king has no escape."
+      "why": "Rf4 and after Nc4, Rh4# the king has no escape."
      }
     ],
     "best": 1,
@@ -795,7 +795,7 @@ var LESSONS2 = {
      },
      {
       "u": "e6b3",
-      "why": "Bb3+. Bb3+ and after Ke1, Nd3+, Ke2, Nf4+, Ke1, Qe2+, Bxe2, Nxg2# the king has no escape."
+      "why": "Bb3+ and after Ke1, Nd3+, Ke2, Nf4+, Ke1, Qe2+, Bxe2, Nxg2# the king has no escape."
      }
     ],
     "best": 1,
@@ -808,7 +808,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d5d4",
-      "why": "Qd4+. Qd4+ and after f6, Re8+, Kg7, Re7+, Kf8, Qd8# the king has no escape."
+      "why": "Qd4+ and after f6, Re8+, Kg7, Re7+, Kf8, Qd8# the king has no escape."
      },
      {
       "u": "d5a8",
@@ -834,7 +834,7 @@ var LESSONS2 = {
    {
     "t": "read",
     "fen": "r4rk1/1p3ppp/p2p4/3N4/4P3/8/PPP2PPP/R4RK1 b - - 0 1",
-    "text": "Above 1200, players rarely hang a piece in one move. Games are lost to two- and three-move ideas the opponent saw first. In this lesson you sit on the defending side: find what your opponent is planning before they play it."
+    "text": "Above 1200, players rarely hang a piece in one move. Games are lost to ideas two or three moves deep that the opponent saw first. Here you defend: find their plan before they play it."
    },
    {
     "t": "threat",
@@ -1146,7 +1146,7 @@ var LESSONS2 = {
     "options": [
      {
       "u": "d6g6",
-      "why": "Rxg6. Rxg6 and after Rb2+, Kd1, Bg4+, f3, Bxf3+, Qxf3+, Kxg6, Rxc6+, Kg7, Qf6+, Kg8, Rc8# the king has no escape."
+      "why": "Rxg6 and after Rb2+, Kd1, Bg4+, f3, Bxf3+, Qxf3+, Kxg6, Rxc6+, Kg7, Qf6+, Kg8, Rc8# the king has no escape."
      },
      {
       "u": "f7g6",
@@ -1167,7 +1167,7 @@ var LESSONS2 = {
      },
      {
       "u": "e4f3",
-      "why": "Bxf3+. Bxf3+ and after Kf2, Qe2+, Kg3, Qg2+, Kf4, Qg4# the king has no escape."
+      "why": "Bxf3+ and after Kf2, Qe2+, Kg3, Qg2+, Kf4, Qg4# the king has no escape."
      }
     ],
     "best": 1,
@@ -1395,6 +1395,30 @@ var LESSONS2_EXT = {
    "done": "Your move pins a black piece on d3: it cannot move away without exposing the more valuable piece behind it on a6. So you win material.",
    "src": "g030",
    "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "4k3/8/3p4/4n3/8/8/3P4/4RK2 w - - 0 1",
+   "files": [
+    "e"
+   ],
+   "text": "Quick check before the last puzzles. The knight on e5 stands between your rook and the black king.",
+   "ask": {
+    "q": "A piece pinned to its own king may…",
+    "options": [
+     "Never move off the line",
+     "Move only forward",
+     "Move if it is protected"
+    ],
+    "a": 0,
+    "why": "Moving it would put its own king in check, and that is never allowed. Attack a pinned piece: it cannot run.",
+    "wrong": [
+     "",
+     "Direction does not matter. Any move off the line exposes the king.",
+     "Protection does not help. The king would still be in check."
+    ]
+   },
+   "ext": 1
   }
  ],
  "l-skewers": [
@@ -1439,6 +1463,28 @@ var LESSONS2_EXT = {
    "done": "Check! The king must step off the line, and then you capture the piece behind it on d2.",
    "src": "g042",
    "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "3q4/8/8/3k4/8/8/8/3R2K1 b - - 0 1",
+   "files": [
+    "d"
+   ],
+   "text": "Pin or skewer? Look at which piece stands in front on the line.",
+   "ask": {
+    "q": "In a skewer, which piece stands in front?",
+    "options": [
+     "The more valuable one",
+     "The less valuable one"
+    ],
+    "a": 0,
+    "why": "The valuable piece is attacked first and must move away. Then you take the piece behind it.",
+    "wrong": [
+     "",
+     "That is a pin: the cheaper piece in front cannot move."
+    ]
+   },
+   "ext": 1
   }
  ],
  "l-discovered": [
@@ -1482,6 +1528,39 @@ var LESSONS2_EXT = {
    "hint": "Which of your pieces is blocking your own rook, bishop or queen?",
    "done": "Nb3+! Your piece steps off the line and uncovers an attack by the piece behind it, with check. Two threats in one move: Black cannot answer both.",
    "src": "g060",
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "3qkb2/3p1p2/3N4/8/8/8/8/4R1K1 b - - 0 1",
+   "arrows": [
+    [
+     "e1",
+     "e8",
+     "r"
+    ],
+    [
+     "d6",
+     "e8",
+     "r"
+    ]
+   ],
+   "text": "Remember the double check from before: the knight and the rook both attack the king at once.",
+   "ask": {
+    "q": "Why is a double check so strong?",
+    "options": [
+     "Only a king move can answer it",
+     "It always wins the queen",
+     "It is always checkmate"
+    ],
+    "a": 0,
+    "why": "You cannot block two checks or capture two pieces in one move. The king must move, and here it has no square.",
+    "wrong": [
+     "",
+     "It often wins material, but the real power is that only the king can move.",
+     "Not always. But if the king has no square, it is mate."
+    ]
+   },
    "ext": 1
   }
  ],
@@ -1591,7 +1670,7 @@ var LESSONS2_EXT = {
     },
     {
      "u": "h8f8",
-     "why": "Rf8. Rf8 starts a forcing sequence. It leaves you with a winning position."
+     "why": "Rf8 starts a forcing sequence. It leaves you with a winning position."
     }
    ],
    "best": 1,
@@ -1609,16 +1688,1167 @@ var LESSONS2_EXT = {
     },
     {
      "u": "a4b3",
-     "why": "Qb3. Qb3 starts a forcing sequence. You come out a decisive edge ahead."
+     "why": "Qb3 starts a forcing sequence. You come out a decisive edge ahead."
     }
    ],
    "best": 1,
    "src": "y049",
    "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "r1b3kq/2pnn1p1/p2p3p/b3p1P1/PP2P2P/2pP1P2/2P4R/1R1QK1B1 b - - 0 23",
+   "text": "Find the defender and remove it.",
+   "sol": [
+    "a5b6"
+   ],
+   "hint": "Ask: which piece is guarding the target?",
+   "done": "Bb6 starts a forcing sequence. You come out a decisive edge ahead.",
+   "src": "y017",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4r3/2p3k1/p1qpbpnp/8/1p2P2Q/2PB2PP/P2NRP2/2R4K w - - 1 27",
+   "text": "Which black piece holds everything together? Take it away.",
+   "sol": [
+    "h4h5"
+   ],
+   "hint": "Ask: which piece is guarding the target?",
+   "done": "Qh5 starts a forcing sequence. You come out a decisive edge ahead.",
+   "src": "y051",
+   "ext": 1
+  }
+ ],
+ "l-rook": [
+  {
+   "t": "read",
+   "fen": "3b4/5p2/8/1n1R2p1/8/8/8/8 w - - 0 1",
+   "files": [
+    "d"
+   ],
+   "ranks": [
+    5
+   ],
+   "text": "Let's test your rook eyes. The rook looks along its file and its rank, and it stops at the first piece in the way. Some black pieces are in its sights, and one is hiding off its lines.",
+   "tap": {
+    "q": "Tap the three black pieces this rook can capture.",
+    "targets": [
+     "b5",
+     "g5",
+     "d8"
+    ],
+    "need": 3,
+    "why": "b5, g5 and d8 all sit on the rook's lines with nothing in between. The pawn on f7 is not on a straight line from d5.",
+    "wrong": "Only pieces on the highlighted file and rank can be captured."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "k7/2p5/3n4/8/8/8/8/b2R3K w - - 0 1",
+   "text": "Two black pieces are on the rook's lines. The knight is protected by a pawn. The bishop is free. Take the free one.",
+   "sol": [
+    "d1a1"
+   ],
+   "hint": "The c7 pawn guards the knight. Look along the first rank.",
+   "done": "Rook takes a1, and it even gives check. Taking the knight would lose your rook to the c7 pawn: 3 points for 5.",
+   "ext": 1
+  },
+  {
+   "t": "collect",
+   "piece": "r",
+   "start": "a1",
+   "stars": [
+    "c3",
+    "f3",
+    "f7",
+    "b7"
+   ],
+   "par": 5,
+   "text": "Four stars, and the rook only moves in straight lines. Find a route in five moves.",
+   "ext": 1
+  }
+ ],
+ "l-bishop-queen": [
+  {
+   "t": "read",
+   "fen": "8/5r2/n1p5/8/2B5/8/8/8 w - - 0 1",
+   "dots": "c4",
+   "text": "Now the bishop is hunting. Diagonals only, and it stops at the first piece it meets. Look along every diagonal from c4.",
+   "tap": {
+    "q": "Tap the two black pieces the bishop can capture.",
+    "targets": [
+     "f7",
+     "a6"
+    ],
+    "need": 2,
+    "why": "The rook on f7 and the knight on a6 are on the bishop's diagonals. The pawn on c6 is straight ahead, and bishops never move straight.",
+    "wrong": "Bishops only move diagonally. Follow the dots."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "k7/4p3/3n4/7r/8/8/8/1K1Q4 w - - 0 1",
+   "text": "Your queen can reach two black pieces. One is guarded by a pawn. Never give your queen away: take the free piece.",
+   "sol": [
+    "d1h5"
+   ],
+   "hint": "The knight on d6 is guarded by the e7 pawn. Look along the diagonal to h5.",
+   "done": "Queen takes the rook on h5. Five points for free. Queen takes d6 would lose your queen to the pawn.",
+   "ext": 1
+  },
+  {
+   "t": "collect",
+   "piece": "q",
+   "start": "d1",
+   "stars": [
+    "h5",
+    "e8",
+    "a4"
+   ],
+   "par": 3,
+   "text": "The queen moves like a rook and a bishop. Collect the stars in three moves, one diagonal at a time.",
+   "ext": 1
+  }
+ ],
+ "l-knight": [
+  {
+   "t": "read",
+   "fen": "8/8/8/8/4N3/8/8/8 w - - 0 1",
+   "text": "Your turn to find the jumps. Two squares in one direction, then one to the side. No dots this time.",
+   "tap": {
+    "q": "Tap three squares this knight can jump to.",
+    "targets": [
+     "d6",
+     "f6",
+     "c5",
+     "g5",
+     "c3",
+     "g3",
+     "d2",
+     "f2"
+    ],
+    "need": 3,
+    "why": "From e4 the knight reaches eight squares: d6, f6, c5, g5, c3, g3, d2 and f2.",
+    "wrong": "Count two squares straight, then one to the side."
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "8/8/8/8/8/5N2/8/8 w - - 0 1",
+   "spot": [
+    "f3"
+   ],
+   "text": "Here is a knight secret. This knight stands on f3, a light square. Every L-jump lands on the other colour.",
+   "ask": {
+    "q": "After one jump, the knight stands on…",
+    "options": [
+     "A light square",
+     "A dark square",
+     "Either colour"
+    ],
+    "a": 1,
+    "why": "Every jump changes colour: light, dark, light, dark. Strong players use this to count knight routes.",
+    "wrong": [
+     "Try it on the board in your head: f3 to g5. What colour is g5?",
+     "",
+     "It is always the opposite colour. Never the same."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "4k3/8/8/2PPP3/2PNP3/2PPP3/8/4K3 w - - 0 1",
+   "text": "Boxed in by its own pawns? The knight does not care. It is the only piece that jumps straight over others.",
+   "tap": {
+    "q": "Tap any square this knight can jump to.",
+    "targets": [
+     "b5",
+     "b3",
+     "c6",
+     "e6",
+     "f5",
+     "f3",
+     "c2",
+     "e2"
+    ],
+    "why": "The pawns around it do not matter. The knight lands two squares away and one to the side.",
+    "wrong": "Jump over the pawns: two squares straight, then one to the side."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/8/r3r3/8/8/3N4/8/7K w - - 0 1",
+   "text": "Knights love to attack two things at once. Find the jump that hits both black rooks.",
+   "sol": [
+    "d3c5"
+   ],
+   "hint": "Look for a square two rows up from where the knight can reach a6 and e6.",
+   "done": "Knight c5 attacks both rooks. Black can only save one. This double attack is called a fork, and knights are the best at it.",
+   "ext": 1
+  },
+  {
+   "t": "collect",
+   "piece": "n",
+   "start": "g1",
+   "stars": [
+    "f3",
+    "e5",
+    "d7",
+    "b8"
+   ],
+   "par": 4,
+   "text": "A knight gallop. Follow the stars in four jumps.",
+   "ext": 1
+  }
+ ],
+ "l-king-pawn": [
+  {
+   "t": "read",
+   "fen": "8/8/8/3k4/8/3K4/8/8 w - - 0 1",
+   "text": "One golden rule: two kings can never stand next to each other. Any square that touches the black king is forbidden for your king.",
+   "tap": {
+    "q": "Tap a square your king can NOT move to.",
+    "targets": [
+     "c4",
+     "d4",
+     "e4"
+    ],
+    "why": "c4, d4 and e4 all touch the black king. A king may never move next to the other king.",
+    "wrong": "That square is safe. Look for one that touches the black king."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/8/8/2n1q3/3P4/8/8/K7 w - - 0 1",
+   "text": "Your pawn can capture two pieces. Which one is worth more? Take it.",
+   "sol": [
+    "d4e5"
+   ],
+   "hint": "A queen is worth 9 points, a knight 3.",
+   "done": "Pawn takes the queen. Your smallest piece just won Black's strongest one.",
+   "ext": 1
+  }
+ ],
+ "l-check": [
+  {
+   "t": "read",
+   "fen": "4k2r/8/2n5/b7/8/8/8/4K3 w - - 0 1",
+   "text": "You are in check, but from which piece? Follow the lines and the jumps toward your king.",
+   "tap": {
+    "q": "Tap the black piece that is giving check.",
+    "targets": [
+     "a5"
+    ],
+    "why": "The bishop on a5 attacks e1 along the diagonal through b4, c3 and d2.",
+    "wrong": "That piece does not reach your king. Look along the diagonals."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/8/8/b7/8/8/8/R3K3 w - - 0 1",
+   "text": "The bishop checks again. There are three ways out: move, block or capture. The best one here wins a piece. Get out of check!",
+   "sol": [
+    "a1a5"
+   ],
+   "hint": "Your rook can reach the checking piece.",
+   "done": "Rook takes the bishop. You escape the check and win 3 points in one move. Capturing the attacker is often the best answer.",
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "7k/8/6QK/8/8/8/8/8 b - - 0 1",
+   "text": "Quiz time. Black is to move. Look at the black king and every square next to it.",
+   "ask": {
+    "q": "Black to move. What is this?",
+    "options": [
+     "Check",
+     "Checkmate",
+     "Stalemate"
+    ],
+    "a": 2,
+    "why": "The king is not attacked, but every square next to it is covered. No legal move and no check: stalemate. The game is a draw.",
+    "wrong": [
+     "The queen does not attack h8. Look again.",
+     "Mate needs a check. Is the king attacked?",
+     ""
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "R6k/6pp/8/8/8/8/8/6K1 b - - 0 1",
+   "text": "One more. Black to move again. Can the king run, block or capture?",
+   "ask": {
+    "q": "And this one: check, mate or stalemate?",
+    "options": [
+     "Check",
+     "Checkmate",
+     "Stalemate"
+    ],
+    "a": 1,
+    "why": "The rook checks along the back rank. g8 is covered too, and the pawns block the rest. Checkmate.",
+    "wrong": [
+     "Can the king escape? Try g8.",
+     "",
+     "The king IS attacked by the rook, so it cannot be stalemate."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "k7/8/1K6/8/8/8/8/7Q w - - 0 1",
+   "text": "Your king guards a7 and b7. Now use the queen: give checkmate.",
+   "sol": [
+    "h1h8"
+   ],
+   "anyMate": true,
+   "hint": "Check the king along the back rank.",
+   "done": "Checkmate! The queen covers the whole eighth rank and your king covers the rest.",
+   "ext": 1
+  }
+ ],
+ "l-special": [
+  {
+   "t": "read",
+   "fen": "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+   "arrows": [
+    [
+     "e1",
+     "c1",
+     "y"
+    ],
+    [
+     "a1",
+     "d1",
+     "y"
+    ]
+   ],
+   "text": "You can also castle on the queen side. It is written O-O-O. The king still moves two squares, and the rook jumps over to stand next to him.",
+   "ask": {
+    "q": "After O-O-O, where does White's king stand?",
+    "options": [
+     "b1",
+     "c1",
+     "d1"
+    ],
+    "a": 1,
+    "why": "The king goes two squares from e1 to c1, and the rook from a1 lands on d1.",
+    "wrong": [
+     "That is one square too far. The king always moves exactly two.",
+     "",
+     "d1 is where the rook lands."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R w KQkq - 0 1",
+   "teach": 1,
+   "text": "Castle queenside this time. Tap the king, then c1.",
+   "sol": [
+    "e1c1"
+   ],
+   "hint": "The king moves two squares toward the a1 rook.",
+   "done": "O-O-O. The king is on c1 and the rook joins the fight on d1.",
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "r3k2r/8/8/8/1b6/8/8/R3K2R w KQkq - 0 1",
+   "arrows": [
+    [
+     "b4",
+     "e1",
+     "r"
+    ]
+   ],
+   "text": "The bishop on b4 gives check. Neither your king nor your rooks have moved.",
+   "ask": {
+    "q": "Can White castle right now?",
+    "options": [
+     "Yes, kingside",
+     "Yes, queenside",
+     "No, not while in check"
+    ],
+    "a": 2,
+    "why": "You can never castle out of check. First deal with the check, castle later.",
+    "wrong": [
+     "Your king is in check. That rule decides it.",
+     "Your king is in check. That rule decides it.",
+     ""
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/8/8/8/3Pp3/8/8/4K3 b - d3 0 1",
+   "text": "Now you play Black. White's pawn just jumped from d2 to d4, right beside your pawn. Capture it en passant.",
+   "sol": [
+    "e4d3"
+   ],
+   "hint": "Your pawn lands on the square the white pawn skipped.",
+   "done": "En passant! Your pawn lands on d3 and the white pawn disappears. Remember: only on the very next move.",
+   "ext": 1
+  }
+ ],
+ "l-qmate": [
+  {
+   "t": "read",
+   "fen": "k7/2Q5/1K6/8/8/8/8/8 b - - 0 1",
+   "text": "Here is the trap that costs beginners a win. Black is to move. Look at the black king.",
+   "ask": {
+    "q": "Black to move. What is the result?",
+    "options": [
+     "Checkmate, White wins",
+     "Stalemate, a draw",
+     "Black is in check"
+    ],
+    "a": 1,
+    "why": "The king is not in check, but a7, b7 and b8 are all covered. No legal move: stalemate. White threw away the win.",
+    "wrong": [
+     "The queen does not attack a8, so it is not mate.",
+     "",
+     "Follow the queen's lines. None of them reaches a8."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "2k5/8/2K5/8/8/8/8/7Q w - - 0 1",
+   "text": "The kings stand face to face. Your queen is far away, but she can still mate in one.",
+   "sol": [
+    "h1h8"
+   ],
+   "anyMate": true,
+   "hint": "Check along the back rank from the side.",
+   "done": "Checkmate. The queen covers the eighth rank and your king covers b7, c7 and d7.",
+   "ext": 1
+  }
+ ],
+ "l-firstmoves": [
+  {
+   "t": "read",
+   "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 6 5",
+   "text": "You have castled. Now count your pieces. Every piece still sitting on the back row is a piece that is not fighting.",
+   "tap": {
+    "q": "Tap the two white pieces that have not moved yet.",
+    "targets": [
+     "b1",
+     "c1"
+    ],
+    "need": 2,
+    "why": "The knight on b1 and the bishop on c1 are still at home. Bring them out before you start an attack.",
+    "wrong": "That piece has already moved, or it is a pawn or a rook. Look for a sleeping knight or bishop."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 6 5",
+   "teach": 1,
+   "text": "Black's knight on f6 is eyeing your e4 pawn. Bring out a sleeping piece that also guards it.",
+   "sol": [
+    "b1c3"
+   ],
+   "accept": [
+    "d2d3"
+   ],
+   "hint": "Your knight on b1 can reach a square that defends e4.",
+   "done": "Every white piece is now out or ready. Centre, development, castle: the three jobs are done.",
+   "ext": 1
+  }
+ ],
+ "l-values": [
+  {
+   "t": "read",
+   "fen": "r3k3/pp6/2n5/8/5q2/8/8/4K3 w - - 0 1",
+   "text": "Before you capture anything, count. Look at Black's pieces: a rook, a knight, a queen and two pawns.",
+   "tap": {
+    "q": "Tap the black piece worth the most points.",
+    "targets": [
+     "f4"
+    ],
+    "why": "The queen is worth 9. The rook is 5, the knight 3 and each pawn 1.",
+    "wrong": "Not that one. Which piece is worth 9 points?"
+   },
+   "ext": 1
+  },
+  {
+   "t": "choice",
+   "fen": "3r3r/ppk4p/3pBp1B/2N1p3/5P1P/8/n2K2P1/6R1 b - - 0 32",
+   "text": "Count first. Which capture really wins material, A or B?",
+   "options": [
+    {
+     "u": "d6c5",
+     "why": "dxc5+ simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
+    },
+    {
+     "u": "e5f4",
+     "why": "exf4 looks tempting, but it does not work. After Nd3 the advantage is gone."
+    }
+   ],
+   "best": 0,
+   "src": "x22",
+   "ext": 1
+  },
+  {
+   "t": "choice",
+   "fen": "7r/p2n2p1/3BNk1p/b4p1B/8/8/P1P5/2KR4 b - - 0 33",
+   "text": "One capture is free, the other is a trap. A or B?",
+   "options": [
+    {
+     "u": "f6e6",
+     "why": "Kxe6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead."
+    },
+    {
+     "u": "a5d2",
+     "why": "Bd2+ looks tempting, but it does not work. The answer Kxd2 wins your bishop."
+    }
+   ],
+   "best": 0,
+   "src": "y032",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "r3kb2/p3nppr/2bp3p/2p1p3/B3P2P/PqNP4/1P2NPP1/R1B2K1R w q - 0 16",
+   "text": "Something is left undefended. Count, then take it.",
+   "sol": [
+    "a4b3"
+   ],
+   "hint": "Look for a black piece that nothing defends.",
+   "done": "Bxb3 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead.",
+   "src": "x34",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "Q1bk1b1r/p3pppp/8/4q2n/2p5/Pn2B3/1P2PPPP/RN2KB1R b Q - 0 13",
+   "text": "Find the free piece.",
+   "sol": [
+    "b3a1"
+   ],
+   "hint": "Look for a black piece that nothing defends.",
+   "done": "Nxa1 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a rook ahead.",
+   "src": "y012",
+   "ext": 1
+  }
+ ],
+ "l-cct": [
+  {
+   "t": "threat",
+   "fen": "rr4k1/1p3Np1/ppn4p/8/P3R2P/8/1P3PK1/7R b - - 0 35",
+   "text": "Blunder check from their side. Your opponent is to move. What can they take?",
+   "targets": [
+    "f7"
+   ],
+   "show": "g8f7",
+   "done": "They play Kxf7, and your knight on f7 is lost. Spotting this one move earlier is how you stop losing pieces.",
+   "src": "x38",
+   "ext": 1
+  },
+  {
+   "t": "threat",
+   "fen": "1rb1k1nr/p1pp1ppp/p7/4q3/4P3/4BN2/PPP2PPP/RN2K2R w KQk - 0 9",
+   "text": "Their move. Which of your pieces is in danger?",
+   "targets": [
+    "e5"
+   ],
+   "show": "f3e5",
+   "done": "They play Nxe5, and your queen on e5 is lost. That is why strong players look at the opponent's checks first.",
+   "src": "y013",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/8/4p3/3n4/r7/8/8/3QK3 w - - 0 1",
+   "text": "Checks, captures, threats. Find the move.",
+   "sol": [
+    "d1a4"
+   ],
+   "hint": "Start with checks, then captures.",
+   "done": "d5 is defended by e6; a4 is not.",
+   "src": "p12",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "2q1k2r/p4pp1/7p/1NppP3/2P5/5b2/PP1K1PPP/1R5R w k - 0 22",
+   "text": "Scan the whole board, then play.",
+   "sol": [
+    "b5d6",
+    "e8d7",
+    "d6c8"
+   ],
+   "hint": "Start with checks, then captures.",
+   "done": "Nd6+ attacks two targets at once and only one can be saved. You come out a queen ahead.",
+   "src": "y197",
+   "ext": 1
+  }
+ ],
+ "l-traps": [
+  {
+   "t": "read",
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq g3 0 2",
+   "arrows": [
+    [
+     "d8",
+     "h4",
+     "y"
+    ]
+   ],
+   "text": "The fastest game in chess. White pushed the f- and g-pawns, and the diagonal to the white king is wide open.",
+   "ask": {
+    "q": "Black to move. Which queen move ends the game?",
+    "options": [
+     "Qh4",
+     "Qg5",
+     "Qf6"
+    ],
+    "a": 0,
+    "why": "Qh4 is checkmate. Nothing can block and the king has no square. This is Fool's Mate: two moves.",
+    "wrong": [
+     "",
+     "Qg5 attacks the pawn, but it is not check.",
+     "Qf6 is not check. Find the diagonal to e1."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+   "text": "The weak square f7 again. Finish the game.",
+   "sol": [
+    "h5f7"
+   ],
+   "anyMate": true,
+   "hint": "Look at f7 and f2, the squares only the king defends.",
+   "done": "f7 is defended only by the king. Qxf7 is mate.",
+   "src": "p02",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/5Q2/5p1k/3P1Pp1/1P4P1/P7/1KPR2q1/2B1r3 w - - 7 49",
+   "text": "Early attack on the king. Find the mate.",
+   "sol": [
+    "f7g6"
+   ],
+   "anyMate": true,
+   "hint": "Look at f7 and f2, the squares only the king defends.",
+   "done": "Qg6# the king has no escape.",
+   "src": "x07",
+   "ext": 1
+  }
+ ],
+ "l-smothered": [
+  {
+   "t": "read",
+   "fen": "6rk/5Npp/8/8/8/8/8/6K1 b - - 0 1",
+   "spot": [
+    "h8"
+   ],
+   "text": "Mate is on the board. The knight on f7 checks, and every square next to the black king is filled by its own pieces.",
+   "tap": {
+    "q": "Tap the black piece that blocks the king's last escape square.",
+    "targets": [
+     "g8"
+    ],
+    "why": "The rook on g8 fills the only square the knight does not cover. The king is smothered by its own army.",
+    "wrong": "Look at the squares right next to the king. Which one would be free without that piece?"
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "6nk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
+   "text": "Only one piece can deliver a smothered mate, because only one piece gives a check that cannot be blocked.",
+   "ask": {
+    "q": "Which piece is it?",
+    "options": [
+     "The queen",
+     "The knight",
+     "The rook"
+    ],
+    "a": 1,
+    "why": "A knight check can only be answered by moving the king or capturing the knight. If the king is boxed in, it is mate.",
+    "wrong": [
+     "A queen check can be blocked by a piece stepping in between.",
+     "",
+     "A rook check can be blocked too."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "6nk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
+   "text": "Now play it. The king is boxed in by its own knight and pawns.",
+   "sol": [
+    "e5f7"
+   ],
+   "anyMate": true,
+   "hint": "Find the knight check on the h8 king.",
+   "done": "Knight f7, smothered mate. The black knight on g8 blocks the king's last square.",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "kr6/pp6/8/1N6/8/8/8/6K1 w - - 0 1",
+   "text": "Same idea in the other corner. Smother the king.",
+   "sol": [
+    "b5c7"
+   ],
+   "anyMate": true,
+   "hint": "Which knight jump checks the king on a8?",
+   "done": "Knight c7 is mate. The rook and pawns fill every square around the king.",
+   "ext": 1
+  }
+ ],
+ "l-rookmate": [
+  {
+   "t": "read",
+   "fen": "8/8/8/3k4/R7/8/8/4K3 b - - 0 1",
+   "ranks": [
+    4
+   ],
+   "text": "Watch the fence. The rook holds the whole fourth rank. The black king can never cross it.",
+   "tap": {
+    "q": "Tap three squares the black king can still move to.",
+    "targets": [
+     "c5",
+     "e5",
+     "c6",
+     "d6",
+     "e6"
+    ],
+    "need": 3,
+    "why": "The king can move to c5, e5, c6, d6 and e6, but never down to rank 4. The fence holds.",
+    "wrong": "That square is on the rook's line, or too far away."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/8/8/3k4/8/8/8/R3K3 w - - 0 1",
+   "teach": 1,
+   "text": "Build the fence yourself. Cut the king off on the fourth rank.",
+   "sol": [
+    "a1a4"
+   ],
+   "hint": "Move the rook up its file to rank 4.",
+   "done": "The black king is locked into the top half of the board. Now walk your king up.",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "6k1/8/6K1/8/8/8/8/R7 w - - 0 1",
+   "text": "Kings face to face, and your rook is free. Finish it.",
+   "sol": [
+    "a1a8"
+   ],
+   "hint": "Check along the back rank.",
+   "done": "Checkmate. Your king covers f7, g7 and h7, and the rook covers the eighth rank.",
+   "ext": 1
+  }
+ ],
+ "l-kp": [
+  {
+   "t": "read",
+   "fen": "8/8/4k3/8/4K3/4P3/8/8 b - - 0 1",
+   "text": "The kings face each other with one square between them, and it is Black's turn.",
+   "ask": {
+    "q": "Who has the opposition?",
+    "options": [
+     "White",
+     "Black"
+    ],
+    "a": 0,
+    "why": "The side that does NOT have to move has the opposition. Black must step aside and let the white king through.",
+    "wrong": [
+     "Having to move here is a weakness, not a strength.",
+     ""
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/8/8/8/8/8/k3P3/7K w - - 0 1",
+   "text": "Use the rule of the square. Only one pawn move keeps the black king outside it. Find it.",
+   "sol": [
+    "e2e4"
+   ],
+   "hint": "Draw the square for each pawn move. Can the king step inside?",
+   "done": "After e4 the square runs from e4 to a8, and the king on a2 cannot reach it. The pawn queens.",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "3r4/4Qp2/2p1q3/p3kp2/8/6PP/1P3N1K/8 w - - 2 50",
+   "text": "Endgame technique. Find the winning move.",
+   "sol": [
+    "e7d8"
+   ],
+   "hint": "In endgames the king is a fighter. Count the race to the last rank.",
+   "done": "Qxd8 is the only move that keeps the win. You come out a rook ahead.",
+   "src": "x19",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/kp3N2/p6P/8/3p1r2/1P6/2n2P2/3R2K1 w - - 0 43",
+   "text": "Count every move of the race, then play.",
+   "sol": [
+    "h6h7"
+   ],
+   "hint": "In endgames the king is a fighter. Count the race to the last rank.",
+   "done": "h7 is the only move that keeps the win. It leaves you with a winning position.",
+   "src": "x44",
+   "ext": 1
+  }
+ ],
+ "l-rook-end": [
+  {
+   "t": "read",
+   "fen": "4k3/R7/1r2P3/3K4/8/8/8/8 b - - 0 1",
+   "arrows": [
+    [
+     "b6",
+     "b1",
+     "y"
+    ]
+   ],
+   "text": "The white pawn just stepped to e6. Now the white king has no shelter from behind, so the Philidor defender changes plan.",
+   "ask": {
+    "q": "Black to move. What should the rook do now?",
+    "options": [
+     "Drop back to b1 and check from behind",
+     "Stay on the sixth rank",
+     "Attack the a7 rook"
+    ],
+    "a": 0,
+    "why": "Once the pawn reaches the sixth, the king cannot hide in front of it. Checks from behind draw.",
+    "wrong": [
+     "",
+     "Too late: the pawn has passed the sixth rank.",
+     "The rook trade does not help. Black needs checks."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "4k3/R7/1r2P3/3K4/8/8/8/8 b - - 0 1",
+   "teach": 1,
+   "text": "Play the drawing move.",
+   "sol": [
+    "b6b1"
+   ],
+   "accept": [
+    "b6b2"
+   ],
+   "hint": "Get the rook far away, behind the white king.",
+   "done": "Now the rook checks from behind and the white king has no place to hide. This is a draw.",
+   "ext": 1
+  }
+ ],
+ "l-calc": [
+  {
+   "t": "choice",
+   "fen": "8/6pk/Q4pp1/P6r/n2r4/8/5PP1/2R3K1 b - - 0 43",
+   "text": "Calculate both candidates. Which one really works, A or B?",
+   "options": [
+    {
+     "u": "h5h1",
+     "why": "Rh1+ looks tempting, but it does not work. The answer Kxh1 wins your rook."
+    },
+    {
+     "u": "d4h4",
+     "why": "Rdh4 starts a forcing sequence: f4 Rh1+ Kf2 Rxc1. You come out a rook ahead."
+    }
+   ],
+   "best": 1,
+   "src": "y141",
+   "ext": 1
+  },
+  {
+   "t": "choice",
+   "fen": "rnbqk2r/ppppnppp/8/2bN2B1/3p4/1P6/P1P1PPPP/R2QKBNR b KQkq - 2 5",
+   "text": "Two forcing moves. Follow each to the end. A or B?",
+   "options": [
+    {
+     "u": "e7d5",
+     "why": "Nxd5 starts a forcing sequence: Bxd8 Bb4+. You come out a decisive edge ahead."
+    },
+    {
+     "u": "c5b4",
+     "why": "Bb4+ looks tempting, but it does not work. The answer Nxb4 wins your bishop."
+    }
+   ],
+   "best": 0,
+   "src": "y366",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "k7/8/3P1n2/2q5/pp3p1p/5P2/8/K2R4 b - - 1 57",
+   "text": "A forcing line. Calculate it to the end, then play it.",
+   "sol": [
+    "c5c3",
+    "a1a2",
+    "c3c2",
+    "a2a1",
+    "b4b3",
+    "d1e1",
+    "c2a2"
+   ],
+   "anyMate": true,
+   "hint": "Start with the most forcing move and look at every reply.",
+   "done": "Qc3+ and after Ka2, Qc2+, Ka1, b3, Re1, Qa2# the king has no escape.",
+   "src": "x11",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "2r5/p4k2/4n1p1/p3Bb1N/1P1R4/7P/2r3P1/5RK1 w - - 1 39",
+   "text": "Checks, captures, threats. Find the line that works.",
+   "sol": [
+    "d4d7",
+    "f7f8",
+    "e5d6",
+    "f8g8",
+    "h5f6",
+    "g8h8",
+    "d7h7"
+   ],
+   "anyMate": true,
+   "hint": "Start with the most forcing move and look at every reply.",
+   "done": "Rd7+ and after Kf8, Bd6+, Kg8, Nf6+, Kh8, Rh7# the king has no escape.",
+   "src": "y293",
+   "ext": 1
+  }
+ ],
+ "l-convert": [
+  {
+   "t": "read",
+   "fen": "3r2k1/5ppp/4p3/3q4/8/7N/3Q1PPP/3R2K1 w - - 0 1",
+   "text": "You are a piece up. The queens face each other on the d-file, and each one is protected.",
+   "ask": {
+    "q": "Is a queen trade good for you here?",
+    "options": [
+     "Yes: fewer pieces, the extra knight counts more",
+     "No: you need your queen to attack"
+    ],
+    "a": 0,
+    "why": "Every trade makes your extra piece a bigger share of the army. With queens off, Black has no counterplay.",
+    "wrong": [
+     "When you are ahead, trades are your friend. They remove the opponent's chances.",
+     ""
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "6k1/5ppp/8/8/8/8/2r2PPP/3R1RK1 w - - 0 1",
+   "arrows": [
+    [
+     "c2",
+     "f2",
+     "r"
+    ]
+   ],
+   "text": "Even a won game has dangers. Your rook is a whole rook better, but Black's rook has reached your second rank.",
+   "ask": {
+    "q": "What do you do first?",
+    "options": [
+     "Rush the pawns forward",
+     "Stop the counterplay first",
+     "Offer a draw"
+    ],
+    "a": 1,
+    "why": "Win slowly. Remove the opponent's threats first, then push. A safe win is still a win.",
+    "wrong": [
+     "Rushing gives Black's rook free pawns.",
+     "",
+     "Never offer a draw in a won position."
+    ]
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "5k2/p1n5/1p6/2p3r1/P1N5/1P1P1N2/1RP2p1K/8 b - - 1 45",
+   "text": "You are winning. Find the cleanest way to finish.",
+   "sol": [
+    "f2f1q"
+   ],
+   "hint": "Trade down or promote. Keep it simple.",
+   "done": "f1=Q clears the way for a new queen. You come out a rook ahead.",
+   "src": "y076",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/P5k1/6p1/4b2p/1PP4r/8/4N3/5K2 w - - 0 51",
+   "text": "Convert the advantage.",
+   "sol": [
+    "a7a8q"
+   ],
+   "hint": "Trade down or promote. Keep it simple.",
+   "done": "a8=Q clears the way for a new queen. You come out a rook ahead.",
+   "src": "y094",
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/1kq5/2p4p/1p1pP2Q/r6P/5R2/2P3P1/6K1 w - - 0 44",
+   "text": "Make your extra material count.",
+   "sol": [
+    "f3f7"
+   ],
+   "hint": "Trade down or promote. Keep it simple.",
+   "done": "Rf7 is the only move that keeps the win. You come out a decisive edge ahead.",
+   "src": "y125",
+   "ext": 1
+  }
+ ],
+ "l-outposts": [
+  {
+   "t": "read",
+   "fen": "r1bq1rk1/pp3ppp/2np1n2/2p1p3/2P1P3/2NP1N2/PP3PPP/R1BQ1RK1 w - - 0 1",
+   "text": "An outpost is a hole in the enemy camp: a square your pawn protects that no enemy pawn can ever attack. Find one for White here.",
+   "tap": {
+    "q": "Tap the outpost square for White's knight.",
+    "targets": [
+     "d5"
+    ],
+    "why": "d5 is guarded by your c4 and e4 pawns, and no black pawn can ever attack it. A knight there is a monster.",
+    "wrong": "An outpost is protected by your pawn and can never be hit by an enemy pawn."
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "r1bq1rk1/pp3ppp/2np1n2/2pNp3/2P1P3/3P1N2/PP3PPP/R1BQ1RK1 b - - 0 1",
+   "spot": [
+    "d5"
+   ],
+   "text": "The knight has arrived on d5.",
+   "ask": {
+    "q": "Why is this knight so strong?",
+    "options": [
+     "No black pawn can attack it",
+     "It is near the white king",
+     "It can be traded easily"
+    ],
+    "a": 0,
+    "why": "Only a piece can challenge it, and trading a piece for it often leaves Black worse.",
+    "wrong": [
+     "",
+     "It is in the middle of the board, far from its own king.",
+     "Black would have to give up a piece to remove it."
+    ]
+   },
+   "ext": 1
+  }
+ ],
+ "l-structure": [
+  {
+   "t": "read",
+   "fen": "4k3/8/8/8/2P5/2P5/P4PPP/4K3 w - - 0 1",
+   "files": [
+    "c"
+   ],
+   "text": "Doubled pawns: two pawns of the same colour on one file. They block each other and cannot protect each other.",
+   "tap": {
+    "q": "Tap one of the doubled pawns.",
+    "targets": [
+     "c3",
+     "c4"
+    ],
+    "why": "c3 and c4 are both on the c-file. The front one can only be defended by pieces.",
+    "wrong": "Look for two white pawns on the same file."
+   },
+   "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "4k3/pp3p2/8/3P4/8/8/PP3PP1/4K3 w - - 0 1",
+   "text": "Find the passed pawn: no enemy pawn in front of it, on its own file or the files next to it.",
+   "tap": {
+    "q": "Tap White's passed pawn.",
+    "targets": [
+     "d5"
+    ],
+    "why": "No black pawn stands on the c-, d- or e-file in front of d5. Nothing but pieces can stop it.",
+    "wrong": "That pawn still has a black pawn in front of it on its own file or a neighbouring file."
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "8/b2P4/5k2/K7/8/8/8/8 w - - 0 1",
+   "text": "Passed pawns must be pushed. Find the way through.",
+   "sol": [
+    "d7d8q"
+   ],
+   "hint": "Push the pawn, or clear its path.",
+   "done": "The pawn reaches the last rank and becomes a queen, and nothing can take her.",
+   "src": "g078",
+   "ext": 1
+  }
+ ],
+ "l-principles": [
+  {
+   "t": "read",
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+   "text": "Good developing moves do two things at once. White's knight came out toward the centre and it already has a target.",
+   "tap": {
+    "q": "Tap the black piece the knight on f3 attacks.",
+    "targets": [
+     "e5"
+    ],
+    "why": "The knight hits the e5 pawn. Black must defend it, so White gains time.",
+    "wrong": "Count an L-jump from f3. Which black piece is on one of those squares?"
+   },
+   "ext": 1
+  },
+  {
+   "t": "move",
+   "fen": "rnb1kbnr/pppp1ppp/5q2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+   "teach": 1,
+   "text": "Black brought the queen out early. Develop a piece and keep your pawns healthy.",
+   "sol": [
+    "b1c3"
+   ],
+   "accept": [
+    "f1c4",
+    "d2d3",
+    "f1e2"
+   ],
+   "hint": "A knight or a bishop toward the centre.",
+   "done": "Every developing move you make while Black's queen wanders is time you win.",
+   "ext": 1
   }
  ]
 };
-var LESSONS2_USED = ["g001","x49","y065","y192","y290","y381","x14","x45","y015","y028","y064","y100","y150","y169","y199","y261","y285","y326","y342","p07","y020","y050","y105","y182","y238","y299","y347","y422","g020","x13","y098","x05","y054","y432","g029","g038","g047","y037","y388","p16","y309","g015","g026","g032","g037","g043","g049","p08","y152","y369","g058","g063","p18","x66","y305","p10","y174","y294","g054","g056","g059","g061","g064","p13","x15","x52","y228","y278","p11","y062","y090","y266","y291","y324","y393","p14","y008","y112","y281","y349","y445","y265","x03","x47","y014","y046","y137","y176","y302","y330","y356","y427","p22","y068","y378","y411","y170","y332","x50","y262","y218","y207","x01","y030","y122","y214","y286","y401","y408","x48","x30","y132","y429","x31","y134","y175","y370","y437","y163","p25","y058","y181","y243","y345","y271","y333","y001","y255","y397","y115","y269","y104","y249","x18","x36","x54","y063","y074","y077","y110","y144","y215","y295","y398","x17","p28","p30","y038","y145","y187","y325","x61","y044","y164","y355","y126","x16","y415","y206","y070","x63","y096","y148","y203","y344","y212","y157","y372","y162","y159","y029","y446","y426","g002","g009","g022","y036","y084","y217","y315","y387","y055","y352","x62","y052","y160","y235","g018","x69","x40","g027","g028","g030","g031","g033","g034","g035","g036","g039","p17","g040","g041","g042","g044","g045","g046","g048","g050","g051","g052","g055","g057","g060","g062","g065","p21","g066","g067","g068","g069","g070","g071","g072","g073","g074","g075","g076","g077","p09","x12","x25","y010","y056","y102","y149","y173","y213","y234","y245","y267","x58","y049","y180","y280","x33","y121","y248","y350","x57","p27","y131","y395","y444","y081","y119","y189","y360","y400","x67","y185","y374","y143","y093","y200","x65"];
+var LESSONS2_USED = ["g001","x49","y065","y192","y290","y381","x14","x45","y015","y028","y064","y100","y150","y169","y199","y261","y285","y326","y342","p07","y020","y050","y105","y182","y238","y299","y347","y422","g020","x13","y098","x05","y054","y432","g029","g038","g047","y037","y388","p16","y309","g015","g026","g032","g037","g043","g049","p08","y152","y369","g058","g063","p18","x66","y305","p10","y174","y294","g054","g056","g059","g061","g064","p13","x15","x52","y228","y278","p11","y062","y090","y266","y291","y324","y393","p14","y008","y112","y281","y349","y445","y265","x03","x47","y014","y046","y137","y176","y302","y330","y356","y427","p22","y068","y378","y411","y170","y332","x50","y262","y218","y207","x01","y030","y122","y214","y286","y401","y408","x48","x30","y132","y429","x31","y134","y175","y370","y437","y163","p25","y058","y181","y243","y345","y271","y333","y001","y255","y397","y115","y269","y104","y249","x18","x36","x54","y063","y074","y077","y110","y144","y215","y295","y398","x17","p28","p30","y038","y145","y187","y325","x61","y044","y164","y355","y126","x16","y415","y206","y070","x63","y096","y148","y203","y344","y212","y157","y372","y162","y159","y029","y446","y426","g002","g009","g022","y036","y084","y217","y315","y387","y055","y352","x62","y052","y160","y235","g018","x69","x40","g027","g028","g030","g031","g033","g034","g035","g036","g039","p17","g040","g041","g042","g044","g045","g046","g048","g050","g051","g052","g055","g057","g060","g062","g065","p21","g066","g067","g068","g069","g070","g071","g072","g073","g074","g075","g076","g077","p09","x12","x25","y010","y056","y102","y149","y173","y213","y234","y245","y267","x58","y049","y180","y280","x33","y121","y248","y350","x57","p27","y131","y395","y444","y081","y119","y189","y360","y400","x67","y185","y374","y143","y093","y200","x65","x22","y032","y078","y153","y194","y276","y362","x34","y012","y034","y101","y166","y232","y268","y321","y346","y431","x38","y013","y043","y109","y177","y233","y274","y327","y365","y438","p12","y197","x28","y263","y435","y348","x37","y128","y251","y403","p02","x07","y097","y334","y402","y042","y082","y270","y275","y306","x19","x44","x64","y069","y133","y208","y229","y391","y406","y114","y141","y366","x11","y293","y089","x08","y340","y004","y202","y311","y409","y035","y076","y094","y125","y433","g078","g079","g080","g081","g082","g083","g084","g085","g086","g087","y017","y051","y250","y420","x53","y026","y118","y140","y257","y434"];
 if (typeof LESSONS !== 'undefined') Object.keys(LESSONS2_EXT).forEach(function (k) { if (LESSONS[k] && !LESSONS[k].ext2) { LESSONS[k].steps = LESSONS[k].steps.concat(LESSONS2_EXT[k]); LESSONS[k].ext2 = true; } });
 if (typeof LESSONS !== 'undefined') { Object.keys(LESSONS2).forEach(function (k) { LESSONS[k] = LESSONS2[k]; }); Object.keys(LESSONS2_PLACE).forEach(function (i) { var L = STAGES[i].lessons; LESSONS2_PLACE[i].forEach(function (pr) { var at = L.indexOf(pr[0]); if (at >= 0) L.splice(at, 1); var a = pr[1] ? L.indexOf(pr[1]) : -1; if (pr[1] && a < 0) L.push(pr[0]); else L.splice(a + 1, 0, pr[0]); }); }); }
 if (typeof module !== 'undefined') module.exports = { LESSONS2: LESSONS2, LESSONS2_EXT: LESSONS2_EXT, LESSONS2_PLACE: LESSONS2_PLACE, LESSONS2_USED: LESSONS2_USED };

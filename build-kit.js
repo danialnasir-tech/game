@@ -1,11 +1,15 @@
 // Regenerates the voice generator the user runs on their PC: voice-kit-v4/generate-v4-voices.js
 // (voice B52raBK48m23qWYbwchQ, model eleven_v4). Clips already made are skipped by the generator itself.
-const fs=require('fs');const D=require('./data.js');(function(){const X2=require('./lessons2.js');Object.assign(D.LESSONS,X2.LESSONS2);Object.keys(X2.LESSONS2_EXT||{}).forEach(k=>{if(D.LESSONS[k])D.LESSONS[k].steps=D.LESSONS[k].steps.concat(X2.LESSONS2_EXT[k]);});})();D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'),require('./puzzles-starter.js'),fs.existsSync('./puzzles-themed.js')?require('./puzzles-themed.js'):[]);
+const fs=require('fs');const D=require('./data.js');(function(){const X2=require('./lessons2.js');Object.assign(D.LESSONS,X2.LESSONS2);Object.keys(X2.LESSONS2_EXT||{}).forEach(k=>{if(D.LESSONS[k])D.LESSONS[k].steps=D.LESSONS[k].steps.concat(X2.LESSONS2_EXT[k]);});const IA=require('./interactive.js');Object.keys(IA).forEach(id=>{const L=D.LESSONS[id];if(!L)return;Object.keys(IA[id]).forEach(i=>{const st=L.steps[+i];if(st&&st.t==='read')Object.assign(st,IA[id][i]);});});})();D.PUZZLES=D.PUZZLES.concat(require('./puzzles2.js'),require('./puzzles-starter.js'),fs.existsSync('./puzzles-themed.js')?require('./puzzles-themed.js'):[]);
 const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);
 const V=require('./voicelines.js');
 const MI=require('./missions.js');
 const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES(), V.QUIZ_LINES(D), V.HINT_LINES(), Object.keys(MI.MISSIONS).flatMap(k=>MI.MISSIONS[k].map(m=>({id:'N-'+m.id,text:m.text,group:'more'}))));
 const ids=new Set();lines.forEach(l=>{if(ids.has(l.id))throw new Error('duplicate id '+l.id);ids.add(l.id);});
+const have0=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{},man0=fs.existsSync('dist/voice-manifest.json')?JSON.parse(fs.readFileSync('dist/voice-manifest.json','utf8')):{};
+const h0=t=>require('crypto').createHash('sha1').update('B52raBK48m23qWYbwchQ'+t).digest('hex').slice(0,12);
+const DD=require('./voice-dedupe.js')(lines,have0,l=>!man0[l.id]||man0[l.id]===h0(l.text));const dropped=lines.length-DD.keep.length;lines.length=0;DD.keep.forEach(l=>lines.push(l));
+console.log('same-text copies left out of the kit (they reuse one clip):',dropped);
 const t=fs.readFileSync('voice-kit-v4/generate-v4-voices.template.js','utf8').replace('/*__LINES__*/[]',()=>JSON.stringify(lines,null,0).replace(/\},\{/g,'},\n  {'));
 fs.writeFileSync('voice-kit-v4/generate-v4-voices.js',t);
 const have=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};

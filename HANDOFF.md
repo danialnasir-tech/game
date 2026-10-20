@@ -204,3 +204,19 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Errors: in the claude.ai preview chess.com cannot be reached (the page may not contact other sites); the app says so. On a real
   website the chess.com public API works without any key.
 - Reset (Settings → Start over) also clears the IndexedDB game cache.
+
+## Interactive lessons: answer, tap and play instead of pressing Next
+- **Questions on concept steps** (`interactive.js`, merged into `LESSONS` at load): a read step can carry `ask` (multiple choice:
+  `q`, `options`, `a`, `why`, `wrong[]`) or `tap` (find squares on the board: `q`, `targets`, `need`, `why`, `wrong`). Targets take
+  squares or shortcuts `@dark`, `@light`, `@file:e`, `@rank:4`, `@centre`. Next stays hidden until it is answered; feedback (wrong
+  reason, hint, the explanation) shows inside the question box; found squares stay marked. First-try answers build a combo streak
+  (`LS.combo`, toasts at 3/5/8/12).
+- **Longer lessons**: `tests/lessons2-more.js` adds a second half to every short lesson (now 5 to 12 steps each): more teaching
+  with questions and taps, then engine-verified practice from the puzzle bank. Appended after the existing steps so recorded clip
+  numbers do not move. `node tests/lessons2-build.js` regenerates `lessons2.js` and checks every hand-written move (legal, best or
+  mate, `teach: 1` skips the "best" check for opening/technique moves) and every question (must print `problems 0`).
+- Practice sets no longer repeat puzzles the lesson just used (`fresh2` in `drillList`).
+- Phone: when the board is only a picture (reading or answering), it may shrink to 23% of the screen height instead of 31%
+  (`body[data-passive]`, read by `fitBoard`). Small phones get tighter lesson text.
+- **Voice, same text = one clip** (`voice-dedupe.js`): the kit asks for each sentence once; the site build points every other id
+  with identical text at that recording.

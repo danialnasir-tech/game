@@ -1232,7 +1232,7 @@
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
     B3.idle(false);
-    IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
+    document.body.dataset.passive = "0"; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null; Replay.stop();
     current = MODES[mode];
     if (panel) panel.classList.remove('show-all');
     document.body.dataset.mode = mode;
@@ -1542,6 +1542,50 @@
   // ================= Lesson =================
   var LS = null;
   function quizBox(Q) { return '<div class="quiz' + (Q.done ? ' done' : '') + '"><span class="quiz-tag">' + (Q.done ? '✓ Nailed it' : 'Your turn') + '</span><span class="quiz-q">' + esc(Q.text.replace(/^Your turn\. /, '')) + '</span><span class="quiz-pips">' + Array.apply(null, Array(Q.need)).map(function (x, k) { return '<i class="' + (k < Q.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span></div>'; }
+  // explanation steps end with a question: a multiple choice (ask) or a tap on the board (tap)
+  function askTargets(t) {
+    var out = [];
+    [].concat(t.targets).forEach(function (x) {
+      var m;
+      if (x === '@dark' || x === '@light') { for (var f = 0; f < 8; f++) for (var r = 1; r <= 8; r++) if (((f + r) % 2 === 1) === (x === '@dark')) out.push('abcdefgh'[f] + r); }
+      else if ((m = /^@file:([a-h])$/.exec(x))) { for (var r2 = 1; r2 <= 8; r2++) out.push(m[1] + r2); }
+      else if ((m = /^@rank:([1-8])$/.exec(x))) { 'abcdefgh'.split('').forEach(function (f2) { out.push(f2 + m[1]); }); }
+      else if (x === '@centre') out = out.concat(['d4', 'e4', 'd5', 'e5']);
+      else out.push(x);
+    });
+    return out;
+  }
+  function askBox(step) {
+    var a = step.ask, t = step.tap, A = LS.ak; if (!(a || t) || !A) return '';
+    var msg = A.msg ? '<p class="ask-msg ' + A.msg.k + '">' + A.msg.h + '</p>' : '';
+    if (A.done) return '<div class="ask-box done"><b class="ask-q">✓ ' + esc(a ? a.options[a.a] : t.q) + ((LS.combo || 0) >= 2 ? '<span class="combo-chip">🔥 ' + LS.combo + ' in a row</span>' : '') + '</b>' + msg + '</div>';
+    var hb = '<button class="ask-hint" data-act="askHint">Hint</button>';
+    if (a) return '<div class="ask-box">' + hb + '<b class="ask-q">❓ ' + esc(a.q) + '</b><div class="ask-opts">' + a.options.map(function (o, k) { var st = A.tried && A.tried.indexOf(k) >= 0 ? (k === a.a ? ' right' : ' wrong') : (A.done && k === a.a ? ' right' : ''); return '<button class="ask-opt' + st + '" data-act="lessonAsk" data-k="' + k + '" ' + (A.done ? 'disabled' : '') + '>' + esc(o) + '</button>'; }).join('') + '</div>' + msg + '</div>';
+    var need = t.need || 1;
+    return '<div class="ask-box tap">' + hb + '<b class="ask-q">👆 ' + esc(t.q) + '</b>' + (need > 1 ? '<span class="quiz-pips">' + Array.apply(null, Array(need)).map(function (x, k) { return '<i class="' + (k < A.found.length ? 'on' : '') + '"></i>'; }).join('') + '</span>' : '') + msg + '</div>';
+  }
+  function askRight(step, sq) {
+    var why = (step.ask || step.tap).why, first = !LS.ak.miss;
+    LS.ak.done = true; LS.stepDone = true; IX.tap = null; Sound.play('good'); addXP(first ? 8 : 3);
+    LS.combo = first ? (LS.combo || 0) + 1 : 0; if (first && [3, 5, 8, 12].indexOf(LS.combo) >= 0) { toast('🔥 ' + LS.combo + ' in a row!'); Sound.play('star'); }
+    if (sq) { B3.burst(sq); xpPop('✓', sq); }
+    Voice.say([V('correct', 'correct'), why ? { id: 'L-' + LS.id + '-' + LS.i + '-w', text: why } : null]);
+    LS.ak.msg = { k: 'good', h: '<strong>' + (first ? 'Right!' : 'That\'s it.') + '</strong> ' + esc(why || '') }; setStatus(''); MODES.lesson.render();
+  }
+  ACT.lessonAsk = function (d) {
+    var step = LS && LS.L.steps[LS.i]; if (!step || !step.ask || !LS.ak || LS.ak.done) return;
+    var k = +d.k; LS.ak.tried = (LS.ak.tried || []).concat([k]);
+    if (k === step.ask.a) return askRight(step);
+    LS.ak.miss++; LS.mistakes += 0.5; LS.combo = 0; Sound.play('bad');
+    LS.ak.msg = { k: 'bad', h: '<strong>Not quite.</strong> ' + esc((step.ask.wrong && step.ask.wrong[k]) || 'Read the explanation above once more, then try again.') }; MODES.lesson.render();
+  };
+  ACT.askHint = function () {
+    var step = LS && LS.L.steps[LS.i]; if (!step) return; LS.hintsTotal = (LS.hintsTotal || 0) + 1;
+    if (!LS.ak) return;
+    if (step.tap) { B3.flash('hint', askTargets(step.tap).slice(0, 8), 1500); LS.ak.msg = { k: 'hint', h: 'Look at the flashing squares.' }; }
+    else if (step.ask) LS.ak.msg = { k: 'hint', h: esc(step.ask.hint || 'The answer is in the explanation above.') };
+    MODES.lesson.render();
+  };
   var PIECE_INFO = {
     k: { letter: 'K', value: 'Priceless' },
     q: { letter: 'Q', value: '9 points' },
@@ -1557,7 +1601,7 @@
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
-      LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false };
+      LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0 };
       Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
       MODES.lesson.render();
       MODES.lesson.loadStep();
@@ -1569,7 +1613,10 @@
       var Q = LS.quiz;
       var kind = step.t === 'read' ? (Q ? 'Concept + try it' : 'Concept') : step.t === 'collect' ? 'Mini-game' : step.t === 'squares' || step.t === 'pieces' ? 'Board game' : step.t === 'choice' ? 'Which is better?' : step.t === 'threat' ? 'Spot the threat' : 'Your move';
       var actions = '';
+      // reading or answering a question: the board is only a picture, so it may shrink further on small phones
+      document.body.dataset.passive = (step.t === 'read' && (!step.tap || LS.stepDone) && !Q) || (LS.stepDone && step.t !== 'read' && step.t !== 'collect') ? '1' : '0';
       if (step.t === 'read' && Q && !Q.done) actions = '<button class="btn ghost" data-act="quizShow">Show me again</button><button class="btn ghost" data-act="quizSkip">Skip</button>';
+      else if (step.t === 'read' && (step.ask || step.tap) && !LS.stepDone) actions = '';
       else if (step.t === 'read') actions = (step.line ? '<button class="btn" data-act="playLine">Play the line</button>' : '') + (step.demo ? '<button class="btn" data-act="demoAgain">▶ Watch again</button>' : '') + '<button class="btn primary" data-act="nextStep">' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       else actions = '<button class="btn ghost" data-act="hint">Hint</button><button class="btn ghost" data-act="resetStep">Reset</button><button class="btn primary" data-act="nextStep" ' + (LS.stepDone ? '' : 'disabled') + '>' + (LS.i === L.steps.length - 1 ? 'Finish lesson' : 'Next') + '</button>';
       setPanel('<button class="back" data-act="goPath">← Path</button>' +
@@ -1577,7 +1624,7 @@
         '<h1 class="h1">' + esc(L.title) + '</h1>' +
         '<p class="lede">' + esc(L.goal) + '</p>' +
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
-        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' + askBox(step) +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
         (step.t === 'pieces' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap your <b>' + PIECE_NAME[step.targets[LS.sq.i]] + '</b> <span class="sq-glyph">' + pieceSVG(step.targets[LS.sq.i], 'w', 34) + '</span>' : '✓ All six found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
@@ -1591,8 +1638,8 @@
     },
     loadStep: function () {
       var step = LS.L.steps[LS.i]; Replay.stop();
-      LS.stepDone = step.t === 'read'; LS.ply = 0; LS.hintUsed = false;
-      Voice.say([LS.i === 0 ? V('intro_' + LS.id) : LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }]);
+      LS.stepDone = step.t === 'read'; LS.ply = 0; LS.hintUsed = false; LS.ak = null;
+      var akq = step.ask || step.tap; Voice.say([LS.i === 0 ? V('intro_' + LS.id) : LS.i > 0 && chance(0.4) ? V('lesson_next') : null, { id: 'L-' + LS.id + '-' + LS.i, text: step.text }, akq ? { id: 'L-' + LS.id + '-' + LS.i + '-q', text: akq.q } : null]);
       if (step.t === 'collect') {
         Collect.start(step, function (stars, moves) {
           LS.stepDone = true; LS.stars = Math.min(LS.stars || 3, stars);
@@ -1627,6 +1674,7 @@
       }
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: step.t === 'read' && stageOf(LS.id) === 0 ? 'w' : new Game(step.fen).turn() });
       showVisuals(step);
+      if (step.t === 'read' && (step.ask || step.tap)) { LS.stepDone = false; LS.ak = { found: [], done: false, miss: 0 }; if (step.tap) IX.tap = MODES.lesson.askTap; MODES.lesson.render(); }
       if (step.demo) { var dTok = LS.demoTok = (LS.demoTok || 0) + 1, dAt = LS.i; setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === dAt && LS.demoTok === dTok; }); }, step.demoDelay || 2600); }
       var Q = LS.quizI === LS.i && LS.quiz;
       if (Q && !Q.done) {
@@ -1651,6 +1699,15 @@
       MODES.lesson.render();
     },
     pieceHint: function (t) { var g = IX.game, hits = []; 'abcdefgh'.split('').forEach(function (f) { for (var r = 1; r <= 2; r++) { var p = g.get(f + r); if (p && p.type === t) hits.push(f + r); } }); B3.flash('hint', hits, 1500); },
+    askTap: function (sq) {
+      var step = LS.L.steps[LS.i], A = LS.ak; if (!A || A.done || !step.tap) return;
+      var ok = askTargets(step.tap), need = step.tap.need || 1;
+      if (ok.indexOf(sq) < 0) { A.miss++; LS.mistakes += 0.5; LS.combo = 0; B3.flash('bad', [sq], 600); Sound.play('bad'); A.msg = { k: 'bad', h: esc(step.tap.wrong || 'Not that one. Read the explanation again.') }; MODES.lesson.render(); if (A.miss >= 2) B3.flash('hint', ok.slice(0, 8), 1400); return; }
+      if (A.found.indexOf(sq) >= 0) return;
+      A.found.push(sq); A.msg = null; B3.flash('good', [sq], 700); B3.markers('mark', A.found.slice());
+      if (A.found.length >= need) return askRight(step, sq);
+      Sound.play('star'); MODES.lesson.render();
+    },
     threatTap: function (sq) {
       var step = LS.L.steps[LS.i], Q = LS.sq; if (!Q || step.t !== 'threat' || LS.stepDone) return;
       if (step.targets.indexOf(sq) < 0) {
@@ -3161,6 +3218,8 @@
   function drillList(lid) {
     var D = LESSON_DRILL[lid]; if (!D) return null;
     var pool = PUZZLES.filter(D.pick); if (pool.length < 3) return null;
+    // never repeat a puzzle the lesson itself just used, unless that would leave too few
+    var unseen = pool.filter(fresh2); if (unseen.length >= 3) pool = unseen;
     var fresh = pool.filter(function (p) { return !S.puzzle.solved[p.id]; }); if (fresh.length >= 5) pool = fresh;
     pool = pool.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 5).sort(function (a, b) { return a.r - b.r; });
     return pool;
@@ -5519,7 +5578,7 @@
       raf = requestAnimationFrame(function () {
         if (!(mq && mq.matches) || document.body.dataset.layout !== 'board') { if (last) { st.style.removeProperty('height'); last = 0; } return; }
         var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight;
-        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * 0.31), maxB);
+        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * (document.body.dataset.passive === '1' ? 0.23 : 0.31)), maxB);
         // start from the biggest board, then give back exactly what the panel is missing
         st.style.setProperty('height', maxB + 'px', 'important'); last = maxB; void panel.offsetHeight;
         for (var k = 0; k < 3; k++) {
@@ -5532,7 +5591,7 @@
     }
     phoneFit.fit = fitBoard;
     new MutationObserver(fitBoard).observe(panel, { childList: true, subtree: true, characterData: true });
-    new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode'] });
+    new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }
   function boot() {
     panel = $('#panel');

@@ -35,7 +35,7 @@ function choiceFrom(p, text) {
   if (!best) return null;
   const aSan = new Game(fen).move({ from: A.slice(0, 2), to: A.slice(2, 4), promotion: A[4] }).san;
   const r = best.b.reply, why = r && r.score > 90000 ? best.b.replySan + ' would be checkmate.' : r && r.captured ? 'The answer ' + best.b.replySan + ' wins your ' + NAME[r.captured] + '.' : 'After ' + best.b.replySan + ' the advantage is gone.';
-  const swap = rnd() < 0.5, optA = { u: A, why: aSan + '. ' + p.explain }, optB = { u: best.u, why: best.m.san + ' looks tempting, but it does not work. ' + why };
+  const swap = rnd() < 0.5, optA = { u: A, why: (p.explain.indexOf(aSan) === 0 ? '' : aSan + '. ') + p.explain }, optB = { u: best.u, why: best.m.san + ' looks tempting, but it does not work. ' + why };
   used.add(p.id);
   return { t: 'choice', fen, text, options: swap ? [optB, optA] : [optA, optB], best: swap ? 1 : 0, src: p.id };
 }
@@ -129,7 +129,7 @@ L['l-candidates'] = {
   goal: 'Compare moves like a strong player: list the candidates, then calculate the forcing ones first.',
   takeaways: ['Before you decide, list two or three candidate moves.', 'Calculate forcing moves first; check each line to the end.', 'At the end of every line, ask what your opponent can do.'],
   steps: [
-    { t: 'read', fen: 'r6k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1', arrows: [['d5', 'g8', 'y'], ['h6', 'f7', 'b'], ['d5', 'd8', 'b']], text: 'Players around 1200 to 1600 often play the first good-looking move. Masters train a different habit: name two or three candidates, compare them, then choose. In these exercises you see two candidates. Only one of them works.' }
+    { t: 'read', fen: 'r6k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1', arrows: [['d5', 'g8', 'y'], ['h6', 'f7', 'b'], ['d5', 'd8', 'b']], text: 'Players around 1200 to 1600 often play the first good-looking move. Masters name two or three candidates, compare them, then choose. Here you get two candidates. Only one works.' }
   ].concat(gen(pick(p => p.r >= 900 && p.r <= 1600 && /mate|combo|fork|discovered|skewer|pin|endgame/.test(p.theme), 20), choiceFrom, ['Two candidate moves. Calculate both. Which one works?', 'A strong player would compare these two. Which is right?', 'List the replies to each move, then choose.', 'Both are forcing. Only one survives the best defence.', 'Which candidate holds up when you check their reply?', 'Calculate to the end of each line. A or B?', 'Do not trust the first impression. Compare both.']).slice(0, 7))
 };
 L['l-defence'] = {
@@ -137,7 +137,7 @@ L['l-defence'] = {
   goal: 'See the opponent\'s idea before it lands, from their side of the board.',
   takeaways: ['Strong players spend as much time on the opponent\'s ideas as on their own.', 'Prophylaxis: stop their best move before it happens.', 'Look for their checks, captures and threats every move.'],
   steps: [
-    { t: 'read', fen: 'r4rk1/1p3ppp/p2p4/3N4/4P3/8/PPP2PPP/R4RK1 b - - 0 1', text: 'Above 1200, players rarely hang a piece in one move. Games are lost to two- and three-move ideas the opponent saw first. In this lesson you sit on the defending side: find what your opponent is planning before they play it.' }
+    { t: 'read', fen: 'r4rk1/1p3ppp/p2p4/3N4/4P3/8/PPP2PPP/R4RK1 b - - 0 1', text: 'Above 1200, players rarely hang a piece in one move. Games are lost to ideas two or three moves deep that the opponent saw first. Here you defend: find their plan before they play it.' }
   ].concat(gen(pick(p => p.r >= 900 && p.r <= 1700 && /mate|fork|skewer|discovered|combo|pin/.test(p.theme), 20), threatFrom, ['Your opponent is to move, and they have a strong idea. What are they threatening?', 'Sit on their side of the board. What would you play?', 'They have a two-move idea. Where will it land?', 'Find their threat before it happens.', 'What is the target of their next move?', 'Prophylaxis starts here: what do they want?', 'Their best move hurts. Which piece or square does it hit?']).slice(0, 7))
 };
 L['l-endgame-play'] = {
@@ -179,15 +179,26 @@ L['l-pro-threats'] = {
     { t: 'read', fen: '6k1/5pp1/7p/8/8/8/5PPP/3R2K1 b - - 0 1', zones: [[['f7', 'g7', 'h6'], 'C']], text: 'Strong players lose most games the same way: the opponent had a forcing idea, and nobody looked for it from their side. These positions are taken from real engine games. Your opponent is to move each time. Find their combination.' }
   ].concat(gen(pick(p => p.r >= 1250 && p.sol.length >= 3, 16), threatFrom, ['Your opponent is to move. What is their combination aiming at?', 'Sit in their chair. Where does their attack land?', 'They have a forcing line. What will it win?', 'Find the target of their combination.', 'What is the first thing that falls if you do nothing?', 'Their move. Which square or piece breaks first?', 'Look for their most forcing move. What does it hit?']).slice(0, 7))
 };
+// second halves for the short lessons (hand-written teaching + verified practice)
+const MORE = require('./lessons2-more.js')({ gen, pick, moveFrom, choiceFrom, threatFrom, fenOf, Game, U });
+Object.keys(MORE).forEach(id => { EXT[id] = (EXT[id] || []).concat(MORE[id].filter(Boolean)); });
 // stage placement
 const PLACE = { 1: [['l-captures', 'l-values'], ['l-threats', 'l-captures']], 2: [['l-loose', null], ['l-twomove', 'l-loose'], ['l-kingsafety', 'l-twomove']], 3: [['l-candidates', null], ['l-defence', 'l-candidates'], ['l-endgame-play', 'l-kp']], 4: [['l-deep', 'l-calc'], ['l-pro-threats', 'l-deep']] };
 // sanity: verify the hand-written choice/threat steps with the engine too
 let problems = 0;
 Object.keys(EXT).forEach(id => EXT[id].forEach(st => { st.ext = 1; }));
 [].concat(Object.keys(L).map(id => [id, L[id].steps]), Object.keys(EXT).map(id => [id, EXT[id]])).forEach(([id, steps]) => steps.forEach((s, i) => {
+  if (s.t === 'collect') return;
   const g = new Game(); if (!g.load(s.fen)) { console.log('BAD FEN', id, i); problems++; return; }
   if (s.t === 'choice') { const sc = s.options.map(o => E.analyzeMove(s.fen, o.u, 6, 1500)); const b = sc[s.best].playedScore, o = sc[1 - s.best].playedScore; if (b - o < 150) { console.log('WEAK CHOICE', id, i, b, o); problems++; } }
   if (s.t === 'threat' && !s.src) { const t = new Game(s.fen), r = U(t, s.show); if (!r) { console.log('BAD THREAT MOVE', id, i); problems++; } else { const a = E.analyzeMove(s.fen, s.show, 6, 1200); if (a.loss > 80) { console.log('THREAT NOT BEST', id, i, a.loss, a.bestSan); problems++; } } }
+  if (s.t === 'move' && !s.src) {
+    const t = new Game(s.fen); for (const u of s.sol) if (!U(t, u)) { console.log('ILLEGAL SOL', id, i, u); problems++; return; }
+    (s.accept || []).forEach(u => { if (!U(new Game(s.fen), u)) { console.log('ILLEGAL ACCEPT', id, i, u); problems++; } });
+    if (s.anyMate) { const m = new Game(s.fen); U(m, s.sol[0]); if (!m.inCheckmate()) { console.log('NOT MATE', id, i); problems++; } }
+    else if (!s.teach && !s.judge) { const a = E.analyzeMove(s.fen, s.sol[0], 6, 1500); if (a.loss > 60) { console.log('MOVE NOT BEST', id, i, s.sol[0], a.loss, a.bestSan); problems++; } }
+  }
+  if (s.t === 'read' && (s.ask || s.tap)) { const a = s.ask || s.tap; if (!a.q || !a.why) { console.log('ASK INCOMPLETE', id, i); problems++; } if (s.ask && !(s.ask.a >= 0 && s.ask.a < s.ask.options.length)) { console.log('ASK BAD ANSWER', id, i); problems++; } }
   if (s.t === 'move' && s.judge === 'safe') { const a = E.analyzeMove(s.fen, s.sol[0], 6, 1200); if (a.loss > 120) { console.log('SAFE MOVE NOT SAFE', id, i, a.loss); problems++; } }
 }));
 const counts = Object.keys(L).map(id => id + ':' + L[id].steps.length + ' (' + L[id].steps.map(s => s.t[0]).join('') + ')').concat(Object.keys(EXT).map(id => id + ' +' + EXT[id].length + ' (' + EXT[id].map(s => s.t[0]).join('') + ')'));
