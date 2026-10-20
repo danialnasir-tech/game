@@ -36,7 +36,25 @@ var CAREER_TEXT = {
   hop_start: 'Knight Hop! Jump the knight onto every star. Tap a glowing square to jump.',
   mg_done: 'Time is up! Nice work. Come back any time and beat your best score.',
   victory: 'What a game! The whole Arena is on its feet. You did it!',
-  lost: 'Not this time. Train at the Academy and come back stronger. Your rival will be waiting.'
+  lost: 'Not this time. Train at the Academy and come back stronger. Your rival will be waiting.',
+  wl_hi: 'Hi! I am Coach Leo. I will teach you chess one move at a time, and I react to every move you make. Watch this.',
+  wl_name: 'What should I call you?',
+  wl_level: 'Where are you starting? Pick the closest match. You can change it any time.',
+  wl_try_100: 'Let us try one right now. Move the knight to the star.',
+  wl_try_400: 'Let us try one right now. Black left the queen undefended. Take it!',
+  wl_try_800: 'Let us try one right now. Find the knight move that attacks two pieces at once.',
+  wl_try_1200: 'Let us try one right now. Black is about to jump with the knight. Tap the square where it would attack your king and your rook together.',
+  wl_good_100: 'That is it! Every lesson is hands-on like this, and I explain every move you make.',
+  wl_good_400: 'Nine points, for free! I will train you to spot this in every game you play.',
+  wl_good_800: 'A fork! One move, two targets. Moves like this win games, and you will learn them all.',
+  wl_good_1200: 'You saw their idea first. Strong players do this every single move, and that is what we will train.',
+  wl_wrong: 'Not quite. Look at the glowing squares.',
+  wl_plan: 'Here is your plan for today. About ten minutes. Ready to start?',
+  fi_puzzles: 'Puzzles are real positions at your level. Find the best move, and I show you why it works. Every solve moves your rating.',
+  fi_openings: 'Learn the first moves the pros play. I show you the plan, then quiz you from memory.',
+  fi_play: 'Play a full game against me. I tell you about your good moves, your mistakes, and what to play instead.',
+  fi_arena: 'Quick wins between lessons: rivals, sixty-second games and win-this-position challenges.',
+  fi_progress: 'Your rating, your streak and your badges. This is where you see yourself getting better.'
 };
 var CAREER_TIPS = ['Knights love the centre. On the edge they are dim!', 'Before every move, ask what my opponent wants.', 'Castle early, and keep your king safe.', 'Count attackers and defenders before you capture.', 'A rook on an open file is a happy rook.', 'Did you find today\'s golden pawns?', 'The Puzzle Tower has a new puzzle every day.', 'Checks, captures, threats. Every move!', 'Pawns cannot move backwards. Think before you push.', 'In the endgame, your king is a fighter.', 'Gia runs games on the giant board. Try Square Rush!', 'Trapper Tess got me with the Englund Gambit again…'];
 var CAREER_LINES = Object.keys(CAREER_TEXT).map(function (k) { return { id: 'W-' + k, text: CAREER_TEXT[k], group: 'career' }; });

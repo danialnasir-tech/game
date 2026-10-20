@@ -249,3 +249,18 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   Best scores in `S.careerSt.mg`; XP per point.
 - Style Shop (Tia, or the 👕 button): skin, hair style, hair colour, top, trousers, hat. Saved in `S.careerSt.look`.
 - Test hooks: `ChessAscent.dbg().CW.ts` speeds the world up (tests only), `dbg().mgTap(point)`, `dbg().fight(id)`.
+
+## First-time experience (welcome.js, inlined at `/*__WELCOME__*/`)
+- `Welcome` replaces the old modal + text tour. Five screens: Coach Leo with a live mini board playing Scholar's Mate →
+  name → level (with icons) → **try it**: a one-move challenge matched to the level (knight to the star / win the free queen /
+  fork king and rook / spot the knight fork) with the coach reacting, arrows and XP → **your plan** for Day 1 (learn, practise,
+  prove it) → "Start Day 1" goes into the town (or the first lesson if 3D is missing); "I prefer a simple list" goes to Path.
+- `MiniBoard` + `mbPlay`: a small self-contained demo board (SVG pieces, arrows, pops, taps) used by the welcome and previews.
+- `FeatureIntro`: the first time Puzzles, Openings, Coach, Arena or Progress opens, a sheet shows the feature working on a mini
+  board (or a rating chart), says what it does for you, and "Try it now" hands over to the guiding hand.
+- `Guide` / `guideOnce`: a pointing hand + label on the exact thing to tap (selector, or a function giving a screen point for
+  3D targets). Disappears when that thing is tapped. Used for Leo, his dialog button, the Academy door card, the wardrobe, the
+  first lesson question/tap/move, and the Start button on the list home.
+- Town: taps near a person count as tapping them; walking follows the plaza ring around buildings (`careerRoute`), with
+  acceleration and the camera swinging behind you on auto-walks; a loading screen while the town builds; townsfolk stay quiet
+  until you have met Leo. Bottom bar shows one recommended dot instead of one per tab.

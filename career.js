@@ -189,7 +189,7 @@
       K.at(Math.sin(a) * mid, Math.cos(a) * mid, a);
       add(K.box(3.4, 0.06, len), '#e6d3a6', [0, 0.03, 0]);
       for (var s2 = -len / 2; s2 < len / 2; s2 += 1.1) { add(K.box(0.36, 0.12, 0.8), '#b9a47e', [-1.85, 0.06, s2]); add(K.box(0.36, 0.12, 0.8), '#b9a47e', [1.85, 0.06, s2]); }
-      for (var lp = -len / 2 + 2, li = 0; lp < len / 2; lp += 6.5, li++) { var side = li % 2 ? -2.5 : 2.5; add(K.cyl(0.08, 0.12, 3.2, 8), '#2d3142', [side, 1.6, lp]); add(K.cyl(0.22, 0.26, 0.2, 8), '#2d3142', [side, 0.1, lp]); add(K.sph(0.3, 10), '#fff3c4', [side, 3.3, lp], null, null, 'glow'); add(K.cone(0.34, 0.2, 8), '#2d3142', [side, 3.6, lp]); }
+      for (var lp = -len / 2 + 2, li = 0; L.id !== 'home' && lp < len / 2; lp += 6.5, li++) { var side = li % 2 ? -2.5 : 2.5; add(K.cyl(0.08, 0.12, 3.2, 8), '#2d3142', [side, 1.6, lp]); add(K.cyl(0.22, 0.26, 0.2, 8), '#2d3142', [side, 0.1, lp]); add(K.sph(0.3, 10), '#fff3c4', [side, 3.3, lp], null, null, 'glow'); add(K.cone(0.34, 0.2, 8), '#2d3142', [side, 3.6, lp]); }
       K.reset();
     });
     // plaza poles with bunting
@@ -419,7 +419,7 @@
     function npc(id, name, sub, color, L, x, z, ry) {
       var p = person(L); p.g.position.set(x, 0, z); p.g.rotation.y = ry; p.home = ry; p.id = id; p.name = name; p.color = color;
       var lb = label(name, sub, color, 0.6); lb.position.y = 3.05; p.g.add(lb); p.lbl = lb;
-      hitBox(1.4, 2.6, 1.4, 0, 1.3, 0, { type: 'npc', id: id }, p.g); W.npcs.push(p); return p;
+      hitBox(2.2, 3.2, 2.2, 0, 1.5, 0, { type: 'npc', id: id }, p.g); W.npcs.push(p); return p;
     }
     npc('leo', 'Coach Leo', 'Your coach', '#c4ff3d', { skin: '#e0ac69', hair: 'short', hairC: '#b0b6bb', shirt: '#8b1e3f', pants: '#2b2b3a', beard: true, glasses: true, coat: '#6d1530', tie: '#ffd23f' }, 3.6, -17.4, 0.4);
     npc('gia', 'Gia', 'Plaza games', '#4cc9f0', { skin: '#c68642', hair: 'bun', hairC: '#111111', shirt: '#4cc9f0', pants: '#2d3142', hat: 'headband' }, 4.6, 9.4, -0.6);
@@ -545,6 +545,14 @@
     CW.bub.push({ p: p, el: el, until: CW.t + (ms || 3500) / 1000 });
   }
 
+  // where a person in the world is on screen (for the guiding hand)
+  function careerScreenPt(n, y) {
+    return function () {
+      if (!CW || !CW.on || CW.cine || CW.ward || CW.talking || CW.mg || current !== MODES.career) return null;
+      var v = CW.v3.set(n.g.position.x, (n.lift || 0) + y, n.g.position.z).project(CW.cam); if (v.z > 1 || v.x < -1 || v.x > 1 || v.y < -1 || v.y > 1) return null;
+      var hb = CW.host.getBoundingClientRect(); return { x: hb.left + (v.x + 1) / 2 * CW.W, y: hb.top + (1 - v.y) / 2 * CW.H };
+    };
+  }
   function careerTarget(id) {
     if (!id) return null;
     var n = CW.npcs.filter(function (x) { return x.id === id; })[0]; if (n) return { x: n.g.position.x, z: n.g.position.z, y: 3.9 + (n.lift || 0), name: n.name, npc: n };
@@ -561,7 +569,8 @@
       if (n.boss) { var open = bossOpen(n.boss.stage) || S.bosses[n.boss.id]; n.lbl.material.opacity = open ? 1 : 0.5; }
     });
     var C = S.careerSt; // first-visit tips
-    if (!C.met) careerTut('Tap <b>Coach Leo</b> (he is waving) or press <b>Go ▶</b> to walk to him.');
+    if (!C.met && !CW.cine && !CW.ward && !CW.talking) Guide.show(careerScreenPt(CW.npcs[0], 1.1), 'Tap Coach Leo', { ms: 60000 });
+    if (!C.met) careerTut(null);
     else if (!C.tut1) careerTut('Follow the <b>golden trail</b> to the Academy door, then tap the lesson.');
     else careerTut(null);
   }
@@ -575,6 +584,7 @@
     if (L.id === 'arena') acts.push(['arena', 'Enter the Arena', null, 1]);
     if (L.id === 'park') { acts.push(['play', 'Play the coach', null, 1]); acts.push(['friend', 'Play a friend']); }
     if (L.id === 'home') { acts.push(['progress', 'My progress', null, 1]); acts.push(['program', '30-Day Ascent']); acts.push(['mychess', 'My chess.com']); }
+    if (L.id === 'academy' && !S.careerSt.tut1) setTimeout(function () { Guide.show('#w-card .btn.primary', 'Start your first lesson', { ms: 30000 }); }, 400);
     var c = $('#w-card');
     c.innerHTML = '<div class="w-card-h"><span class="w-ico">' + L.icon + '</span><b>' + esc(L.name) + '</b><span>' + esc(L.sub) + '</span></div><div class="w-card-a">' + acts.map(function (a) { return '<button class="btn ' + (a[3] ? 'primary' : 'ghost') + ' small" data-wact="enter" data-loc="' + L.id + '" data-m="' + a[0] + '"' + (a[2] ? ' data-arg="' + a[2] + '"' : '') + '>' + esc(a[1]) + '</button>'; }).join('') + '</div>';
     c.hidden = false;
@@ -589,7 +599,7 @@
   }
   function careerTalk(n) {
     var q = careerQuest(), btn = '', text, line, small = '';
-    careerFace(n); n.act = 'talk'; CW.talking = n.id; CW.goal = null; CW.pend = null;
+    careerFace(n); n.act = 'talk'; CW.talking = n.id; CW.goal = null; CW.pend = null; Guide.hide();
     if (n.id === 'leo') {
       if (!S.careerSt.met) { S.careerSt.met = true; S.careerSt.ch = careerChapter(); save(); line = 'welcome'; }
       else line = q.line;
@@ -598,6 +608,7 @@
       else if (q.boss) btn = '<button class="btn primary small" data-wact="walk" data-to="boss-' + q.boss.id + '">Walk me to ' + esc(q.boss.name.split(' ')[1] || q.boss.name) + '</button>';
       else if (line === 'welcome') btn = '<button class="btn primary small" data-wact="walk" data-to="academy">Show me the Academy</button>';
       careerDialog('Coach Leo', '#c4ff3d', text, '', btn, '🧔');
+      if (line === 'welcome') setTimeout(function () { Guide.show('#w-dlg .btn.primary', 'Tap here', { ms: 25000 }); }, 1800);
       Voice.say([line === 'lesson_go' && q.lesson ? null : WL(line)].filter(Boolean));
       careerRefresh();
     } else if (n.id === 'gia') {
@@ -619,11 +630,23 @@
   }
   function careerFace(n) { var p = CW.P.g.position, q = n.g.position; n.g.rotation.y = Math.atan2(p.x - q.x, p.z - q.z); CW.P.g.rotation.y = Math.atan2(q.x - p.x, q.z - p.z); }
   function careerCloseTalk() { $('#w-dlg').hidden = true; clearInterval(careerDialog._i); var n = CW.npcs.filter(function (x) { return x.id === CW.talking; })[0]; CW.talking = null; if (n) { n.act = null; n.g.rotation.y = n.home; } careerRefresh(); }
+  // walk around buildings: go to the plaza ring, follow it, then take the right road
+  function careerRoute(fx, fz, tx, tz) {
+    function blocked(ax, az, bx, bz) { return CW.col.some(function (c) { if (c.r < 1.3) return false; var dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1, u = Math.max(0, Math.min(1, ((c.x - ax) * dx + (c.z - az) * dz) / L2)); return Math.hypot(ax + dx * u - c.x, az + dz * u - c.z) < c.r + 0.6; }); }
+    if (!blocked(fx, fz, tx, tz)) return [{ x: tx, z: tz }];
+    var R = 9.4, af = Math.atan2(fx, fz), at = Math.atan2(tx, tz), pts = [];
+    if (Math.hypot(fx, fz) > R) pts.push({ x: Math.sin(af) * R, z: Math.cos(af) * R });
+    var d = Math.atan2(Math.sin(at - af), Math.cos(at - af)), n = Math.ceil(Math.abs(d) / 0.45);
+    for (var i = 1; i < n; i++) { var a = af + d * i / n; pts.push({ x: Math.sin(a) * R, z: Math.cos(a) * R }); }
+    if (Math.hypot(tx, tz) > R) pts.push({ x: Math.sin(at) * R, z: Math.cos(at) * R });
+    pts.push({ x: tx, z: tz }); return pts;
+  }
+  function careerGo(x, z, auto) { var pts = careerRoute(CW.P.g.position.x, CW.P.g.position.z, x, z); CW.goal = pts.shift(); CW.path = pts; CW.auto = !!auto; }
   function careerWalkTo(id) {
     var t = careerTarget(id); if (!t) return;
     var p = CW.P.g.position, dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz) || 1, stop = t.npc ? 1.9 : 0.2;
     if (CW.talking) careerCloseTalk();
-    CW.goal = { x: t.x + dx / d * stop, z: t.z + dz / d * stop }; CW.pend = id; CW.nearKey = undefined;
+    careerGo(t.x + dx / d * stop, t.z + dz / d * stop, true); CW.pend = id; CW.nearKey = undefined;
   }
   function careerEnter(locId, mode, arg) {
     var L = CAREER_LOCS.filter(function (l) { return l.id === locId; })[0];
@@ -646,7 +669,7 @@
     el.addEventListener('pointermove', function (e) {
       if (!down || e.pointerId !== down.id) return; var dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (Math.hypot(dx, dy) > 9) down.moved = true;
-      if (down.moved && W.camMode === 'follow' && !W.cine) { W.camYaw = down.yaw - dx * 0.008; W.camH = Math.max(4.5, Math.min(22, down.h + dy * 0.04)); }
+      if (down.moved && W.camMode === 'follow' && !W.cine) { W.auto = false; W.camYaw = down.yaw - dx * 0.008; W.camH = Math.max(4.5, Math.min(22, down.h + dy * 0.04)); }
     });
     el.addEventListener('pointerup', function (e) {
       if (!down || e.pointerId !== down.id) return; var d = down; down = null; if (d.moved || W.cine) return;
@@ -654,10 +677,14 @@
       W.ray.setFromCamera(W.v2, W.cam);
       if (W.mg) { var gp = W.ray.intersectObject(W.ground, false)[0]; if (gp) careerMgTap(gp.point); return; }
       if (W.ward) return;
-      var hit = W.ray.intersectObjects(W.hits, false)[0];
+      // people are small on a phone: a tap within a finger's width of someone counts as tapping them
+      var hb = el.getBoundingClientRect(), bestN = null, bestD = W.mob ? 46 : 34;
+      W.npcs.forEach(function (n) { var v = W.v3.set(n.g.position.x, (n.lift || 0) + 1.2, n.g.position.z).project(W.cam); if (v.z > 1) return; var sx = (v.x + 1) / 2 * hb.width, sy = (1 - v.y) / 2 * hb.height, dd = Math.hypot(sx - (e.clientX - hb.left), sy - (e.clientY - hb.top)); if (dd < bestD) { bestD = dd; bestN = n; } });
+      if (bestN) { careerWalkTo(bestN.id); careerNote('Walking to ' + bestN.name + '…', 1400); return; }
+      var hits = W.ray.intersectObjects(W.hits, false), hit = hits.filter(function (x) { return x.object.userData.hit && x.object.userData.hit.type === 'npc'; })[0] || hits[0];
       if (hit && hit.object.userData.hit) { var h = hit.object.userData.hit, t = careerTarget(h.id); careerWalkTo(h.id); careerNote((h.type === 'npc' ? 'Walking to ' : 'Heading to ') + (t ? t.name : '') + '…', 1400); return; }
       var g = W.ray.intersectObject(W.ground, false)[0];
-      if (g) { if (W.talking) careerCloseTalk(); W.goal = { x: g.point.x, z: g.point.z }; W.pend = null; W.ring.position.x = g.point.x; W.ring.position.z = g.point.z; W.ring.material.opacity = 1; }
+      if (g) { if (W.talking) careerCloseTalk(); careerGo(g.point.x, g.point.z, false); W.pend = null; W.ring.position.x = g.point.x; W.ring.position.z = g.point.z; W.ring.material.opacity = 1; }
     });
     el.addEventListener('wheel', function (e) { e.preventDefault(); W.camDist = Math.max(7, Math.min(28, W.camDist + e.deltaY * 0.01)); }, { passive: false });
     W.onKey = function (e) {
@@ -671,7 +698,7 @@
       var b = e.target.closest('[data-wact]'); if (!b) return; var a = b.dataset.wact;
       if (a === 'enter') careerEnter(b.dataset.loc, b.dataset.m, b.dataset.arg);
       if (a === 'close') { if (W.victoryRestore) careerVictoryDone(); else if (W.talking) careerCloseTalk(); else $('#w-dlg').hidden = true; }
-      if (a === 'walk') careerWalkTo(b.dataset.to);
+      if (a === 'walk') { careerWalkTo(b.dataset.to); if (!S.careerSt.walkHint) { S.careerSt.walkHint = 1; save(); setTimeout(function () { careerNote(W.mob ? '💡 You can also tap anywhere on the ground to walk there, and drag to look around.' : '💡 You can also click anywhere to walk (or use W A S D), and drag to look around.', 5500); }, 1200); } }
       if (a === 'go') { if (W.q && W.q.target) { careerWalkTo(W.q.target); careerNote('Walking to ' + (W.tg ? W.tg.name : '') + '…', 1500); } }
       if (a === 'talk') { var n = W.npcs.filter(function (x) { return x.id === b.dataset.id; })[0]; if (n) careerTalk(n); }
       if (a === 'fight') careerFight(b.dataset.id);
@@ -698,10 +725,12 @@
     var vx = 0, vz = 0, sp = 6.4;
     if (mx || mz) { var cy = Math.cos(W.camYaw), sy = Math.sin(W.camYaw), l = Math.hypot(mx, mz); vx = (mx * cy + mz * sy) / l * sp; vz = (-mx * sy + mz * cy) / l * sp; }
     else if (W.goal && !W.cine) {
-      var dx = W.goal.x - p.x, dz = W.goal.z - p.z, d = Math.hypot(dx, dz);
-      if (d < 0.25) { W.goal = null; if (W.pend) { var id = W.pend; W.pend = null; careerArrive(id); } }
-      else { var s2 = Math.min(sp, d * 4); vx = dx / d * s2; vz = dz / d * s2; }
+      var dx = W.goal.x - p.x, dz = W.goal.z - p.z, d = Math.hypot(dx, dz), more = W.path && W.path.length;
+      if (d < (more ? 0.9 : 0.25)) { if (more) W.goal = W.path.shift(); else { W.goal = null; W.auto = false; if (W.pend) { var id = W.pend; W.pend = null; careerArrive(id); } } }
+      else { var s2 = more ? sp : Math.min(sp, d * 3); vx = dx / d * s2; vz = dz / d * s2; }
     }
+    if (!W.goal && !(mx || mz)) { W.path = null; }
+    var V = W.vel = W.vel || { x: 0, z: 0 }, ka = Math.min(1, dt * 9); V.x += (vx - V.x) * ka; V.z += (vz - V.z) * ka; vx = V.x; vz = V.z;
     if (!W.cine) {
       var ox = p.x, oz = p.z;
       p.x += vx * dt; p.z += vz * dt;
@@ -710,7 +739,9 @@
       p.y = Math.abs(p.x) < 7.2 && Math.abs(p.z) < 7.2 ? 0.22 : Math.hypot(p.x, p.z) < 10.6 ? 0.1 : 0;
       var moved = Math.hypot(p.x - ox, p.z - oz) / Math.max(dt, 1e-3);
       if (W.goal && moved < 0.3 && Math.hypot(vx, vz) > 1) { W.stuck = (W.stuck || 0) + dt; if (W.stuck > 0.6) { W.goal = null; W.stuck = 0; if (W.pend) { var id2 = W.pend; W.pend = null; careerArrive(id2); } } } else W.stuck = 0;
-      P.speed = moved; if (moved > 0.2) { var want = Math.atan2(p.x - ox, p.z - oz), cur = P.g.rotation.y, df = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)); P.g.rotation.y = cur + df * Math.min(1, dt * 12); }
+      P.speed = moved; if (moved > 0.2) { var want = Math.atan2(p.x - ox, p.z - oz), cur = P.g.rotation.y, df = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)); P.g.rotation.y = cur + df * Math.min(1, dt * 10);
+        // on an auto-walk the camera swings in behind you, so you see where you are going
+        if (W.auto && moved > 2 && W.camMode === 'follow') { var cy2 = want + Math.PI, dy2 = Math.atan2(Math.sin(cy2 - W.camYaw), Math.cos(cy2 - W.camYaw)); W.camYaw += dy2 * Math.min(1, dt * 1.3); } }
     }
     W.animate(P, dt);
     // townsfolk walk, stop for a chat and share a tip when you pass
@@ -724,7 +755,7 @@
         W.col.forEach(function (c) { var ex = gp.x - c.x, ez = gp.z - c.z, e = Math.hypot(ex, ez), m = c.r + 0.4; if (e < m && e > 0.0001) { gp.x = c.x + ex / e * m; gp.z = c.z + ez / e * m; } });
         gp.y = Math.abs(gp.x) < 7.2 && Math.abs(gp.z) < 7.2 ? 0.22 : 0;
       }
-      if (!W.cine && !W.mg && W.t > q.tipAt && Math.hypot(gp.x - p.x, gp.z - p.z) < 3.4) { q.tipAt = W.t + 25 + Math.random() * 20; q.wait = 2.5; q.speed = 0; q.g.rotation.y = Math.atan2(p.x - gp.x, p.z - gp.z); careerBubble(q, CAREER_TIPS[Math.floor(Math.random() * CAREER_TIPS.length)], 3800); }
+      if (!W.cine && !W.mg && S.careerSt.met && W.t > q.tipAt && Math.hypot(gp.x - p.x, gp.z - p.z) < 3.4) { q.tipAt = W.t + 25 + Math.random() * 20; q.wait = 2.5; q.speed = 0; q.g.rotation.y = Math.atan2(p.x - gp.x, p.z - gp.z); careerBubble(q, CAREER_TIPS[Math.floor(Math.random() * CAREER_TIPS.length)], 3800); }
       W.animate(q, dt);
     });
     W.npcs.forEach(function (n) { n.speed = n.walk || 0; W.animate(n, dt); });
@@ -806,7 +837,7 @@
   function careerGuides() {
     var W = CW, p = W.P.g.position, cam = W.cam, v = W.v3, w = W.W, h = W.H;
     function proj(x, y, z) { v.set(x, y, z).project(cam); return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h, on: v.z < 1 && v.x > -1 && v.x < 1 && v.y > -1 && v.y < 1 }; }
-    var ptr = $('#w-ptr'), edge = $('#w-edge'), show = W.tg && !W.cine && !W.mg && !W.ward && !W.talking;
+    var ptr = $('#w-ptr'), edge = $('#w-edge'), show = W.tg && !W.cine && !W.mg && !W.ward && !W.talking && !Guide.on();
     if (show && Math.hypot(W.tg.x - p.x, W.tg.z - p.z) > 2.6) {
       var s = proj(W.tg.x, W.tg.y + 1.3, W.tg.z);
       if (s.on && s.y > 70) { ptr.hidden = false; edge.hidden = true; ptr.style.transform = 'translate(' + Math.round(s.x) + 'px,' + Math.round(s.y) + 'px) translate(-50%,-100%)'; $('#w-ptr-t').textContent = W.tg.name; }
@@ -883,7 +914,7 @@
   }
   function careerAfterIntro() {
     if (!S.careerSt.look) { careerNote(CAREER_TEXT.look_intro, 4500); careerWardrobe(true, true); return; }
-    careerNote(CW.mob ? CAREER_TEXT.hint_tap : CAREER_TEXT.hint_keys, 6000);
+    if (S.careerSt.met) careerNote(CW.mob ? CAREER_TEXT.hint_tap : CAREER_TEXT.hint_keys, 6000);
   }
 
   // rival walk-in: crowd on its feet, spotlights, both fighters walk to the middle, then a VS screen
@@ -1024,10 +1055,11 @@
   // ---------- Style Shop: change your look
   function careerWardrobe(open, first) {
     var W = CW, el = $('#w-ward');
-    if (!open) { el.hidden = true; W.ward = false; W.camMode = 'follow'; W.look = null; if (!S.careerSt.look) { S.careerSt.look = myLook(); save(); } if (W.wardFirst) { W.wardFirst = false; careerNote(W.mob ? CAREER_TEXT.hint_tap : CAREER_TEXT.hint_keys, 6000); } careerRefresh(); return; }
+    if (!open) { el.hidden = true; W.ward = false; W.camMode = 'follow'; W.look = null; if (!S.careerSt.look) { S.careerSt.look = myLook(); save(); } if (W.wardFirst) W.wardFirst = false; careerRefresh(); return; }
     W.ward = true; W.wardFirst = !!first; W.camMode = 'close'; W.goal = null; W.pend = null; W.look = null; $('#w-card').hidden = true; careerTut(null);
     W.P.g.rotation.y = Math.atan2(W.cam.position.x - W.P.g.position.x, W.cam.position.z - W.P.g.position.z);
     careerWardRender('skin');
+    if (first) setTimeout(function () { Guide.show('.lk-opts', 'Tap one to try it on', { ms: 9000, done: function () { setTimeout(function () { Guide.show('[data-wact="lookdone"]', 'Happy? Tap Done', { ms: 20000 }); }, 900); } }); }, 600);
   }
   function careerWardRender(tab) {
     var L = myLook(), el = $('#w-ward'); CW.wardTab = tab;
@@ -1056,13 +1088,23 @@
     enter: function () {
       if (!window.THREE || !THREE.WebGLRenderer) { toast('Career mode needs 3D graphics, which did not load. Here is the list view.'); S.career = false; return go('path'); }
       S.career = true; S.careerSt = S.careerSt || {}; save();
-      var first = false;
       if (!CW) {
-        var host = document.createElement('div'); host.id = 'world'; document.body.appendChild(host);
-        try { CW = careerBuild(host); } catch (e) { console.error(e); host.remove(); CW = null; toast('Career mode could not start 3D here. Here is the list view.'); S.career = false; return go('path'); }
-        careerHud(host); careerInput(CW); first = true;
-        window.addEventListener('resize', careerLayout); if (window.visualViewport) visualViewport.addEventListener('resize', careerLayout);
+        var host = $('#world'); if (!host) { host = document.createElement('div'); host.id = 'world'; document.body.appendChild(host); }
+        host.hidden = false; host.innerHTML = '<div class="w-load"><span class="w-load-k">' + pieceSVG('n', 'w', 54) + '</span><b>Building Ascent Town…</b><i class="w-load-bar"><i></i></i></div>';
+        var top = $('.top').getBoundingClientRect().bottom; host.style.top = top + 'px'; host.style.left = document.body.classList.contains('mob') ? '0' : $('.rail').getBoundingClientRect().right + 'px'; host.style.right = '0'; host.style.bottom = document.body.classList.contains('mob') ? Math.max(0, innerHeight - $('.rail').getBoundingClientRect().top) + 'px' : '0';
+        setPanel('');
+        setTimeout(function () {
+          if (current !== MODES.career) return;
+          try { host.innerHTML = ''; CW = careerBuild(host); } catch (e) { console.error(e); host.remove(); CW = null; toast('Career mode could not start 3D here. Here is the list view.'); S.career = false; return go('path'); }
+          careerHud(host); careerInput(CW);
+          window.addEventListener('resize', careerLayout); if (window.visualViewport) visualViewport.addEventListener('resize', careerLayout);
+          MODES.career.show(true);
+        }, 80);
+        return;
       }
+      MODES.career.show(false);
+    },
+    show: function (first) {
       CW.host.hidden = false; CW.on = true; CW.last = 0; careerLayout(); B3.pause(true);
       careerPawns(CW); setPanel('');
       var at = S.careerSt.at && CAREER_LOCS.filter(function (l) { return l.id === S.careerSt.at; })[0], p = CW.P.g.position;
@@ -1085,7 +1127,7 @@
       cancelAnimationFrame(CW.raf); CW.raf = requestAnimationFrame(careerLoop);
     },
     leave: function () {
-      B3.pause(false); if (!CW) return;
+      B3.pause(false); if (!CW) { var h = $('#world'); if (h) h.hidden = true; return; }
       if (CW.cine) { CW.cine = null; $('#w-cine').hidden = true; CW.host.classList.remove('w-hidetop'); }
       if (CW.restoreFight) { CW.restoreFight(); CW.restoreFight = null; }
       if (CW.mg) careerMgEnd(true);

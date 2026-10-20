@@ -1228,7 +1228,7 @@
       lockedScreen(mode); return;
     }
     if (current && current.leave) current.leave();
-    Voice.stop(); Bubble.hide();
+    Guide.hide(); Voice.stop(); Bubble.hide();
     var tab = { career: 'career', mychess: 'progress', program: 'path', mine: 'path', daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
     if (S.career && tab === 'path') tab = 'career';
@@ -1263,7 +1263,8 @@
   function markNewTabs() {
     if (!S.onboarded) return;
     S.visited = S.visited || {};
-    document.querySelectorAll('.rail button[data-go]').forEach(function (b) { var m = b.dataset.go; b.classList.toggle('new', !S.visited[m] && !isLocked(m)); });
+    var ORDER = ['career', 'path', 'puzzles', 'play', 'openings', 'arena', 'progress'], pick = lessonsDone() >= 1 ? ORDER.filter(function (m) { return !S.visited[m] && !isLocked(m) && document.querySelector('.rail [data-go="' + m + '"]'); })[0] : null;
+    document.querySelectorAll('.rail button[data-go]').forEach(function (b) { b.classList.toggle('new', b.dataset.go === pick); });
   }
   var HINTS = HINT_LINES_TEXT;
 
@@ -1273,6 +1274,7 @@
     var t = HINTS[mode];
     if (!t || S.hinted[mode] || !S.onboarded) return;
     S.hinted[mode] = 1; save();
+    if (FeatureIntro.has(mode)) { setTimeout(function () { if (document.body.dataset.mode === mode) FeatureIntro.show(mode); }, 450); return; }
     HINT = { mode: mode, text: t };
     setTimeout(function () { if (HINT && HINT.mode === mode) Voice.say([{ id: 'H-' + mode, text: t }], true); }, 900);
   }
@@ -1678,7 +1680,9 @@
       }
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: step.t === 'read' && stageOf(LS.id) === 0 ? 'w' : new Game(step.fen).turn() });
       showVisuals(step);
-      if (step.t === 'read' && (step.ask || step.tap)) { LS.stepDone = false; LS.ak = { found: [], done: false, miss: 0 }; if (step.tap) IX.tap = MODES.lesson.askTap; MODES.lesson.render(); }
+      if (step.t === 'read' && (step.ask || step.tap)) { LS.stepDone = false; LS.ak = { found: [], done: false, miss: 0 }; if (step.tap) IX.tap = MODES.lesson.askTap; MODES.lesson.render();
+        setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) { if (step.ask) guideOnce('ask', '.ask-opts', 'Pick an answer'); else guideOnce('tap', '.b2-board,#three canvas', 'Tap on the board'); } }, 1600); }
+      if (step.t === 'move') setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) guideOnce('move', '.b2-board,#three canvas', 'Tap a piece, then where it goes'); }, 1800);
       if (step.demo) { var dTok = LS.demoTok = (LS.demoTok || 0) + 1, dAt = LS.i; setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === dAt && LS.demoTok === dTok; }); }, step.demoDelay || 2600); }
       var Q = LS.quizI === LS.i && LS.quiz;
       if (Q && !Q.done) {
@@ -5293,40 +5297,8 @@
     { v: 1200, t: 'Improving player', s: 'About 1000–1400 online.' },
     { v: 1600, t: 'Experienced', s: 'About 1400–1800 online.' }
   ];
-  function onboard() {
-    var m = $('#modal');
-    m.classList.add('intro');
-    m.innerHTML = '<div class="intro-card" role="dialog" aria-modal="true" aria-labelledby="ob-title">' +
-      '<div class="coach-orb" aria-hidden="true"><span>' + pieceSVG('n', 'w', 50) + '</span></div>' +
-      '<h1 class="intro-title" id="ob-title">Chess <em>Ascent</em></h1>' +
-      '<p class="intro-tag">Your personal coach, from your very first move to 2000.</p>' +
-      '<ul class="intro-points"><li>Bite-size lessons</li><li>Real openings &amp; gambits</li><li>A coach who reacts to every move</li></ul>' +
-      '<button class="btn primary big" data-ob="meet">Meet your coach</button>' +
-      (Cloud.enabled() ? '<div class="ob-or"><span>Played before?</span>' + Cloud.gButton('Sign in with Google') + '</div>' : '') +
-      '<p class="muted small">Sound on for the full experience.</p></div>';
-    m.hidden = false;
-    m.onclick = function (e) {
-      var b = e.target.closest('[data-ob],[data-band]'); if (!b) return;
-      if (b.dataset.ob === 'gsign') { Sound.unlock(); Cloud.signIn(); return; }
-      if (b.dataset.ob === 'meet') {
-        Sound.unlock(); Voice.say([C('welcome')]);
-        m.querySelector('.intro-card').innerHTML =
-          '<div class="coach-orb small" aria-hidden="true"><span>' + pieceSVG('n', 'w', 32) + '</span></div>' +
-          '<div class="eyebrow">One quick question</div><h1 class="h1">Where are you starting?</h1>' +
-          '<p class="lede">Pick the closest match. You can always revisit earlier lessons.</p>' +
-          '<div class="bands">' + BANDS.map(function (bd) { return '<button class="band-btn" data-band="' + bd.v + '"><span class="bb-v">' + bd.v + '</span><span><span class="bb-t">' + bd.t + '</span><span class="bb-s">' + bd.s + '</span></span><span class="bb-go" aria-hidden="true">→</span></button>'; }).join('') + '</div>';
-        return;
-      }
-      var v = +b.dataset.band;
-      S.onboarded = true; S.band = v; S.startDate = S.startDate || dayKey(); S.puzzle.rating = v;
-      S.xp = Math.max(S.xp || 0, { 800: 300, 1200: 800, 1600: 1600 }[v] || 0);
-      S.coach.level = levelForRating(v); PATHUI.open = null;
-      S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
-      save(); m.hidden = true; m.onclick = null; m.classList.remove('intro');
-      renderTop(); go('path');
-      setTimeout(Tour.start, 700);
-    };
-  }
+/*__WELCOME__*/
+  function onboard() { Welcome.start(); }
 
   // ================= Levels, badges, celebrations =================
   var Levels = (function () {
@@ -5660,7 +5632,7 @@
     var incoming = readIncoming();
     if (incoming) go(incoming.kind, incoming.c);
     else if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
-    else { go('path'); if (!S.toured && !S.career) setTimeout(Tour.start, 1500); }
+    else go('path');
     // Launch screen: on the first visit download the coach's starter voice with real progress, then a Start tap
     // (which also unlocks sound); later visits just fade in.
     var SP = window.__splash;
@@ -5677,6 +5649,6 @@
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, walk: function (id) { return careerWalkTo(id); }, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
