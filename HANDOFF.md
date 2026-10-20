@@ -233,3 +233,19 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - While career mode is on (`S.career`), every "back to path" goes back to town (`go('path')` is redirected) and back buttons
   read "← Town"; you walk out of the building you entered. The Path tab or the List button turns it off.
 - The 3D board stops drawing while in town (`B3.pause`). Phones: no shadow maps, pixel ratio 1.5.
+
+## Ascent Town 2.0: livelier town, guidance, rival walk-ins, plaza games, your own look
+- Graphics: sky shader, animated sea and foam, distant hills, soft sun shadows that follow you, ACES tone mapping, detailed
+  buildings, flowers, bunting, lamps, stalls, fountain, chimney smoke, birds, butterflies, clouds. All scenery is merged into three
+  vertex-coloured meshes (`Kit` + `mergeParts`), people are six merged parts each: the whole town is about 80-100 draw calls.
+  Adaptive quality: below ~32 fps the pixel ratio drops to 1, below ~26 fps shadows switch off.
+- Guidance: first visit plays a fly-over intro (skippable), then the wardrobe, then tips. Quest panel with chapter progress and a
+  Go button (auto-walk), golden chevron trail on the ground, pointer over the target or an edge arrow when it is off screen,
+  rotating minimap, Leo calls "Over here!", townsfolk stop and share tips (`CAREER_TIPS`), dialogs type out with an avatar.
+- Rivals: Challenge → arena walk-in (crowd cheers on the stands, spotlights, both fighters walk to the middle, rival's taunt) →
+  VS screen → the real boss game. Coming back after a win plays the victory scene (`careerAfterFight`); a loss gets a taunt and
+  advice. Each rival unlocks a hat at the Style Shop.
+- Plaza games with Gia: Square Rush (run to the called square, 45 s) and Knight Hop (jump a giant knight onto stars, 60 s).
+  Best scores in `S.careerSt.mg`; XP per point.
+- Style Shop (Tia, or the 👕 button): skin, hair style, hair colour, top, trousers, hat. Saved in `S.careerSt.look`.
+- Test hooks: `ChessAscent.dbg().CW.ts` speeds the world up (tests only), `dbg().mgTap(point)`, `dbg().fight(id)`.

@@ -25,7 +25,19 @@ var CAREER_TEXT = {
   library: 'The Opening Library. Every great game starts with a good plan in the first ten moves.',
   arena: 'The Arena. Rivals, challenge positions and speed games.',
   park: 'The Park. Play a full game against me, or against a friend on this phone.',
-  home: 'Your home. Your progress, your 30-day plan and your chess.com games live here.'
+  home: 'Your home. Your progress, your 30-day plan and your chess.com games live here.',
+  leo_call: 'Hey! Over here! Come and talk to me.',
+  tut_trail: 'See the golden trail on the ground? It always leads to your next goal. Follow it, or press Go.',
+  tut_door: 'Walk up to the glowing door to go inside.',
+  look_intro: 'First things first. Every champion needs a look. Make your character, then come and find me.',
+  gia: 'Hi, I am Gia, the Games Master! Two games on the giant board: run to the square I call, or hop the knight onto the stars. Fancy a go?',
+  tia: 'Welcome to the Style Shop! Change your look whenever you like. Beat the rivals at the Arena to unlock their special hats.',
+  rush_start: 'Square Rush! Run to the square I call out. Letter first, then number. Go!',
+  hop_start: 'Knight Hop! Jump the knight onto every star. Tap a glowing square to jump.',
+  mg_done: 'Time is up! Nice work. Come back any time and beat your best score.',
+  victory: 'What a game! The whole Arena is on its feet. You did it!',
+  lost: 'Not this time. Train at the Academy and come back stronger. Your rival will be waiting.'
 };
+var CAREER_TIPS = ['Knights love the centre. On the edge they are dim!', 'Before every move, ask what my opponent wants.', 'Castle early, and keep your king safe.', 'Count attackers and defenders before you capture.', 'A rook on an open file is a happy rook.', 'Did you find today\'s golden pawns?', 'The Puzzle Tower has a new puzzle every day.', 'Checks, captures, threats. Every move!', 'Pawns cannot move backwards. Think before you push.', 'In the endgame, your king is a fighter.', 'Gia runs games on the giant board. Try Square Rush!', 'Trapper Tess got me with the Englund Gambit again…'];
 var CAREER_LINES = Object.keys(CAREER_TEXT).map(function (k) { return { id: 'W-' + k, text: CAREER_TEXT[k], group: 'career' }; });
-if (typeof module !== 'undefined') module.exports = { CAREER_TEXT: CAREER_TEXT, CAREER_LINES: CAREER_LINES };
+if (typeof module !== 'undefined') module.exports = { CAREER_TEXT: CAREER_TEXT, CAREER_LINES: CAREER_LINES, CAREER_TIPS: CAREER_TIPS };
