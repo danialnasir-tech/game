@@ -264,3 +264,10 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Town: taps near a person count as tapping them; walking follows the plaza ring around buildings (`careerRoute`), with
   acceleration and the camera swinging behind you on auto-walks; a loading screen while the town builds; townsfolk stay quiet
   until you have met Leo. Bottom bar shows one recommended dot instead of one per tab.
+
+## Market polish round 1
+- Five tabs: Home (town or list, per `S.career`; Settings → Home screen), Puzzles, Play (coach games, with Arena, friend and
+  chess.com entries at the top; beginners who have not unlocked coach games land in the Arena), Openings, Progress.
+- One Coach Leo everywhere (`coachAvatar()` now matches the 3D Leo: grey hair, beard, glasses, maroon jacket).
+- Phones: no empty preview board on Arena, Openings and the coach-game setup; the Start game button sticks to the bottom.
+- Settings shows "Saved automatically on this device" instead of developer setup text. Header reads "0/4 today".

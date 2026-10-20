@@ -607,7 +607,7 @@
       if (q.lesson && line === 'lesson_go') { text = 'Next up: ' + LESSONS[q.lesson].title + '. ' + LESSONS[q.lesson].goal + ' Follow the golden trail to my Academy.'; btn = '<button class="btn primary small" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + q.lesson + '">Start the lesson</button>'; }
       else if (q.boss) btn = '<button class="btn primary small" data-wact="walk" data-to="boss-' + q.boss.id + '">Walk me to ' + esc(q.boss.name.split(' ')[1] || q.boss.name) + '</button>';
       else if (line === 'welcome') btn = '<button class="btn primary small" data-wact="walk" data-to="academy">Show me the Academy</button>';
-      careerDialog('Coach Leo', '#c4ff3d', text, '', btn, '🧔');
+      careerDialog('Coach Leo', '#c4ff3d', text, '', btn, coachAvatar());
       if (line === 'welcome') setTimeout(function () { Guide.show('#w-dlg .btn.primary', 'Tap here', { ms: 25000 }); }, 1800);
       Voice.say([line === 'lesson_go' && q.lesson ? null : WL(line)].filter(Boolean));
       careerRefresh();
@@ -970,7 +970,7 @@
     W.victoryRestore = function () { W.P.act = null; W.P.g.position.copy(saved.p); n.g.position.copy(saved.n); n.g.rotation.y = saved.nr; n.lift = 0.3; n.plat.visible = true; n.act = null; n.lbl.visible = true; W.crowd.forEach(function (c) { c.act = 'sit'; }); W.spots3.forEach(function (s) { s.visible = false; }); };
     var hat = LOOK.hat.filter(function (h) { return h[2] === b.id; })[0];
     careerCine([{ from: [A.x + dx * 6, 2.4, A.z + dz * 6], to: [A.x + dx * 3.6 - dz * 1.5, 1.9, A.z + dz * 3.6 + dx * 1.5], look: [A.x, 1.5, A.z], dur: 3.4, title: '<small>' + esc(b.name) + ' is beaten</small>VICTORY!', each: function (u) { if (u > 0.5 && !W.conf2) { W.conf2 = 1; careerConfetti(A.x, 5, A.z, 150); } } }],
-      { done: function () { W.conf2 = 0; careerDialog('Coach Leo', '#c4ff3d', CAREER_TEXT.victory, (stageCleared(b.stage) ? esc(STAGES[b.stage].name) + ' is cleared.' : 'Finish the last lessons of ' + esc(STAGES[b.stage].name) + ' to complete the chapter.') + (hat ? ' New at the Style Shop: the ' + esc(hat[1].toLowerCase()) + '!' : ''), '<button class="btn primary small" data-wact="vclose">Continue</button>', '🏆', 'Close'); } });
+      { done: function () { W.conf2 = 0; careerDialog('Coach Leo', '#c4ff3d', CAREER_TEXT.victory, (stageCleared(b.stage) ? esc(STAGES[b.stage].name) + ' is cleared.' : 'Finish the last lessons of ' + esc(STAGES[b.stage].name) + ' to complete the chapter.') + (hat ? ' New at the Style Shop: the ' + esc(hat[1].toLowerCase()) + '!' : ''), '<button class="btn primary small" data-wact="vclose">Continue</button>', coachAvatar(), 'Close'); } });
     return true;
   }
   function careerVictoryDone() { $('#w-dlg').hidden = true; if (CW.victoryRestore) { CW.victoryRestore(); CW.victoryRestore = null; } careerRefresh(); var ch = careerChapter(); if (ch < STAGES.length && ch > (S.careerSt.ch || 0)) { S.careerSt.ch = ch; save(); careerBanner(ch); } }

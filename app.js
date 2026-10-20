@@ -1223,7 +1223,7 @@
     if (isLocked(mode)) {
       if (current && current.leave) current.leave();
       Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
-      document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === mode); });
+      document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === ({ arena: 'play', path: 'home', career: 'home' }[mode] || mode)); });
       $('#evalbar').hidden = true; $('#mode-label').textContent = LOCKABLE[mode];
       lockedScreen(mode); return;
     }
@@ -1231,7 +1231,7 @@
     Guide.hide(); Voice.stop(); Bubble.hide();
     var tab = { career: 'career', mychess: 'progress', program: 'path', mine: 'path', daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
-    if (S.career && tab === 'path') tab = 'career';
+    tab = { career: 'home', path: 'home', arena: 'play' }[tab] || tab;
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
     B3.idle(false);
@@ -1263,7 +1263,7 @@
   function markNewTabs() {
     if (!S.onboarded) return;
     S.visited = S.visited || {};
-    var ORDER = ['career', 'path', 'puzzles', 'play', 'openings', 'arena', 'progress'], pick = lessonsDone() >= 1 ? ORDER.filter(function (m) { return !S.visited[m] && !isLocked(m) && document.querySelector('.rail [data-go="' + m + '"]'); })[0] : null;
+    var ORDER = ['home', 'puzzles', 'play', 'openings', 'progress'], pick = lessonsDone() >= 1 ? ORDER.filter(function (m) { return !S.visited[m] && !isLocked(m) && document.querySelector('.rail [data-go="' + m + '"]'); })[0] : null;
     document.querySelectorAll('.rail button[data-go]').forEach(function (b) { b.classList.toggle('new', b.dataset.go === pick); });
   }
   var HINTS = HINT_LINES_TEXT;
@@ -2496,6 +2496,7 @@
       var c = S.coach, from = PL.arg && PL.arg.from;
       setPanel('<div class="eyebrow">Sparring</div><h1 class="h1">Play the coach</h1>' +
         '<p class="lede">' + (from ? (from === 'lesson position' ? 'Play on from the lesson position. ' : 'Continue from the end of the ' + esc(from) + '. ') : '') + 'Every move you make is checked. You get told when you hang a piece, miss a tactic, or play the best move.</p>' +
+        '<button class="test-out an-entry" data-act="goMode" data-m="arena"><span class="to-ico" aria-hidden="true">⚔️</span><span><b>Arena: rivals and quick games</b><span>Boss fights, 60-second games and win-this-position challenges.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="friend"><span class="to-ico" aria-hidden="true">👥</span><span><b>Play a friend on this device</b><span>Pass the phone after each move. I give tips to both of you.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="mychess"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
@@ -2508,7 +2509,7 @@
         '<div class="toggles">' +
         '<label class="toggle"><input type="checkbox" id="opt-threats" ' + (c.threats ? 'checked' : '') + '> <span>Warn me about real threats</span></label>' +
         '<label class="toggle"><input type="checkbox" id="opt-eval" ' + (showEvalBar() ? 'checked' : '') + '> <span>Show the "who\'s winning" bar</span></label></div>' +
-        '<div class="actions"><button class="btn primary wide" data-act="startGame">Start game</button></div>');
+        '<div class="actions sticky-cta"><button class="btn primary wide" data-act="startGame">▶&nbsp; Start game vs ' + esc(levelById(S.coach.level).name) + '</button></div>');
       $('#opt-threats').onchange = function (e) { S.coach.threats = e.target.checked; save(); };
       $('#opt-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); };
     },
@@ -5041,10 +5042,12 @@
     leave: function () { B3.idle(false); }
   };
   function coachAvatar() {
-    return '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4f8b"/><stop offset="1" stop-color="#4cc9f0"/></linearGradient></defs>' +
-      '<circle cx="20" cy="20" r="20" fill="url(#cav)"/><path d="M8 38c1.5-7 6-10 12-10s10.5 3 12 10" fill="#1b2445"/><path d="M15.5 28.5l4.5 5 4.5-5" fill="#ffd23f"/>' +
-      '<circle cx="20" cy="17" r="7.5" fill="#f2c9a5"/><path d="M12.4 16.2c-.3-5 3.2-8.4 7.8-8.4 4.4 0 7.7 2.9 7.5 7.6-1.4-1.9-3.6-3-6.7-3.2-3.3-.2-6.4 1.3-8.6 4z" fill="#2b1d16"/>' +
-      '<circle cx="17.3" cy="17.6" r=".9" fill="#2b1d16"/><circle cx="22.7" cy="17.6" r=".9" fill="#2b1d16"/><path d="M17.6 20.6c1.4 1.1 3.4 1.1 4.8 0" stroke="#2b1d16" stroke-width="1" fill="none" stroke-linecap="round"/></svg>';
+    return '<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="cav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4ff3d"/><stop offset="1" stop-color="#4cc9f0"/></linearGradient></defs>' +
+      '<circle cx="20" cy="20" r="20" fill="url(#cav)"/><path d="M7 40c1-7.5 6-11 13-11s12 3.5 13 11z" fill="#8b1e3f"/><path d="M16 29l4 4.5 4-4.5z" fill="#fff"/><path d="M19 31l1-1 1 1-1 5z" fill="#ffd23f"/>' +
+      '<ellipse cx="20" cy="18" rx="7.6" ry="8.2" fill="#e0ac69"/><path d="M12.3 16.5c-.4-5.6 3.4-8.8 7.7-8.8s8.1 3.2 7.7 8.8c-1-2.6-3-4-4.8-4.3-1.3 1.3-4.7 1.6-7.2.6-1.6.6-2.8 1.9-3.4 3.7z" fill="#b8bec4"/>' +
+      '<path d="M13 19.5c.3 5.6 3.4 8.4 7 8.4s6.7-2.8 7-8.4c-1 2-2.4 3-3.6 3.2-1 .9-5.8.9-6.8 0-1.2-.2-2.6-1.2-3.6-3.2z" fill="#c9ced3"/>' +
+      '<circle cx="16.8" cy="18" r="2.6" fill="none" stroke="#2b2b36" stroke-width="1.1"/><circle cx="23.2" cy="18" r="2.6" fill="none" stroke="#2b2b36" stroke-width="1.1"/><path d="M19.4 18h1.2" stroke="#2b2b36" stroke-width="1.1"/>' +
+      '<circle cx="16.8" cy="18" r=".9" fill="#2b2b36"/><circle cx="23.2" cy="18" r=".9" fill="#2b2b36"/><path d="M17.8 23.6c1.3.9 3.1.9 4.4 0" stroke="#7a2e2e" stroke-width="1" fill="none" stroke-linecap="round"/></svg>';
   }
   // ================= Google sign-in + cloud save =================
   // Uses an OAuth client ID from Google Cloud Console (Credentials > OAuth client ID > Web, with the site listed under
@@ -5153,7 +5156,7 @@
     }
     function refresh() { var b = $('#settings-btn'); if (b) b.classList.toggle('signed-in', !!user); var a = $('#acct-box'); if (a) a.innerHTML = acctHtml(); }
     function acctHtml() {
-      if (!enabled()) return '<div class="acct off"><b>Cloud save</b><span>Google sign-in is not set up on this site yet. Progress is saved in this browser only.</span></div>';
+      if (!enabled()) return '<div class="acct off"><b>Your progress</b><span>Saved automatically on this device.</span></div>';
       if (!user) return '<div class="acct"><div class="acct-t"><b>Save your progress</b><span>Sign in to keep lessons, puzzles and games safe in your Google account and continue on any device.</span></div><button class="g-btn" data-set="gsign">' + G_ICON + ' Sign in with Google</button>' + (st.error ? '<p class="acct-err">' + esc(st.error) + '</p>' : '') + '</div>';
       return '<div class="acct on">' + (user.picture ? '<img class="acct-ava" src="' + esc(user.picture) + '" alt="" referrerpolicy="no-referrer">' : '<span class="acct-ava">' + esc((user.name || '?')[0]) + '</span>') +
         '<div class="acct-t"><b>' + esc(user.name || 'Signed in') + '</b><span>' + esc(user.email || '') + '</span><span class="acct-sync">' + (st.busy ? 'Syncing…' : st.error ? '⚠ ' + esc(st.error) : !live() ? 'Tap anywhere to reconnect and sync' : st.lastSync ? '✓ Saved to your Google account at ' + new Date(st.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '✓ Connected') + '</span></div>' +
@@ -5172,6 +5175,7 @@
       (canInstall() ? '<div class="field"><span>App</span><div class="actions"><button class="btn" data-act="install">📲 Install Chess Ascent on this device</button></div></div>' : '') +
       '<label class="field"><span>Coach name</span><input id="set-name" type="text" maxlength="24" value="' + esc(s.coachName) + '"></label>' +
       '<div class="field"><span>Your level <span class="dim">· sets where the course starts</span></span><div class="seg wrap">' + BANDS.map(function (b) { return '<button class="' + (S.band === b.v ? 'on' : '') + '" data-band="' + b.v + '" title="' + esc(b.t) + '">' + b.v + '</button>'; }).join('') + '</div></div>' +
+      (window.THREE ? '<div class="field"><span>Home screen</span><div class="seg">' + [['town', '🏰 Town'], ['list', '☰ List']].map(function (h) { return '<button class="' + ((S.career ? 'town' : 'list') === h[0] ? 'on' : '') + '" data-home="' + h[0] + '">' + h[1] + '</button>'; }).join('') + '</div></div>' : '') +
       '<label class="field"><span>Voice volume <b id="vol-v">' + Math.round(s.volume * 100) + '%</b></span><input id="set-vol" type="range" min="0" max="1" step="0.05" value="' + s.volume + '"></label>' +
       '<div class="field"><span>Voice speed</span><div class="seg">' + [[0.9, 'Calm'], [1, 'Normal'], [1.15, 'Quick']].map(function (r) { return '<button class="' + (s.rate === r[0] ? 'on' : '') + '" data-rate="' + r[0] + '">' + r[1] + '</button>'; }).join('') + '</div></div>' +
       '<div class="field"><span>Coach style in games</span><div class="seg">' + COACH_STYLES.map(function (cs) { return '<button class="' + (coachStyle() === cs.id ? 'on' : '') + '" data-style="' + cs.id + '">' + cs.name + '</button>'; }).join('') + '</div></div>' +
@@ -5192,7 +5196,8 @@
     $('#set-cam').onchange = function (e) { s.cameraFixed = e.target.checked; save(); B3.setCameraFixed(s.cameraFixed); };
     $('#set-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); if (current === MODES.play && PL && PL.g) $('#evalbar').hidden = !e.target.checked; };
     m.onclick = function (e) {
-      var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
+      var b = e.target.closest('[data-rate],[data-style],[data-set],[data-band],[data-home]'); if (!b) { if (e.target === m) { m.hidden = true; } return; }
+      if (b.dataset.home) { S.career = b.dataset.home === 'town'; save(); b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); if (current === MODES.path || current === MODES.career) { m.hidden = true; go(S.career ? 'career' : 'path'); } return; }
       if (b.dataset.set === 'gsign') { Cloud.signIn(); return; }
       if (b.dataset.set === 'over') { $('#set-over').innerHTML = '<span>Erase all lessons, ratings and history on this device and start like a brand-new player?</span><div class="actions"><button class="btn" data-set="overNo">Keep my progress</button><button class="btn danger" data-set="overYes">Erase and start over</button></div>'; return; }
       if (b.dataset.set === 'overNo') { openSettings(); return; }
@@ -5581,7 +5586,7 @@
       var fn = ACT[a.dataset.act];
       if (fn) { e.preventDefault(); fn(a.dataset); }
     });
-    document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { if (b.dataset.go === 'path') { S.career = false; save(); } go(b.dataset.go); }); });
+    document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { var m = b.dataset.go; if (m === 'home') m = S.career && window.THREE ? 'career' : 'path'; if (m === 'play' && isLocked('play')) m = 'arena'; go(m); }); });
     $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
     $('#replay-btn').onclick = function () { Voice.replay(); };
     $('#sound-btn').onclick = function () { S.sound = !S.sound; save(); renderTop(); if (S.sound) Sound.play('move'); };

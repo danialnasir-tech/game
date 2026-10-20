@@ -406,7 +406,7 @@ body[data-mode="career"] .stage, body[data-mode="career"] .panel { visibility: h
 .w-card-a { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; } .w-card-a .btn { flex: 1 1 auto; }
 .w-dlg { border: 1px solid rgba(196,255,61,.3); cursor: default; }
 .w-dhead { display: flex; gap: 10px; align-items: center; }
-.w-ava { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; font-size: 22px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 60%), var(--ac); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+.w-ava { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; font-size: 22px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 60%), var(--ac); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
 .w-who { font: 800 12px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
 .w-say { margin: 8px 0 0; font-size: 15.5px; line-height: 1.45; min-height: 2.9em; }
 .w-small { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: rgba(255,255,255,.72); }
@@ -481,7 +481,7 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .wl-title { margin: 2px 0 0; font: 900 clamp(24px, 6.4vw, 32px)/1.12 var(--f-display, var(--f-body)); text-align: center; } .wl-title em { font-style: normal; background: linear-gradient(90deg, #c4ff3d, #4cc9f0); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .wl-coach { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); transition: background .3s, border-color .3s; }
 .wl-coach.good { background: rgba(61,220,151,.14); border-color: rgba(61,220,151,.5); }
-.wl-ava { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#c4ff3d, #4cc9f0, #8b5cff, #ff3d8b, #c4ff3d); box-shadow: inset 0 0 0 3px #1b1040; } .wl-ava svg { width: 26px; height: 26px; }
+.wl-ava { flex: none; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; } .wl-ava svg { width: 100%; height: 100%; display: block; }
 .wl-say { margin: 0; font-size: 15px; line-height: 1.45; color: rgba(255,255,255,.92); }
 .wl-board { width: min(300px, 78vw, 38vh); aspect-ratio: 1; margin: 0 auto; }
 .wl-cap { margin: -4px 0 0; text-align: center; font-size: 13.5px; color: #ffd23f; min-height: 1.4em; }
@@ -533,13 +533,16 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .guide.down { flex-direction: column-reverse; } .guide.down .g-hand { rotate: 180deg; } .guide.down { margin-top: -70px; }
 @keyframes gTap { 0%, 100% { translate: 0 6px; } 50% { translate: 0 -6px; } }
 @media (prefers-reduced-motion: reduce) { .g-hand, .mb-star, .mb-sq.dot::after { animation: none; } }
+.w-ava svg { width: 100%; height: 100%; display: block; }
+.actions.sticky-cta { position: sticky; bottom: 0; z-index: 3; margin: 14px -4px 0; padding: 12px 4px 4px; background: linear-gradient(to top, var(--bg, #0b0820) 70%, transparent); }
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { .ts-day b .small { display: none; } }
 </style>
 
 <div id="app">
   <header class="top">
     <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Chess Ascent</span></div>
     <div class="top-stats">
-      <div class="ts ts-day"><span id="top-day">Day 1</span><b><span id="top-missions">0/4</span> <span class="dim small">missions</span></b><div class="ts-bar"><i id="top-missions-bar" style="width:0"></i></div></div>
+      <div class="ts ts-day"><span id="top-day">Day 1</span><b><span id="top-missions">0/4</span> <span class="dim small">today</span></b><div class="ts-bar"><i id="top-missions-bar" style="width:0"></i></div></div>
       <div class="ts"><span>Rating</span><b id="top-rating">400</b></div>
       <div class="ts hide-sm ts-level"><span>Level</span><b id="top-level">Pawn</b><div class="ts-bar"><i id="top-level-bar" style="width:0"></i></div><b id="top-xp" hidden>0</b></div>
       <div class="ts"><span>🔥 Streak</span><b id="top-streak">0</b></div>
@@ -550,12 +553,10 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
   </header>
 
   <nav class="rail" aria-label="Sections">
-    <button data-go="career"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M10 21v-6h4v6"/><circle cx="12" cy="10" r="1.4"/></svg>Career</button>
-    <button data-go="path" class="on"><svg viewBox="0 0 24 24"><path d="M5 20c0-5 4-5 7-8s2-7 7-8"/><circle cx="5" cy="20" r="1.6"/><circle cx="19" cy="4" r="1.6"/><circle cx="12" cy="12" r="1.6"/></svg>Path</button>
+    <button data-go="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
     <button data-go="puzzles"><svg viewBox="0 0 24 24"><path d="M9 4h6v3a2 2 0 1 0 0 4v0h3v6h-3a2 2 0 1 1-4 0H6v-6a2 2 0 1 0 0-4V4z"/></svg>Puzzles</button>
-    <button data-go="arena"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Arena</button>
+    <button data-go="play"><svg viewBox="0 0 24 24"><path d="M8 20h8M9 20l1-6h4l1 6M8 9a4 4 0 1 1 8 0c0 2-2 3-4 3s-4-1-4-3z"/></svg>Play</button>
     <button data-go="openings"><svg viewBox="0 0 24 24"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1V5z"/><path d="M12 6v14"/></svg>Openings</button>
-    <button data-go="play"><svg viewBox="0 0 24 24"><path d="M8 20h8M9 20l1-6h4l1 6M8 9a4 4 0 1 1 8 0c0 2-2 3-4 3s-4-1-4-3z"/></svg>Coach</button>
     <button data-go="progress"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Progress</button>
   </nav>
 
@@ -1362,7 +1363,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .toast { top: 3px; left: 8px; right: 128px; transform: translateY(-6px); text-align: left; font-size: 13px; line-height: 1.3; padding: 6px 10px; z-index: 8; }
   .toast.show { transform: none; }
   .rail button.new::after { top: 5px; }
-  .ts-day b .small { display: none; }
+  .ts-day b .small { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { body::before, body::after, .hero-card::before, .hero-mark, .btn.primary::after, #mode-label::before { animation: none !important; } }
 
@@ -1419,7 +1420,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   .home-more b { flex: 1; }
   body[data-layout="browse"] .b2-tag { display: none; }
   body[data-mode="mychess"] .lv-fix { display: none; } body[data-mode="mychess"] .mc-ins p:nth-of-type(n+3) { display: none; } body[data-mode="mychess"] .mc-head { margin-bottom: 6px; } body[data-mode="mychess"] .mc-av { width: 42px; height: 42px; } body[data-mode="mychess"] .mc-ratings { margin-bottom: 6px; } body[data-mode="mychess"] .mc-ratings span { padding: 5px 9px; } body[data-mode="mychess"] .mc-ratings b { font-size: 17px; }
-  body[data-mode="path"] .stage, body[data-mode="mychess"] .stage, body[data-mode="program"] .stage, body[data-mode="progress"] .stage { display: none !important; }
+  body[data-mode="path"] .stage, body[data-mode="mychess"] .stage, body[data-mode="program"] .stage, body[data-mode="progress"] .stage, body[data-mode="arena"] .stage, body[data-mode="openings"] .stage, body[data-mode="play"][data-layout="browse"] .stage { display: none !important; }
   /* the coach's words are already written in the panel on these screens */
   body[data-mode="lesson"] #app > .coach-bubble, body[data-mode="drill"] #app > .coach-bubble, body[data-mode="mission"] #app > .coach-bubble, body[data-mode="daily"] #app > .coach-bubble, body[data-mode="challenge"] #app > .coach-bubble, body[data-mode="friend"] #app > .coach-bubble { display: none !important; }
 }

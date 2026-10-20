@@ -68,7 +68,7 @@
         after: function (mb) { mb.arrow([['d4', 'c2', 'b'], ['c2', 'e1', 'r'], ['c2', 'a1', 'r']]); } }
     };
     function dots(n) { return '<div class="wl-dots" aria-label="Step ' + (n + 1) + ' of 5">' + [0, 1, 2, 3, 4].map(function (i) { return '<i class="' + (i < n ? 'done' : i === n ? 'on' : '') + '"></i>'; }).join('') + '</div>'; }
-    function coach(msg) { return '<div class="wl-coach"><span class="wl-ava" aria-hidden="true">' + pieceSVG('n', 'w', 30) + '</span><p class="wl-say">' + msg + '</p></div>'; }
+    function coach(msg) { return '<div class="wl-coach"><span class="wl-ava" aria-hidden="true">' + coachAvatar() + '</span><p class="wl-say">' + msg + '</p></div>'; }
     function screen(n, html) {
       if (demo) { demo.stop(); demo = null; }
       el.innerHTML = '<div class="wl-card" data-step="' + n + '">' + dots(n) + html + '</div>'; el.scrollTop = 0;
