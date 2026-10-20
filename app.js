@@ -40,8 +40,10 @@
   function touchActivity() {
     var k = dayKey();
     if (S.lastActive === k) return;
-    var y = new Date(); y.setDate(y.getDate() - 1);
-    S.streak = S.lastActive === dayKey(y) ? S.streak + 1 : 1;
+    var y = new Date(); y.setDate(y.getDate() - 1); var y2 = new Date(); y2.setDate(y2.getDate() - 2);
+    if (S.lastActive === dayKey(y)) S.streak = S.streak + 1;
+    else if (S.lastActive === dayKey(y2) && (S.shields || 0) > 0 && S.streak > 0) { S.shields--; S.streak = S.streak + 1; S.shieldUsed = k; } // a streak shield covers one missed day
+    else S.streak = 1;
     S.lastActive = k;
     setTimeout(function () { [3, 7, 14, 30].forEach(function (n) { if (S.streak >= n) Badges.award('streak_' + n); }); }, 1500);
   }
@@ -120,12 +122,17 @@
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
     }
-    var BUZZ = { move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
-    function play(kind) {
+    var BUZZ = { combo: [10, 30, 18], mate: [30, 40, 30, 40, 60], stamp: 25, chest: [20, 30, 20, 30, 40], move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
+    function play(kind, n) {
       if (!S.sound) return;
+      if (kind === 'combo') { var base = [523, 587, 659, 784, 880, 988, 1047][Math.min(6, (n || 1) - 1)]; tone(base, 0.12, 0, 'triangle', 0.09); tone(base * 1.25, 0.14, 0.07, 'triangle', 0.08); tone(base * 1.5, 0.22, 0.14, 'triangle', 0.08); if (n >= 5) tone(base * 2, 0.3, 0.21, 'sine', 0.06); return; }
+      if (kind === 'mate') { noise(0.25, 300, 1.1); [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.4, 0.08 + i * 0.09, 'sawtooth', 0.04); tone(f, 0.45, 0.08 + i * 0.09, 'triangle', 0.08); }); return; }
+      if (kind === 'stamp') { noise(0.09, 600, 1.2); tone(150, 0.18, 0, 'sine', 0.2); return; }
+      if (kind === 'chest') { [659, 784, 988, 1319, 1568].forEach(function (f, i) { tone(f, 0.3, i * 0.07, 'triangle', 0.08); }); noise(0.4, 4000, 0.2); return; }
+      if (kind === 'tick') { tone(1400 + (n || 0) * 40, 0.04, 0, 'square', 0.03); return; }
       try { if (navigator.vibrate && BUZZ[kind]) navigator.vibrate(BUZZ[kind]); } catch (e) { }
-      if (kind === 'move') noise(0.08, 1800, 0.7);
-      else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); }
+      if (kind === 'move') noise(0.08, 1500 + Math.random() * 600, 0.7);
+      else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); tone(110, 0.12, 0, 'sine', 0.14); }
       else if (kind === 'check') { noise(0.08, 1800, 0.6); tone(880, 0.18, 0.02, 'triangle', 0.06); }
       else if (kind === 'good') { tone(660, 0.18, 0, 'triangle'); tone(990, 0.3, 0.12, 'triangle'); }
       else if (kind === 'win') { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.35, i * 0.1, 'triangle', 0.1); }); }
@@ -1070,8 +1077,14 @@
     if (PENDING_DROP && PENDING_DROP.from === res.from && PENDING_DROP.to === res.to) { res.dropped = true; PENDING_DROP = null; }
     B3.markers('last', [res.from, res.to]);
     B3.arrows([]);
-    Sound.play(res.captured ? 'capture' : (/[+#]/.test(res.san) ? 'check' : 'move'));
-    return B3.animateMove(res, g.fen()).then(function () { showCheck(g); return res; });
+    var mate = /#/.test(res.san);
+    Sound.play(mate ? 'mate' : res.captured ? 'capture' : (/\+/.test(res.san) ? 'check' : 'move'));
+    return B3.animateMove(res, g.fen()).then(function () {
+      showCheck(g);
+      if (res.captured) { var big = res.captured === 'q' || res.captured === 'r'; if (B3.shatter) B3.shatter(res.to, res.color === 'w' ? 'b' : 'w', big); else B3.burst(res.to); if (big && B3.shake) B3.shake(1); }
+      if (mate) { var ks = kingSq(g); if (B3.kingFall) B3.kingFall(ks); if (B3.shake) B3.shake(2); if (B3.shatter) B3.shatter(ks, g.turn(), true); }
+      return res;
+    });
   }
   function uciObj(u) { return { from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }; }
   // ---- Lesson visuals: what the coach is talking about, drawn on the board ----
@@ -1372,6 +1385,7 @@
         if (pl) IX.tap = function () { ACT.startNext(); };
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
+      if (!rerender) setTimeout(function () { if (current === MODES.path) dailyChest(); }, 900);
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
       discSync(); var fresh = !discAllDone() && discCount() < 3 && lessonsDone() < 2; // newcomers get a short, focused home
       if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
@@ -1812,11 +1826,11 @@
     Badges.award('first_lesson');
     var stI = stageOf(LS.id), stDone = stageComplete(stI);
     if (stDone) Badges.award('stage_' + (stI + 1));
-    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
+    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); for (var sk = 0; sk < stars; sk++) (function (k) { setTimeout(function () { Sound.play('combo', k * 2 + 1); }, 450 + k * 280); })(sk); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
     var nl = nextLesson();
     document.body.dataset.layout = 'browse';
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
-      '<p class="big-stars" aria-label="' + stars + ' of 3 stars">' + '★'.repeat(stars) + '<span class="dim">' + '★'.repeat(3 - stars) + '</span></p></div>' +
+      '<p class="big-stars pop" aria-label="' + stars + ' of 3 stars">' + [0, 1, 2].map(function (k) { return '<i class="' + (k < stars ? 'on' : 'off') + '" style="--i:' + k + '">★</i>'; }).join('') + '</p></div>' +
       '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : 'Not bad: ' + [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a star route with extra moves' : ''].filter(Boolean).join(', ') + '. Repeat it later for 3 stars.') + '</p>' +
       flowCta(LS.id) + whatNext(LS.id, nl, wasLocked) +
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
@@ -2205,7 +2219,7 @@
       if (!p) { setupBoard(fenOf('r', 'd4'), { orient: 'w' }); setPanel('<div class="eyebrow">Puzzles</div><h1 class="h1">Your first puzzles are almost ready</h1><p class="lede">Puzzles use the pieces you have learned. Finish <b>The Rook</b> lesson and your first rook puzzles unlock right away.</p><div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>'); return; }
       S.pzRecent = (S.pzRecent || []).concat([p.id]).slice(-12); save();
       var fen = puzzleFen(p);
-      PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0 };
+      PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0, t0: Date.now() };
       var side = new Game(fen).turn(), flipped = PZ.lastSide && PZ.lastSide !== side; PZ.lastSide = side;
       var g = setupBoard(fen, { drop: true, orient: side });
       if (flipped) toast(side === 'b' ? 'You play Black this time. The board turned so your pieces are at the bottom.' : 'You play White again. The board turned back.');
@@ -2220,7 +2234,7 @@
       var hist = S.puzzle.hist.slice(-1)[0];
       setPanel('<div class="rating-row"><div><div class="eyebrow">Puzzle rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + (PZ.sessionStreak > 1 ? ' · ' + PZ.sessionStreak + ' in a row' : '') + '</div></div>' +
         '<canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
-        '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
+        '<div class="pz-bar">' + (PZ.sessionStreak >= 2 ? '<span class="combo-meter">🔥 ' + PZ.sessionStreak + ' <i>XP ×' + comboMult(PZ.sessionStreak).toFixed(2).replace(/0$/, '') + '</i></span>' : '<span class="streak-pill"><b>' + PZ.sessionStreak + '</b> in a row</span>') + '<span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
         '<div class="chips">' + themes.map(function (t) { return '<button class="chip ' + (PZ.theme === t ? 'on' : '') + '" data-act="pzTheme" data-t="' + t + '">' + (t === 'all' ? 'All themes' : t === 'combo' ? 'combination' : t) + '</button>'; }).join('') + '</div>' +
         '<div class="coach-card"><div class="coach-tag">Puzzle · ' + p.r + '</div>' +
         '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (beginnerMode() || S.puzzle.rating < 800 ? esc(drillAsk(p, null)) : p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
@@ -2238,11 +2252,11 @@
       S.puzzle.hist.push([dayKey(), S.puzzle.rating]);
       if (S.puzzle.hist.length > 300) S.puzzle.hist.shift();
       if (win) {
-        S.puzzle.solved[c.p.id] = Date.now(); today().puzzles++; PZ.sessionStreak++; addXP(12);
+        S.puzzle.solved[c.p.id] = Date.now(); today().puzzles++; PZ.sessionStreak++; addXP(Math.round(12 * comboMult(PZ.sessionStreak)));
         var nSolved = Object.keys(S.puzzle.solved).filter(function (k) { return S.puzzle.solved[k] > 1; }).length;
         if (nSolved >= 10) Badges.award('puzzles_10'); if (nSolved >= 25) Badges.award('puzzles_25');
       }
-      else { PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
+      else { if (PZ.sessionStreak >= 3) { toast('💔 Combo lost at ' + PZ.sessionStreak + '. Start a new one!'); if (B3.shake) B3.shake(1); } PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
       save(); floatDelta(delta);
       return delta;
     },
@@ -2280,6 +2294,9 @@
       var c = PZ.cur; c.done = true; IX.enabled = false;
       var d = c.failed || c.hinted ? 0 : MODES.puzzles.grade(true);
       if (c.failed || c.hinted) { today().puzzles++; S.puzzle.solved[c.p.id] = Date.now(); save(); }
+      var secs = (Date.now() - c.t0) / 1000;
+      if (c.failed || c.hinted) stamp('SOLVED', 'blue'); else if (secs < 12) stamp('⚡ LIGHTNING', 'gold'); else stamp('PERFECT');
+      if (!c.failed && !c.hinted && PZ.sessionStreak >= 2) setTimeout(function () { comboPop(PZ.sessionStreak); }, 1250);
       Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
       B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
       MODES.puzzles.render('<strong>Solved!</strong> ' + (c.alt ? 'Your move forces mate too. ' : '') + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
@@ -2676,6 +2693,7 @@
       var gr = grade(a, res, fenBefore, uci), c = gr.c;
       if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
       PL.log[idx] = { drop: c.positive ? 0 : Math.max(0, winChance(a.bestScore) - winChance(a.playedScore)) * 100, cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan };
+      if (c.key === 'brilliant') stamp('!! BRILLIANT', 'gold'); else if (c.key === 'great') stamp('! GREAT MOVE', 'blue');
       if (c.key === 'brilliant') Badges.award('brilliant');
       var style = PL.style, quiet = style === 'quiet', keyOnly = style === 'key';
       var ply = idx + 1, best = a.best;
@@ -2798,6 +2816,7 @@
       else Voice.say([V('resign')]);
       if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
       Celebrate.flush();
+      setTimeout(function () { if (current === MODES.play && PL && PL.over) resultCard({ result: result, msg: msg, acc: acc, delta: PL.gdelta, xp: result === 'win' ? 60 : 30, level: PL.level, counts: { brilliant: count('Brilliant') + count('Great move'), best: count('Best') + count('Excellent') + count('Book move'), good: count('Good'), inacc: count('Could be better'), mistake: count('Mistake'), blunder: count('Blunder') } }); }, result === 'win' && /Checkmate/.test(msg) ? 1300 : 700);
       MODES.play.say('Game over', esc(msg) + ' Coach-game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
@@ -3133,6 +3152,53 @@
     },
     leave: function () { MS = null; }
   };
+  // big moments over the board
+  function stageFx(cls, html, ms) { var st = $('.stage'); if (!st || REDUCED) return; var el = document.createElement('div'); el.className = cls; el.innerHTML = html; st.appendChild(el); setTimeout(function () { el.remove(); }, ms || 1500); }
+  function comboPop(n) { stageFx('fx-combo', '🔥 ' + n + '<small>' + (n >= 10 ? 'UNSTOPPABLE' : n >= 5 ? 'ON FIRE' : 'IN A ROW') + ' · XP ×' + comboMult(n).toFixed(2).replace(/0$/, '') + '</small>', 1350); Sound.play('combo', n); }
+  function comboMult(n) { return 1 + Math.min(4, Math.max(0, n - 1)) * 0.25; }
+  function stamp(text, cls) { setTimeout(function () { stageFx('fx-stamp ' + (cls || ''), text, 1500); Sound.play('stamp'); }, 300); }
+  // the end of a coach game: a big result card with animated accuracy and how the moves went
+  function resultCard(o) {
+    var old = $('.rc-wrap'); if (old) old.remove();
+    var T = { win: ['VICTORY', 'win'], loss: ['DEFEAT', 'loss'], draw: ['DRAW', 'draw'] }[o.result] || ['GAME OVER', 'draw'];
+    var rows = [['brilliant', '!!', 'Brilliant & great'], ['best', '★', 'Best'], ['good', '✓', 'Good'], ['inacc', '?!', 'Could be better'], ['mistake', '?', 'Mistakes'], ['blunder', '??', 'Blunders']];
+    var tot = rows.reduce(function (a, r) { return a + (o.counts[r[0]] || 0); }, 0) || 1;
+    var el = document.createElement('div'); el.className = 'rc-wrap ' + T[1];
+    el.innerHTML = '<div class="rc-card" role="dialog" aria-modal="true"><div class="rc-rays" aria-hidden="true"></div><div class="rc-title">' + T[0] + '</div><p class="rc-msg">' + esc(o.msg) + ' · vs ' + esc(o.level.name) + ' ~' + o.level.elo + '</p>' +
+      '<div class="rc-mid">' + (o.acc != null ? '<div class="rc-ring" style="--p:0"><b id="rc-acc">0</b><span>accuracy</span></div>' : '') +
+      '<div class="rc-gain">' + (o.delta ? '<div><b class="' + (o.delta > 0 ? 'up' : 'down') + '">' + (o.delta > 0 ? '+' : '') + o.delta + '</b><span>rating</span></div>' : '') + '<div><b class="xp">+' + o.xp + '</b><span>XP</span></div></div></div>' +
+      '<div class="rc-bars">' + rows.filter(function (r) { return o.counts[r[0]]; }).map(function (r, k) { return '<div class="rc-row ' + r[0] + '" style="--d:' + (k * 0.12 + 0.5) + 's"><span class="rc-sym">' + r[1] + '</span><span class="rc-l">' + r[2] + '</span><i style="--w:' + Math.round(o.counts[r[0]] / tot * 100) + '%"></i><b>' + o.counts[r[0]] + '</b></div>'; }).join('') + '</div>' +
+      '<div class="rc-acts"><button class="btn primary" data-rc="review">★ Review the game</button><button class="btn" data-rc="rematch">Rematch</button><button class="btn ghost" data-rc="close">Close</button></div></div>';
+    document.body.appendChild(el);
+    if (o.result === 'win') { Sound.play('win'); confetti(); } else Sound.play(o.result === 'draw' ? 'good' : 'bad');
+    if (o.acc != null) { var ring = el.querySelector('.rc-ring'), num = $('#rc-acc'), t0 = performance.now(), tick = 0;
+      (function f(t) { var k = Math.min(1, (t - t0) / 1100), e = 1 - Math.pow(1 - k, 3), v = Math.round(o.acc * e); num.textContent = v; ring.style.setProperty('--p', v); if (v >= tick + 10) { tick = v; Sound.play('tick', v / 10); } if (k < 1 && el.isConnected) requestAnimationFrame(f); })(t0); }
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-rc]'); if (!b && e.target !== el) return; var a = b ? b.dataset.rc : 'close'; el.remove();
+      if (a === 'review') ACT.reviewGame(); else if (a === 'rematch') ACT.rematch();
+    });
+  }
+  // once a day: a chest on the home screen. XP, and every third chest a streak shield (keep up to 2)
+  function chestReady() { return S.onboarded && lessonsDone() >= 1 && S.chestDay !== dayKey() && !$('.dc-wrap') && !$('#welcome'); }
+  function dailyChest() {
+    if (!chestReady()) return;
+    var n = (S.chests || 0) + 1, big = S.streak > 0 && S.streak % 7 === 0, xp = (big ? 80 : 20) + Math.floor(Math.random() * 4) * 10, shield = n % 3 === 0 && (S.shields || 0) < 2;
+    var el = document.createElement('div'); el.className = 'dc-wrap';
+    el.innerHTML = '<div class="dc-card" role="dialog" aria-modal="true"><div class="eyebrow">' + (big ? '🔥 ' + S.streak + '-day streak bonus' : 'Daily chest · day ' + Math.max(1, S.streak) + ' streak') + '</div><h2 class="dc-h">' + (big ? 'A golden chest!' : 'Your daily chest') + '</h2>' +
+      (S.shieldUsed === dayKey() ? '<p class="dc-note">🛡️ A streak shield saved your streak yesterday!</p>' : '') +
+      '<button class="dc-box' + (big ? ' gold' : '') + '" data-ch="open" aria-label="Open the chest"><span class="dc-lid"></span><span class="dc-body"></span><span class="dc-glow"></span></button><p class="dc-tap">Tap to open</p><div class="dc-loot" hidden></div></div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ch]'); if (!b) return;
+      if (b.dataset.ch === 'open') {
+        if (el.classList.contains('open')) return; el.classList.add('open'); Sound.play('chest'); confetti();
+        S.chestDay = dayKey(); S.chests = n; if (shield) S.shields = (S.shields || 0) + 1; addXP(xp); save(); renderTop();
+        var loot = el.querySelector('.dc-loot'); loot.hidden = false; el.querySelector('.dc-tap').hidden = true;
+        loot.innerHTML = '<div class="dc-item"><b>+' + xp + '</b><span>XP</span></div>' + (shield ? '<div class="dc-item"><b>🛡️</b><span>Streak shield<small>saves your streak if you miss a day</small></span></div>' : '') +
+          '<p class="dc-next">' + (shield ? 'You have ' + S.shields + ' shield' + (S.shields > 1 ? 's' : '') + '.' : 'Open ' + (3 - n % 3) + ' more chest' + (3 - n % 3 > 1 ? 's' : '') + ' for a streak shield.') + ' Come back tomorrow for the next one!</p><button class="btn primary big" data-ch="done">Collect</button>';
+      } else el.remove();
+    });
+  }
   function xpPop(txt, sq) {
     var el = document.createElement('div'); el.className = 'xp-pop'; el.textContent = txt;
     $('.stage').appendChild(el); setTimeout(function () { el.remove(); }, 1300);
@@ -5482,7 +5548,7 @@
     };
     function front() {
       var keys = {}; Object.keys(impl3).forEach(function (k) { keys[k] = 1; });
-      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait', 'tags', 'spot'].forEach(function (k) { keys[k] = 1; });
+      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'shatter', 'shake', 'kingFall', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait', 'tags', 'spot'].forEach(function (k) { keys[k] = 1; });
       Object.keys(B3).forEach(function (k) { delete B3[k]; });
       Object.keys(keys).forEach(function (k) {
         if (k === 'init' || k === 'setActive') return;

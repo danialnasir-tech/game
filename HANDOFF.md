@@ -279,3 +279,15 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Levels now use a fixed search depth (same strength on every device) calibrated against Stockfish's Elo limit:
   Club d1, Strong d2, Expert d3, Master d5, and a new Grandmaster (full strength, 3 s; badge `beat_gm`). Defend missions
   use Grandmaster. levelForRating gives Grandmaster from 2400.
+
+## Fun pass: juice on every core loop
+- Board (board2d `shatter`, `shake`, `kingFall`, forwarded by B3; the 3D board falls back to `burst`): capture shards,
+  a small shake for rook/queen captures, a pulsing red check square, and on checkmate a toppling king + big shake.
+- Sounds (`Sound.play(kind, n)`): `combo` rises in pitch with the streak, `mate`, `stamp`, `chest`, `tick`; move clicks vary.
+- Puzzles: stamps on the board (⚡ LIGHTNING under 12 s, PERFECT first try, SOLVED otherwise); combo meter with XP ×1.25…×2
+  (`comboMult`), a "🔥 n IN A ROW / ON FIRE / UNSTOPPABLE" pop, and "combo lost" when a streak of 3+ breaks.
+- Coach games: "!! BRILLIANT" / "! GREAT MOVE" stamps live; a result card at the end (`resultCard`): VICTORY / DEFEAT / DRAW,
+  accuracy ring that counts up, rating and XP, animated bars of move quality, Review / Rematch.
+- Lessons: the stars pop in one by one with rising chimes.
+- Daily chest (`dailyChest`, home and town, once a day after the first lesson): XP, every third chest a streak shield
+  (max 2; `touchActivity` spends one to cover a single missed day), a golden chest on every 7th streak day.

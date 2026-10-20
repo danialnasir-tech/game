@@ -1118,6 +1118,7 @@
       careerRefresh();
       var fade = $('#w-fade'); fade.classList.add('on'); setTimeout(function () { fade.classList.remove('on'); }, 60);
       if (!S.careerSt.intro) setTimeout(function () { if (current === MODES.career) careerIntro(); }, 300);
+      else if (!at && !S.careerSt.fight) setTimeout(function () { if (current === MODES.career && !CW.cine && !CW.talking) dailyChest(); }, 1600);
       else if (!careerAfterFight()) {
         var ch = careerChapter(), seen = S.careerSt.ch;
         if (S.careerSt.met && seen != null && ch > seen && ch < STAGES.length) { S.careerSt.ch = ch; save(); setTimeout(function () { careerBanner(ch); }, 700); }

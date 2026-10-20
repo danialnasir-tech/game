@@ -111,7 +111,7 @@ function BOARD2D_FACTORY() {
     (items || []).forEach(function (it) {
       var sq = typeof it === 'string' ? it : it.sq, d;
       if (cat === 'moves') d = div(it.cap ? 'b2-ring' : 'b2-dot', mkLayer);
-      else { d = div('b2-mark', mkLayer); d.style.background = CAT[cat] || 'rgba(255,255,255,.2)'; }
+      else { d = div('b2-mark m-' + cat, mkLayer); d.style.background = CAT[cat] || 'rgba(255,255,255,.2)'; }
       place(d, sq); cats[cat].push(d);
     });
   };
@@ -148,6 +148,16 @@ function BOARD2D_FACTORY() {
   };
   api.takeStar = function (sq) { var s = stars[sq]; if (!s) return false; delete stars[sq]; s.classList.add('captured'); setTimeout(function () { s.remove(); }, 300); return true; };
   api.burst = function (sq) { if (!sq) return; var b = div('b2-burst', fxLayer); place(b, sq); setTimeout(function () { b.remove(); }, 700); };
+  // juice: shards flying out of a captured square, a board shake, a toppling king
+  api.shatter = function (sq, color, big) {
+    if (!sq) return; var n = big ? 14 : 8, col = color === 'b' ? ['#2b2b36', '#4a4a5a', '#ffd23f'] : ['#f6efe0', '#e8dcc0', '#ffd23f'];
+    for (var i = 0; i < n; i++) { var d = div('b2-shard', fxLayer); place(d, sq); var a = i / n * Math.PI * 2 + Math.random() * 0.5, r = (big ? 90 : 60) + Math.random() * 40;
+      d.style.setProperty('--dx', Math.cos(a) * r + '%'); d.style.setProperty('--dy', Math.sin(a) * r + '%'); d.style.setProperty('--c', col[i % 3]); d.style.setProperty('--r', (Math.random() * 540 - 270) + 'deg');
+      (function (e) { setTimeout(function () { e.remove(); }, 650); })(d); }
+    var ring = div('b2-popring', fxLayer); place(ring, sq); setTimeout(function () { ring.remove(); }, 550);
+  };
+  api.shake = function (k) { root.classList.remove('shake1', 'shake2'); void root.offsetWidth; root.classList.add(k > 1 ? 'shake2' : 'shake1'); setTimeout(function () { root.classList.remove('shake1', 'shake2'); }, 520); };
+  api.kingFall = function (sq) { var m = meshes[sq]; if (m) m.classList.add('fallen'); };
   api.clearAll = function () { Object.keys(cats).forEach(function (c) { api.markers(c, []); }); api.arrows([]); api.stars([]); api.tags(null); api.spot(null); };
   api.setOrientation = function (c) { orient = c; drawLabels(); Object.keys(meshes).forEach(function (sq) { place(meshes[sq], sq); }); Object.keys(stars).forEach(function (sq) { place(stars[sq], sq); }); tagEls.forEach(function (d) { place(d, d.dataset.sq); }); Object.keys(cats).forEach(function (k) { cats[k].forEach(function () { }); }); return Promise.resolve(); };
   api.orientation = function () { return orient; };

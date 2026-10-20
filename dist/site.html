@@ -553,6 +553,70 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .w-ava svg { width: 100%; height: 100%; display: block; }
 .actions.sticky-cta { position: sticky; bottom: 0; z-index: 3; margin: 14px -4px 0; padding: 12px 4px 4px; background: linear-gradient(to top, var(--bg, #0b0820) 70%, transparent); }
 @media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { .ts-day b .small { display: none; } }
+
+/* ===== Juice: board effects ===== */
+.b2-shard { position: absolute; width: 12.5%; height: 12.5%; pointer-events: none; z-index: 7; }
+.b2-shard::before { content: ""; position: absolute; left: 42%; top: 42%; width: 16%; height: 16%; border-radius: 3px; background: var(--c); box-shadow: 0 0 6px rgba(0,0,0,.35); animation: shard .62s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes shard { from { transform: translate(0,0) rotate(0) scale(1.2); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(.3); opacity: 0; } }
+.b2-popring { position: absolute; width: 12.5%; height: 12.5%; pointer-events: none; z-index: 6; border-radius: 50%; border: 4px solid rgba(255,210,63,.9); animation: ring .55s ease-out forwards; }
+.b2-mark.m-check { animation: chk 1s ease-in-out infinite; box-shadow: inset 0 0 18px 6px rgba(255,40,60,.75); } @keyframes chk { 50% { filter: brightness(1.35); box-shadow: inset 0 0 26px 10px rgba(255,40,60,.95); } }
+/* combo and stamps over the board */
+.fx-combo { position: absolute; left: 50%; top: 38%; z-index: 40; pointer-events: none; transform: translate(-50%, -50%); text-align: center; color: #fff; font: 900 clamp(30px, 9vw, 56px)/1 var(--f-display, var(--f-body)); text-shadow: 0 4px 0 #c4862b, 0 0 30px rgba(255,140,40,.8); animation: combo 1.3s cubic-bezier(.2,1.4,.4,1) forwards; }
+.fx-combo small { display: block; font: 800 clamp(12px, 3.4vw, 16px) var(--f-mono); letter-spacing: .12em; color: #ffd23f; text-shadow: none; margin-top: 4px; }
+@keyframes combo { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; } 35% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { transform: translate(-50%, -80%) scale(.9); opacity: 0; } }
+.fx-stamp { position: absolute; left: 50%; top: 50%; z-index: 41; pointer-events: none; padding: 8px 18px; border: 5px solid currentColor; border-radius: 14px; color: #3ddc97; background: rgba(10,14,30,.55); font: 900 clamp(26px, 8vw, 46px)/1 var(--f-display, var(--f-body)); letter-spacing: .04em; animation: stamp 1.5s cubic-bezier(.2,1.6,.4,1) forwards; }
+.fx-stamp.gold { color: #ffd23f; } .fx-stamp.blue { color: #4cc9f0; }
+@keyframes stamp { 0% { transform: translate(-50%, -50%) rotate(-14deg) scale(2.4); opacity: 0; } 18% { transform: translate(-50%, -50%) rotate(-8deg) scale(1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -50%) rotate(-8deg) scale(1); opacity: 0; } }
+.combo-meter { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: linear-gradient(90deg, #ff8c42, #ff4f8b); color: #fff; font: 800 13px var(--f-mono); box-shadow: 0 0 14px rgba(255,120,60,.55); animation: tagpop .3s both; } .combo-meter i { font-style: normal; font-size: 11px; opacity: .85; }
+@keyframes ring { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
+.b2-board.shake1 { animation: shake1 .4s ease-in-out; } .b2-board.shake2 { animation: shake2 .5s ease-in-out; }
+@keyframes shake1 { 20% { transform: translate(-3px, 1px); } 40% { transform: translate(3px, -1px); } 60% { transform: translate(-2px, 1px); } 80% { transform: translate(2px, 0); } }
+@keyframes shake2 { 15% { transform: translate(-7px, 3px) rotate(-.6deg); } 30% { transform: translate(6px, -3px) rotate(.6deg); } 45% { transform: translate(-5px, 2px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
+.b2-piece.fallen svg { transform-origin: 50% 90%; animation: kfall .7s .15s cubic-bezier(.5,0,.6,1.4) forwards; }
+@keyframes kfall { to { transform: rotate(82deg) translate(6%, 10%); filter: grayscale(.6) drop-shadow(0 2px 2px rgba(0,0,0,.4)); } }
+@media (prefers-reduced-motion: reduce) { .b2-board.shake1, .b2-board.shake2, .b2-shard::before { animation: none; } }
+
+/* coach game result card */
+.rc-wrap { position: fixed; inset: 0; z-index: 75; display: grid; place-items: center; padding: 16px; background: rgba(5,6,14,.6); backdrop-filter: blur(4px); animation: fiIn .25s both; }
+.rc-card { position: relative; overflow: hidden; width: min(420px, 100%); padding: 22px 18px 16px; border-radius: 26px; text-align: center; color: #fff; background: linear-gradient(170deg, #2a1d6a, #120d2e 70%); box-shadow: 0 24px 60px rgba(0,0,0,.55); animation: rcIn .55s cubic-bezier(.2,1.5,.4,1) both; }
+.rc-wrap.win .rc-card { background: linear-gradient(170deg, #3a2a00, #2a1d6a 45%, #120d2e); } .rc-wrap.loss .rc-card { background: linear-gradient(170deg, #3a1020, #120d2e 70%); }
+@keyframes rcIn { from { transform: scale(.6) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.rc-rays { position: absolute; left: 50%; top: 40px; width: 520px; height: 520px; margin-left: -260px; margin-top: -260px; background: repeating-conic-gradient(rgba(255,210,63,.07) 0 8deg, transparent 8deg 24deg); -webkit-mask: radial-gradient(circle, #000 20%, transparent 62%); mask: radial-gradient(circle, #000 20%, transparent 62%); animation: rays 14s linear infinite; pointer-events: none; }
+.rc-wrap:not(.win) .rc-rays { display: none; } @keyframes rays { to { transform: rotate(360deg); } }
+.rc-title { position: relative; font: 900 clamp(38px, 11vw, 58px)/1 var(--f-display, var(--f-body)); letter-spacing: .04em; background: linear-gradient(180deg, #fff, #ffd23f); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 rgba(0,0,0,.35)); animation: rcT .8s .1s cubic-bezier(.2,1.6,.4,1) both; }
+.rc-wrap.loss .rc-title { background: linear-gradient(180deg, #fff, #ff8a9a); -webkit-background-clip: text; background-clip: text; } .rc-wrap.draw .rc-title { background: linear-gradient(180deg, #fff, #4cc9f0); -webkit-background-clip: text; background-clip: text; }
+@keyframes rcT { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
+.rc-msg { position: relative; margin: 6px 0 14px; color: rgba(255,255,255,.78); font-size: 14px; }
+.rc-mid { position: relative; display: flex; justify-content: center; align-items: center; gap: 22px; margin-bottom: 14px; }
+.rc-ring { width: 108px; height: 108px; border-radius: 50%; display: grid; place-content: center; background: radial-gradient(closest-side, #1a1440 79%, transparent 80% 100%), conic-gradient(#c4ff3d calc(var(--p) * 1%), rgba(255,255,255,.12) 0); }
+.rc-ring b { font: 900 32px var(--f-mono); } .rc-ring b::after { content: "%"; font-size: 15px; } .rc-ring span { font-size: 11px; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: .08em; }
+.rc-gain { display: flex; flex-direction: column; gap: 10px; text-align: left; } .rc-gain b { display: block; font: 900 26px var(--f-mono); } .rc-gain b.up { color: #3ddc97; } .rc-gain b.down { color: #ff8a9a; } .rc-gain b.xp { color: #ffd23f; } .rc-gain span { font-size: 11px; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .08em; }
+.rc-bars { position: relative; display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.rc-row { display: grid; grid-template-columns: 30px 1fr 2fr 26px; align-items: center; gap: 8px; font-size: 13px; text-align: left; animation: wlIn .4s var(--d) both; }
+.rc-sym { font: 900 14px var(--f-mono); text-align: center; } .rc-row i { height: 8px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; position: relative; } .rc-row i::after { content: ""; position: absolute; inset: 0; width: var(--w); border-radius: 4px; background: currentColor; animation: bar .8s var(--d) cubic-bezier(.2,.8,.3,1) both; } .rc-row b { font-family: var(--f-mono); text-align: right; }
+@keyframes bar { from { width: 0; } }
+.rc-row.brilliant { color: #4cc9f0; } .rc-row.best, .rc-row.good { color: #3ddc97; } .rc-row.inacc { color: #ffd23f; } .rc-row.mistake { color: #ff8c42; } .rc-row.blunder { color: #ff5d6c; } .rc-row .rc-l { color: #fff; }
+.rc-acts { position: relative; display: flex; flex-wrap: wrap; gap: 8px; } .rc-acts .btn { flex: 1 1 auto; }
+
+/* daily chest */
+.dc-wrap { position: fixed; inset: 0; z-index: 76; display: grid; place-items: center; padding: 16px; background: rgba(5,6,14,.65); backdrop-filter: blur(4px); animation: fiIn .25s both; }
+.dc-card { width: min(380px, 100%); padding: 20px 18px 18px; border-radius: 26px; text-align: center; color: #fff; background: radial-gradient(circle at 50% 30%, #3a1f8a, #120d2e 75%); box-shadow: 0 24px 60px rgba(0,0,0,.55); animation: rcIn .5s cubic-bezier(.2,1.5,.4,1) both; }
+.dc-h { margin: 4px 0 6px; font: 900 26px var(--f-display, var(--f-body)); } .dc-note { margin: 0 0 6px; color: #4cc9f0; font-size: 14px; }
+.dc-box { position: relative; display: block; width: 150px; height: 130px; margin: 18px auto 6px; border: 0; background: none; cursor: pointer; animation: chWob 1.6s ease-in-out infinite; }
+.dc-body { position: absolute; left: 10px; right: 10px; bottom: 0; height: 74px; border-radius: 10px 10px 14px 14px; background: linear-gradient(180deg, #a0522d, #6b3519); box-shadow: inset 0 -8px 0 rgba(0,0,0,.25), 0 10px 20px rgba(0,0,0,.4); }
+.dc-body::before { content: ""; position: absolute; left: 50%; top: 6px; width: 24px; height: 30px; margin-left: -12px; border-radius: 6px; background: #ffd23f; box-shadow: 0 0 0 4px #c4862b; }
+.dc-lid { position: absolute; left: 4px; right: 4px; bottom: 66px; height: 46px; border-radius: 40px 40px 8px 8px; background: linear-gradient(180deg, #c06a35, #8b4521); box-shadow: inset 0 6px 0 rgba(255,255,255,.18); transform-origin: 12% 100%; transition: transform .45s cubic-bezier(.3,1.6,.5,1); z-index: 2; }
+.dc-box.gold .dc-body { background: linear-gradient(180deg, #ffd23f, #c4862b); } .dc-box.gold .dc-lid { background: linear-gradient(180deg, #ffe680, #d89a2b); }
+.dc-glow { position: absolute; left: 50%; bottom: 60px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #fff6c8; box-shadow: 0 0 0 0 rgba(255,230,120,.9); opacity: 0; }
+@keyframes chWob { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(-6deg); } 80% { transform: rotate(6deg); } 85% { transform: rotate(-4deg); } 90% { transform: rotate(3deg); } }
+.dc-wrap.open .dc-box { animation: none; } .dc-wrap.open .dc-lid { transform: rotate(-58deg) translate(-6px, -10px); } .dc-wrap.open .dc-glow { opacity: 1; animation: chGlow .9s ease-out forwards; }
+@keyframes chGlow { to { box-shadow: 0 0 60px 50px rgba(255,230,120,.55); } }
+.dc-tap { margin: 0; color: rgba(255,255,255,.7); font-size: 13px; animation: wPulse 1.6s infinite; }
+.dc-loot { display: flex; flex-direction: column; gap: 8px; animation: wlIn .4s .25s both; }
+.dc-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.08); text-align: left; } .dc-item b { font: 900 26px var(--f-mono); color: #ffd23f; min-width: 60px; text-align: center; } .dc-item span { display: flex; flex-direction: column; font-weight: 700; } .dc-item small { font-weight: 500; font-size: 12px; color: rgba(255,255,255,.65); }
+.dc-next { margin: 2px 0 4px; font-size: 13px; color: rgba(255,255,255,.75); }
+.big-stars.pop i { display: inline-block; font-style: normal; } .big-stars.pop i.on { animation: starIn .55s calc(var(--i) * .28s + .35s) cubic-bezier(.2,1.8,.4,1) both; } .big-stars.pop i.off { opacity: .22; }
+@keyframes starIn { 0% { transform: scale(0) rotate(-90deg); opacity: 0; } 70% { transform: scale(1.4) rotate(10deg); opacity: 1; } 100% { transform: none; } }
 </style>
 
 
@@ -6586,7 +6650,7 @@ function BOARD2D_FACTORY() {
     (items || []).forEach(function (it) {
       var sq = typeof it === 'string' ? it : it.sq, d;
       if (cat === 'moves') d = div(it.cap ? 'b2-ring' : 'b2-dot', mkLayer);
-      else { d = div('b2-mark', mkLayer); d.style.background = CAT[cat] || 'rgba(255,255,255,.2)'; }
+      else { d = div('b2-mark m-' + cat, mkLayer); d.style.background = CAT[cat] || 'rgba(255,255,255,.2)'; }
       place(d, sq); cats[cat].push(d);
     });
   };
@@ -6623,6 +6687,16 @@ function BOARD2D_FACTORY() {
   };
   api.takeStar = function (sq) { var s = stars[sq]; if (!s) return false; delete stars[sq]; s.classList.add('captured'); setTimeout(function () { s.remove(); }, 300); return true; };
   api.burst = function (sq) { if (!sq) return; var b = div('b2-burst', fxLayer); place(b, sq); setTimeout(function () { b.remove(); }, 700); };
+  // juice: shards flying out of a captured square, a board shake, a toppling king
+  api.shatter = function (sq, color, big) {
+    if (!sq) return; var n = big ? 14 : 8, col = color === 'b' ? ['#2b2b36', '#4a4a5a', '#ffd23f'] : ['#f6efe0', '#e8dcc0', '#ffd23f'];
+    for (var i = 0; i < n; i++) { var d = div('b2-shard', fxLayer); place(d, sq); var a = i / n * Math.PI * 2 + Math.random() * 0.5, r = (big ? 90 : 60) + Math.random() * 40;
+      d.style.setProperty('--dx', Math.cos(a) * r + '%'); d.style.setProperty('--dy', Math.sin(a) * r + '%'); d.style.setProperty('--c', col[i % 3]); d.style.setProperty('--r', (Math.random() * 540 - 270) + 'deg');
+      (function (e) { setTimeout(function () { e.remove(); }, 650); })(d); }
+    var ring = div('b2-popring', fxLayer); place(ring, sq); setTimeout(function () { ring.remove(); }, 550);
+  };
+  api.shake = function (k) { root.classList.remove('shake1', 'shake2'); void root.offsetWidth; root.classList.add(k > 1 ? 'shake2' : 'shake1'); setTimeout(function () { root.classList.remove('shake1', 'shake2'); }, 520); };
+  api.kingFall = function (sq) { var m = meshes[sq]; if (m) m.classList.add('fallen'); };
   api.clearAll = function () { Object.keys(cats).forEach(function (c) { api.markers(c, []); }); api.arrows([]); api.stars([]); api.tags(null); api.spot(null); };
   api.setOrientation = function (c) { orient = c; drawLabels(); Object.keys(meshes).forEach(function (sq) { place(meshes[sq], sq); }); Object.keys(stars).forEach(function (sq) { place(stars[sq], sq); }); tagEls.forEach(function (d) { place(d, d.dataset.sq); }); Object.keys(cats).forEach(function (k) { cats[k].forEach(function () { }); }); return Promise.resolve(); };
   api.orientation = function () { return orient; };
@@ -6680,8 +6754,10 @@ function BOARD2D_FACTORY() {
   function touchActivity() {
     var k = dayKey();
     if (S.lastActive === k) return;
-    var y = new Date(); y.setDate(y.getDate() - 1);
-    S.streak = S.lastActive === dayKey(y) ? S.streak + 1 : 1;
+    var y = new Date(); y.setDate(y.getDate() - 1); var y2 = new Date(); y2.setDate(y2.getDate() - 2);
+    if (S.lastActive === dayKey(y)) S.streak = S.streak + 1;
+    else if (S.lastActive === dayKey(y2) && (S.shields || 0) > 0 && S.streak > 0) { S.shields--; S.streak = S.streak + 1; S.shieldUsed = k; } // a streak shield covers one missed day
+    else S.streak = 1;
     S.lastActive = k;
     setTimeout(function () { [3, 7, 14, 30].forEach(function (n) { if (S.streak >= n) Badges.award('streak_' + n); }); }, 1500);
   }
@@ -6760,12 +6836,17 @@ function BOARD2D_FACTORY() {
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
     }
-    var BUZZ = { move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
-    function play(kind) {
+    var BUZZ = { combo: [10, 30, 18], mate: [30, 40, 30, 40, 60], stamp: 25, chest: [20, 30, 20, 30, 40], move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
+    function play(kind, n) {
       if (!S.sound) return;
+      if (kind === 'combo') { var base = [523, 587, 659, 784, 880, 988, 1047][Math.min(6, (n || 1) - 1)]; tone(base, 0.12, 0, 'triangle', 0.09); tone(base * 1.25, 0.14, 0.07, 'triangle', 0.08); tone(base * 1.5, 0.22, 0.14, 'triangle', 0.08); if (n >= 5) tone(base * 2, 0.3, 0.21, 'sine', 0.06); return; }
+      if (kind === 'mate') { noise(0.25, 300, 1.1); [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.4, 0.08 + i * 0.09, 'sawtooth', 0.04); tone(f, 0.45, 0.08 + i * 0.09, 'triangle', 0.08); }); return; }
+      if (kind === 'stamp') { noise(0.09, 600, 1.2); tone(150, 0.18, 0, 'sine', 0.2); return; }
+      if (kind === 'chest') { [659, 784, 988, 1319, 1568].forEach(function (f, i) { tone(f, 0.3, i * 0.07, 'triangle', 0.08); }); noise(0.4, 4000, 0.2); return; }
+      if (kind === 'tick') { tone(1400 + (n || 0) * 40, 0.04, 0, 'square', 0.03); return; }
       try { if (navigator.vibrate && BUZZ[kind]) navigator.vibrate(BUZZ[kind]); } catch (e) { }
-      if (kind === 'move') noise(0.08, 1800, 0.7);
-      else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); }
+      if (kind === 'move') noise(0.08, 1500 + Math.random() * 600, 0.7);
+      else if (kind === 'capture') { noise(0.12, 900, 0.9); noise(0.06, 2400, 0.4); tone(110, 0.12, 0, 'sine', 0.14); }
       else if (kind === 'check') { noise(0.08, 1800, 0.6); tone(880, 0.18, 0.02, 'triangle', 0.06); }
       else if (kind === 'good') { tone(660, 0.18, 0, 'triangle'); tone(990, 0.3, 0.12, 'triangle'); }
       else if (kind === 'win') { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.35, i * 0.1, 'triangle', 0.1); }); }
@@ -7710,8 +7791,14 @@ function BOARD2D_FACTORY() {
     if (PENDING_DROP && PENDING_DROP.from === res.from && PENDING_DROP.to === res.to) { res.dropped = true; PENDING_DROP = null; }
     B3.markers('last', [res.from, res.to]);
     B3.arrows([]);
-    Sound.play(res.captured ? 'capture' : (/[+#]/.test(res.san) ? 'check' : 'move'));
-    return B3.animateMove(res, g.fen()).then(function () { showCheck(g); return res; });
+    var mate = /#/.test(res.san);
+    Sound.play(mate ? 'mate' : res.captured ? 'capture' : (/\+/.test(res.san) ? 'check' : 'move'));
+    return B3.animateMove(res, g.fen()).then(function () {
+      showCheck(g);
+      if (res.captured) { var big = res.captured === 'q' || res.captured === 'r'; if (B3.shatter) B3.shatter(res.to, res.color === 'w' ? 'b' : 'w', big); else B3.burst(res.to); if (big && B3.shake) B3.shake(1); }
+      if (mate) { var ks = kingSq(g); if (B3.kingFall) B3.kingFall(ks); if (B3.shake) B3.shake(2); if (B3.shatter) B3.shatter(ks, g.turn(), true); }
+      return res;
+    });
   }
   function uciObj(u) { return { from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }; }
   // ---- Lesson visuals: what the coach is talking about, drawn on the board ----
@@ -8012,6 +8099,7 @@ function BOARD2D_FACTORY() {
         if (pl) IX.tap = function () { ACT.startNext(); };
         setTimeout(function () { if (current === MODES.path) B3.idle(true); }, 1400);
       }
+      if (!rerender) setTimeout(function () { if (current === MODES.path) dailyChest(); }, 900);
       var d = today(), day = Math.min(dayNumber(), 30), nl = nextLesson(), allClear = !nl;
       discSync(); var fresh = !discAllDone() && discCount() < 3 && lessonsDone() < 2; // newcomers get a short, focused home
       if (allClear) nl = STAGES[STAGES.length - 1].lessons[0];
@@ -8452,11 +8540,11 @@ function BOARD2D_FACTORY() {
     Badges.award('first_lesson');
     var stI = stageOf(LS.id), stDone = stageComplete(stI);
     if (stDone) Badges.award('stage_' + (stI + 1));
-    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
+    Sound.play('win'); B3.burst('e4'); B3.burst('d5'); confetti(); for (var sk = 0; sk < stars; sk++) (function (k) { setTimeout(function () { Sound.play('combo', k * 2 + 1); }, 450 + k * 280); })(sk); Voice.say([V('lessondone', 'lessondone'), LS.L.takeaways ? { id: 'K-' + LS.id, text: 'Key takeaways. ' + LS.L.takeaways.join(' ') } : null]);
     var nl = nextLesson();
     document.body.dataset.layout = 'browse';
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
-      '<p class="big-stars" aria-label="' + stars + ' of 3 stars">' + '★'.repeat(stars) + '<span class="dim">' + '★'.repeat(3 - stars) + '</span></p></div>' +
+      '<p class="big-stars pop" aria-label="' + stars + ' of 3 stars">' + [0, 1, 2].map(function (k) { return '<i class="' + (k < stars ? 'on' : 'off') + '" style="--i:' + k + '">★</i>'; }).join('') + '</p></div>' +
       '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : 'Not bad: ' + [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a star route with extra moves' : ''].filter(Boolean).join(', ') + '. Repeat it later for 3 stars.') + '</p>' +
       flowCta(LS.id) + whatNext(LS.id, nl, wasLocked) +
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
@@ -8845,7 +8933,7 @@ function BOARD2D_FACTORY() {
       if (!p) { setupBoard(fenOf('r', 'd4'), { orient: 'w' }); setPanel('<div class="eyebrow">Puzzles</div><h1 class="h1">Your first puzzles are almost ready</h1><p class="lede">Puzzles use the pieces you have learned. Finish <b>The Rook</b> lesson and your first rook puzzles unlock right away.</p><div class="actions"><button class="btn primary wide" data-act="startNext">Continue learning →</button></div>'); return; }
       S.pzRecent = (S.pzRecent || []).concat([p.id]).slice(-12); save();
       var fen = puzzleFen(p);
-      PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0 };
+      PZ.cur = { p: p, fen: fen, ply: 0, failed: false, done: false, hinted: 0, t0: Date.now() };
       var side = new Game(fen).turn(), flipped = PZ.lastSide && PZ.lastSide !== side; PZ.lastSide = side;
       var g = setupBoard(fen, { drop: true, orient: side });
       if (flipped) toast(side === 'b' ? 'You play Black this time. The board turned so your pieces are at the bottom.' : 'You play White again. The board turned back.');
@@ -8860,7 +8948,7 @@ function BOARD2D_FACTORY() {
       var hist = S.puzzle.hist.slice(-1)[0];
       setPanel('<div class="rating-row"><div><div class="eyebrow">Puzzle rating</div><div class="rating">' + Math.round(S.puzzle.rating) + '</div><div class="muted small">' + ratingBand(S.puzzle.rating) + (PZ.sessionStreak > 1 ? ' · ' + PZ.sessionStreak + ' in a row' : '') + '</div></div>' +
         '<canvas id="spark" width="220" height="64" aria-label="Rating history"></canvas></div>' +
-        '<div class="pz-bar"><span class="streak-pill ' + (PZ.sessionStreak >= 3 ? 'hot' : '') + '"><b>' + PZ.sessionStreak + '</b> in a row</span><span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
+        '<div class="pz-bar">' + (PZ.sessionStreak >= 2 ? '<span class="combo-meter">🔥 ' + PZ.sessionStreak + ' <i>XP ×' + comboMult(PZ.sessionStreak).toFixed(2).replace(/0$/, '') + '</i></span>' : '<span class="streak-pill"><b>' + PZ.sessionStreak + '</b> in a row</span>') + '<span class="pz-btns"><button class="btn" data-act="arena">🎯 Arena</button><button class="btn rush-btn" data-act="rushStart">⚡ Puzzle Rush' + (S.rushBest ? ' · best ' + S.rushBest : '') + '</button></span></div>' +
         '<div class="chips">' + themes.map(function (t) { return '<button class="chip ' + (PZ.theme === t ? 'on' : '') + '" data-act="pzTheme" data-t="' + t + '">' + (t === 'all' ? 'All themes' : t === 'combo' ? 'combination' : t) + '</button>'; }).join('') + '</div>' +
         '<div class="coach-card"><div class="coach-tag">Puzzle · ' + p.r + '</div>' +
         '<p class="coach-text"><strong>' + (turn === 'w' ? 'White' : 'Black') + ' to move.</strong> ' + (beginnerMode() || S.puzzle.rating < 800 ? esc(drillAsk(p, null)) : p.mate ? 'Find mate in ' + p.mate + '.' : 'Find the best move.') + '</p>' +
@@ -8878,11 +8966,11 @@ function BOARD2D_FACTORY() {
       S.puzzle.hist.push([dayKey(), S.puzzle.rating]);
       if (S.puzzle.hist.length > 300) S.puzzle.hist.shift();
       if (win) {
-        S.puzzle.solved[c.p.id] = Date.now(); today().puzzles++; PZ.sessionStreak++; addXP(12);
+        S.puzzle.solved[c.p.id] = Date.now(); today().puzzles++; PZ.sessionStreak++; addXP(Math.round(12 * comboMult(PZ.sessionStreak)));
         var nSolved = Object.keys(S.puzzle.solved).filter(function (k) { return S.puzzle.solved[k] > 1; }).length;
         if (nSolved >= 10) Badges.award('puzzles_10'); if (nSolved >= 25) Badges.award('puzzles_25');
       }
-      else { PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
+      else { if (PZ.sessionStreak >= 3) { toast('💔 Combo lost at ' + PZ.sessionStreak + '. Start a new one!'); if (B3.shake) B3.shake(1); } PZ.sessionStreak = 0; S.puzzle.solved[c.p.id] = S.puzzle.solved[c.p.id] || 1; }
       save(); floatDelta(delta);
       return delta;
     },
@@ -8920,6 +9008,9 @@ function BOARD2D_FACTORY() {
       var c = PZ.cur; c.done = true; IX.enabled = false;
       var d = c.failed || c.hinted ? 0 : MODES.puzzles.grade(true);
       if (c.failed || c.hinted) { today().puzzles++; S.puzzle.solved[c.p.id] = Date.now(); save(); }
+      var secs = (Date.now() - c.t0) / 1000;
+      if (c.failed || c.hinted) stamp('SOLVED', 'blue'); else if (secs < 12) stamp('⚡ LIGHTNING', 'gold'); else stamp('PERFECT');
+      if (!c.failed && !c.hinted && PZ.sessionStreak >= 2) setTimeout(function () { comboPop(PZ.sessionStreak); }, 1250);
       Voice.say([V('solved', 'solved'), { id: 'P-' + c.p.id, text: c.p.explain }]);
       B3.burst(sq); B3.markers('good', [sq]); Sound.play('good');
       MODES.puzzles.render('<strong>Solved!</strong> ' + (c.alt ? 'Your move forces mate too. ' : '') + (d ? 'Rating +' + d + '.' : c.hinted ? 'Solved with a hint, so no rating points this time.' : c.failed ? 'Solved after a miss, so no rating points this time.' : ''), 'good');
@@ -9316,6 +9407,7 @@ function BOARD2D_FACTORY() {
       var gr = grade(a, res, fenBefore, uci), c = gr.c;
       if (a.bestScore > 90000 && a.playedScore < 90000) c = CLASS.blunder;
       PL.log[idx] = { drop: c.positive ? 0 : Math.max(0, winChance(a.bestScore) - winChance(a.playedScore)) * 100, cls: c.cls, label: c.label, loss: c.positive ? Math.min(a.loss, 10) : a.loss, best: a.best, bestSan: a.bestSan, key: c.key, fen: fenBefore, uci: uci, san: res.san, reply: a.replySan };
+      if (c.key === 'brilliant') stamp('!! BRILLIANT', 'gold'); else if (c.key === 'great') stamp('! GREAT MOVE', 'blue');
       if (c.key === 'brilliant') Badges.award('brilliant');
       var style = PL.style, quiet = style === 'quiet', keyOnly = style === 'key';
       var ply = idx + 1, best = a.best;
@@ -9438,6 +9530,7 @@ function BOARD2D_FACTORY() {
       else Voice.say([V('resign')]);
       if (PL.spec && PL.spec.kind === 'boss') MODES.play.bossEnd(result);
       Celebrate.flush();
+      setTimeout(function () { if (current === MODES.play && PL && PL.over) resultCard({ result: result, msg: msg, acc: acc, delta: PL.gdelta, xp: result === 'win' ? 60 : 30, level: PL.level, counts: { brilliant: count('Brilliant') + count('Great move'), best: count('Best') + count('Excellent') + count('Book move'), good: count('Good'), inacc: count('Could be better'), mistake: count('Mistake'), blunder: count('Blunder') } }); }, result === 'win' && /Checkmate/.test(msg) ? 1300 : 700);
       MODES.play.say('Game over', esc(msg) + ' Coach-game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
@@ -9773,6 +9866,53 @@ function BOARD2D_FACTORY() {
     },
     leave: function () { MS = null; }
   };
+  // big moments over the board
+  function stageFx(cls, html, ms) { var st = $('.stage'); if (!st || REDUCED) return; var el = document.createElement('div'); el.className = cls; el.innerHTML = html; st.appendChild(el); setTimeout(function () { el.remove(); }, ms || 1500); }
+  function comboPop(n) { stageFx('fx-combo', '🔥 ' + n + '<small>' + (n >= 10 ? 'UNSTOPPABLE' : n >= 5 ? 'ON FIRE' : 'IN A ROW') + ' · XP ×' + comboMult(n).toFixed(2).replace(/0$/, '') + '</small>', 1350); Sound.play('combo', n); }
+  function comboMult(n) { return 1 + Math.min(4, Math.max(0, n - 1)) * 0.25; }
+  function stamp(text, cls) { setTimeout(function () { stageFx('fx-stamp ' + (cls || ''), text, 1500); Sound.play('stamp'); }, 300); }
+  // the end of a coach game: a big result card with animated accuracy and how the moves went
+  function resultCard(o) {
+    var old = $('.rc-wrap'); if (old) old.remove();
+    var T = { win: ['VICTORY', 'win'], loss: ['DEFEAT', 'loss'], draw: ['DRAW', 'draw'] }[o.result] || ['GAME OVER', 'draw'];
+    var rows = [['brilliant', '!!', 'Brilliant & great'], ['best', '★', 'Best'], ['good', '✓', 'Good'], ['inacc', '?!', 'Could be better'], ['mistake', '?', 'Mistakes'], ['blunder', '??', 'Blunders']];
+    var tot = rows.reduce(function (a, r) { return a + (o.counts[r[0]] || 0); }, 0) || 1;
+    var el = document.createElement('div'); el.className = 'rc-wrap ' + T[1];
+    el.innerHTML = '<div class="rc-card" role="dialog" aria-modal="true"><div class="rc-rays" aria-hidden="true"></div><div class="rc-title">' + T[0] + '</div><p class="rc-msg">' + esc(o.msg) + ' · vs ' + esc(o.level.name) + ' ~' + o.level.elo + '</p>' +
+      '<div class="rc-mid">' + (o.acc != null ? '<div class="rc-ring" style="--p:0"><b id="rc-acc">0</b><span>accuracy</span></div>' : '') +
+      '<div class="rc-gain">' + (o.delta ? '<div><b class="' + (o.delta > 0 ? 'up' : 'down') + '">' + (o.delta > 0 ? '+' : '') + o.delta + '</b><span>rating</span></div>' : '') + '<div><b class="xp">+' + o.xp + '</b><span>XP</span></div></div></div>' +
+      '<div class="rc-bars">' + rows.filter(function (r) { return o.counts[r[0]]; }).map(function (r, k) { return '<div class="rc-row ' + r[0] + '" style="--d:' + (k * 0.12 + 0.5) + 's"><span class="rc-sym">' + r[1] + '</span><span class="rc-l">' + r[2] + '</span><i style="--w:' + Math.round(o.counts[r[0]] / tot * 100) + '%"></i><b>' + o.counts[r[0]] + '</b></div>'; }).join('') + '</div>' +
+      '<div class="rc-acts"><button class="btn primary" data-rc="review">★ Review the game</button><button class="btn" data-rc="rematch">Rematch</button><button class="btn ghost" data-rc="close">Close</button></div></div>';
+    document.body.appendChild(el);
+    if (o.result === 'win') { Sound.play('win'); confetti(); } else Sound.play(o.result === 'draw' ? 'good' : 'bad');
+    if (o.acc != null) { var ring = el.querySelector('.rc-ring'), num = $('#rc-acc'), t0 = performance.now(), tick = 0;
+      (function f(t) { var k = Math.min(1, (t - t0) / 1100), e = 1 - Math.pow(1 - k, 3), v = Math.round(o.acc * e); num.textContent = v; ring.style.setProperty('--p', v); if (v >= tick + 10) { tick = v; Sound.play('tick', v / 10); } if (k < 1 && el.isConnected) requestAnimationFrame(f); })(t0); }
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-rc]'); if (!b && e.target !== el) return; var a = b ? b.dataset.rc : 'close'; el.remove();
+      if (a === 'review') ACT.reviewGame(); else if (a === 'rematch') ACT.rematch();
+    });
+  }
+  // once a day: a chest on the home screen. XP, and every third chest a streak shield (keep up to 2)
+  function chestReady() { return S.onboarded && lessonsDone() >= 1 && S.chestDay !== dayKey() && !$('.dc-wrap') && !$('#welcome'); }
+  function dailyChest() {
+    if (!chestReady()) return;
+    var n = (S.chests || 0) + 1, big = S.streak > 0 && S.streak % 7 === 0, xp = (big ? 80 : 20) + Math.floor(Math.random() * 4) * 10, shield = n % 3 === 0 && (S.shields || 0) < 2;
+    var el = document.createElement('div'); el.className = 'dc-wrap';
+    el.innerHTML = '<div class="dc-card" role="dialog" aria-modal="true"><div class="eyebrow">' + (big ? '🔥 ' + S.streak + '-day streak bonus' : 'Daily chest · day ' + Math.max(1, S.streak) + ' streak') + '</div><h2 class="dc-h">' + (big ? 'A golden chest!' : 'Your daily chest') + '</h2>' +
+      (S.shieldUsed === dayKey() ? '<p class="dc-note">🛡️ A streak shield saved your streak yesterday!</p>' : '') +
+      '<button class="dc-box' + (big ? ' gold' : '') + '" data-ch="open" aria-label="Open the chest"><span class="dc-lid"></span><span class="dc-body"></span><span class="dc-glow"></span></button><p class="dc-tap">Tap to open</p><div class="dc-loot" hidden></div></div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ch]'); if (!b) return;
+      if (b.dataset.ch === 'open') {
+        if (el.classList.contains('open')) return; el.classList.add('open'); Sound.play('chest'); confetti();
+        S.chestDay = dayKey(); S.chests = n; if (shield) S.shields = (S.shields || 0) + 1; addXP(xp); save(); renderTop();
+        var loot = el.querySelector('.dc-loot'); loot.hidden = false; el.querySelector('.dc-tap').hidden = true;
+        loot.innerHTML = '<div class="dc-item"><b>+' + xp + '</b><span>XP</span></div>' + (shield ? '<div class="dc-item"><b>🛡️</b><span>Streak shield<small>saves your streak if you miss a day</small></span></div>' : '') +
+          '<p class="dc-next">' + (shield ? 'You have ' + S.shields + ' shield' + (S.shields > 1 ? 's' : '') + '.' : 'Open ' + (3 - n % 3) + ' more chest' + (3 - n % 3 > 1 ? 's' : '') + ' for a streak shield.') + ' Come back tomorrow for the next one!</p><button class="btn primary big" data-ch="done">Collect</button>';
+      } else el.remove();
+    });
+  }
   function xpPop(txt, sq) {
     var el = document.createElement('div'); el.className = 'xp-pop'; el.textContent = txt;
     $('.stage').appendChild(el); setTimeout(function () { el.remove(); }, 1300);
@@ -11899,6 +12039,7 @@ function BOARD2D_FACTORY() {
       careerRefresh();
       var fade = $('#w-fade'); fade.classList.add('on'); setTimeout(function () { fade.classList.remove('on'); }, 60);
       if (!S.careerSt.intro) setTimeout(function () { if (current === MODES.career) careerIntro(); }, 300);
+      else if (!at && !S.careerSt.fight) setTimeout(function () { if (current === MODES.career && !CW.cine && !CW.talking) dailyChest(); }, 1600);
       else if (!careerAfterFight()) {
         var ch = careerChapter(), seen = S.careerSt.ch;
         if (S.careerSt.met && seen != null && ch > seen && ch < STAGES.length) { S.careerSt.ch = ch; save(); setTimeout(function () { careerBanner(ch); }, 700); }
@@ -13487,7 +13628,7 @@ function BOARD2D_FACTORY() {
     };
     function front() {
       var keys = {}; Object.keys(impl3).forEach(function (k) { keys[k] = 1; });
-      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait', 'tags', 'spot'].forEach(function (k) { keys[k] = 1; });
+      ['setPosition', 'sync', 'settle', 'animateMove', 'markers', 'flash', 'arrows', 'stars', 'takeStar', 'burst', 'shatter', 'shake', 'kingFall', 'clearAll', 'setOrientation', 'orientation', 'toggleView', 'idle', 'recenter', 'setDrag', 'lift', 'setCameraFixed', 'wait', 'tags', 'spot'].forEach(function (k) { keys[k] = 1; });
       Object.keys(B3).forEach(function (k) { delete B3[k]; });
       Object.keys(keys).forEach(function (k) {
         if (k === 'init' || k === 'setActive') return;
