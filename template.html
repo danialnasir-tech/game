@@ -366,6 +366,35 @@ button:disabled { cursor: not-allowed; }
 }
 @media (max-width: 420px) { .lessons, .levels { grid-template-columns: minmax(0, 1fr); } .h1 { font-size: 24px; } .rating { font-size: 38px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ===== Career mode: Ascent Town ===== */
+#world { position: fixed; z-index: 30; overflow: hidden; background: #8fd3ff; touch-action: none; user-select: none; -webkit-user-select: none; }
+#world[hidden] { display: none; }
+#world .w-canvas { display: block; touch-action: none; }
+body[data-mode="career"] .stage, body[data-mode="career"] .panel { visibility: hidden; }
+.w-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
+.w-quest { pointer-events: auto; flex: 1; min-width: 0; max-width: 460px; padding: 9px 13px; border-radius: 16px; background: rgba(14,18,38,.82); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(6px); }
+.w-ch { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 800 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: #ffd23f; }
+.w-qt { display: flex; gap: 8px; align-items: center; margin-top: 3px; font-size: 14.5px; line-height: 1.3; }
+.w-arrow { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #ffd23f; color: #1b1a22; font-style: normal; font-size: 14px; transition: transform .15s linear; }
+.w-btns { pointer-events: auto; display: flex; gap: 6px; align-items: center; }
+.w-btn, .w-pawns { padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(14,18,38,.82); color: #fff; font: 700 13px var(--f-body); cursor: pointer; white-space: nowrap; }
+.w-pawns { color: #ffd23f; cursor: default; }
+.w-card, .w-dlg { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(520px, calc(100% - 20px)); padding: 12px 14px; border-radius: 18px; background: rgba(14,18,38,.9); color: #fff; box-shadow: 0 14px 40px rgba(0,0,0,.35); animation: wUp .25s ease-out both; }
+.w-card[hidden], .w-dlg[hidden], .w-note[hidden] { display: none; }
+.w-card-h { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; } .w-card-h b { font-size: 17px; } .w-card-h span { color: #ffd23f; font-size: 13px; }
+.w-card-a { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; } .w-card-a .btn { flex: 1 1 auto; }
+.w-dlg { border: 1px solid rgba(196,255,61,.35); } .w-dlg p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; } .w-dlg .w-small { font-size: 13px; color: rgba(255,255,255,.72); }
+.w-who { color: #c4ff3d; font: 800 12px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.w-big { margin: 4px 0 0; font-size: 24px; }
+.w-note { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 30px); padding: 8px 14px; border-radius: 14px; background: rgba(14,18,38,.85); color: #fff; font-size: 14px; text-align: center; animation: wUp .25s ease-out both; pointer-events: none; }
+.w-fade { position: absolute; inset: 0; background: #0b1020; opacity: 0; pointer-events: none; transition: opacity .55s ease; } .w-fade.on { opacity: 1; transition-duration: .5s; }
+@keyframes wUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.career-card { display: flex; align-items: center; gap: 12px; width: 100%; margin: 10px 0 0; padding: 11px 14px; border-radius: 18px; border: 1px solid rgba(255,210,63,.45); background: linear-gradient(120deg, rgba(255,210,63,.18), rgba(76,201,240,.14)); color: var(--fg); text-align: left; cursor: pointer; font: inherit; }
+.career-card .cc-ico { font-size: 26px; } .career-card .cc-t { flex: 1; display: flex; flex-direction: column; } .career-card .cc-t b { font-size: 15.5px; } .career-card .cc-t span { font-size: 13px; color: var(--muted); } .career-card .cc-go { font-weight: 800; color: var(--brass, #ffd23f); }
+body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-card .cc-ico { font-size: 20px; } body.mob .career-card .cc-t span { display: none; }
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-mode="path"] .panel:not(.show-all) > .career-card { display: none !important; } }
+@media (max-width: 880px) and (orientation: portrait) { .w-quest { padding: 7px 11px; } .w-qt { font-size: 13.5px; } .w-btn, .w-pawns { padding: 7px 10px; font-size: 12.5px; } .w-dlg p { font-size: 14px; } }
 </style>
 
 <div id="app">
@@ -383,6 +412,7 @@ button:disabled { cursor: not-allowed; }
   </header>
 
   <nav class="rail" aria-label="Sections">
+    <button data-go="career"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M10 21v-6h4v6"/><circle cx="12" cy="10" r="1.4"/></svg>Career</button>
     <button data-go="path" class="on"><svg viewBox="0 0 24 24"><path d="M5 20c0-5 4-5 7-8s2-7 7-8"/><circle cx="5" cy="20" r="1.6"/><circle cx="19" cy="4" r="1.6"/><circle cx="12" cy="12" r="1.6"/></svg>Path</button>
     <button data-go="puzzles"><svg viewBox="0 0 24 24"><path d="M9 4h6v3a2 2 0 1 0 0 4v0h3v6h-3a2 2 0 1 1-4 0H6v-6a2 2 0 1 0 0-4V4z"/></svg>Puzzles</button>
     <button data-go="arena"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Arena</button>
@@ -1243,7 +1273,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
   body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
   /* home fits one screen: the next step first, everything else one tap away */
-  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card):not(.prog-card) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card):not(.prog-card):not(.career-card) { display: none !important; }
   body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
   body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
   body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }

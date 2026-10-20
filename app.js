@@ -952,6 +952,7 @@
   var PANEL_ANIM = false;
   function setPanel(html) {
     panel.classList.remove('enter');
+    if (S.career) html = html.replace(/← Path/g, '← Town');
     panel.innerHTML = hintHtml() + html; panel.scrollTop = 0;
     if (PANEL_ANIM) { PANEL_ANIM = false; void panel.offsetWidth; panel.classList.add('enter'); clearTimeout(setPanel._t); setPanel._t = setTimeout(function () { panel.classList.remove('enter'); }, 900); }
   }
@@ -1218,6 +1219,7 @@
       m.onclick = function (e) { var b = e.target.closest('[data-leave]'); if (!b && e.target !== m) return; m.hidden = true; m.onclick = null; if (b && b.dataset.leave === 'go') { go.force = true; go(mode, arg); go.force = false; } };
       return;
     }
+    if (mode === 'path' && S.career && window.THREE) mode = 'career';
     if (isLocked(mode)) {
       if (current && current.leave) current.leave();
       Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
@@ -1227,8 +1229,9 @@
     }
     if (current && current.leave) current.leave();
     Voice.stop(); Bubble.hide();
-    var tab = { mychess: 'progress', program: 'path', mine: 'path', daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
+    var tab = { career: 'career', mychess: 'progress', program: 'path', mine: 'path', daily: 'path', challenge: 'path', friend: 'play', drill: 'path', warmup: 'path', analyze: 'play', lesson: 'path', mission: 'path', stagetest: 'path', opening: 'openings', rush: 'puzzles', vision: 'arena', review: 'play', practice: 'play' }[mode] || mode;
     if (mode === 'play' && arg && arg.spec) tab = 'arena';
+    if (S.career && tab === 'path') tab = 'career';
     document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === tab); });
     $('#evalbar').hidden = true;
     B3.idle(false);
@@ -1391,6 +1394,7 @@
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
+        (window.THREE ? '<button class="career-card" data-act="career"><span class="cc-ico" aria-hidden="true">🏰</span><span class="cc-t"><b>Career mode</b><span>Walk Ascent Town, meet Coach Leo and beat the rivals</span></span><span class="cc-go" aria-hidden="true">→</span></button>' : '') +
         progCard() + socialRow() + installCard() +
         warmupCard() +
         (S.prog ? '' : discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
@@ -4130,6 +4134,7 @@
   ACT.progPlay = function () { go('play'); };
   ACT.progReal = function () { window.open('https://www.chess.com/play/online', '_blank'); progMark('play'); toast('Good luck! Come back after the game and open My chess.com to check it.'); setTimeout(function () { if (current === MODES.program) MODES.program.enter(); }, 400); };
 
+/*__CAREER__*/
   // ================= Analyze a game from chess.com (or any PGN) =================
   // PGN text -> { headers, sans, startFen } (comments, clocks, variations and NAGs are skipped).
   function parsePGN(text) {
@@ -5506,6 +5511,7 @@
         B3[k] = function () { if (REC[k]) REC[k](arguments); var f = cur && cur[k]; return f ? f.apply(cur, arguments) : undefined; };
       });
       B3.wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+      B3.pause = function (p) { if (cur && cur.setActive) cur.setActive(!p); }; // career mode: the hidden board stops drawing
     }
     function use(two, first) {
       if (!two && !ready3) {
@@ -5603,7 +5609,7 @@
       var fn = ACT[a.dataset.act];
       if (fn) { e.preventDefault(); fn(a.dataset); }
     });
-    document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { go(b.dataset.go); }); });
+    document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { if (b.dataset.go === 'path') { S.career = false; save(); } go(b.dataset.go); }); });
     $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
     $('#replay-btn').onclick = function () { Voice.replay(); };
     $('#sound-btn').onclick = function () { S.sound = !S.sound; save(); renderTop(); if (S.sound) Sound.play('move'); };
@@ -5654,7 +5660,7 @@
     var incoming = readIncoming();
     if (incoming) go(incoming.kind, incoming.c);
     else if (!S.onboarded) { setupBoard(Game.START, { drop: true }); B3.idle(true); onboard(); }
-    else { go('path'); if (!S.toured) setTimeout(Tour.start, 1500); }
+    else { go('path'); if (!S.toured && !S.career) setTimeout(Tour.start, 1500); }
     // Launch screen: on the first visit download the coach's starter voice with real progress, then a Start tap
     // (which also unlocks sound); later visits just fade in.
     var SP = window.__splash;
@@ -5671,6 +5677,6 @@
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

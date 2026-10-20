@@ -220,3 +220,16 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   (`body[data-passive]`, read by `fitBoard`). Small phones get tighter lesson text.
 - **Voice, same text = one clip** (`voice-dedupe.js`): the kit asks for each sentence once; the site build points every other id
   with identical text at that recording.
+
+## Career mode: Ascent Town (3D)
+- `career.js` (inlined into app.js at `/*__CAREER__*/` by build.js) and `career-data.js` (dialog text, voice ids `W-...`).
+- A small low-poly town built from Three.js shapes (no downloads): plaza with giant pieces, Leo's Academy (lessons), Puzzle
+  Tower (daily puzzle, ladder, my mistakes), Opening Library, the Arena (arena + the five stage bosses as rivals standing outside),
+  the Park (coach game, play a friend), Your Home (progress, 30-Day Ascent, chess.com). Townsfolk walk between buildings.
+- Controls: tap/click to walk, tap a building or person to walk there and talk/enter, drag to turn the camera, WASD/arrows + E on
+  desktop. Five golden pawns are hidden each day (+5 XP each, +25 for all five).
+- Story: chapter = current stage; objective (gold star, beam and HUD arrow) comes from `careerQuest`: meet Leo → next lesson at
+  the Academy → the stage rival at the Arena when the stage is done → next chapter (banner + line).
+- While career mode is on (`S.career`), every "back to path" goes back to town (`go('path')` is redirected) and back buttons
+  read "← Town"; you walk out of the building you entered. The Path tab or the List button turns it off.
+- The 3D board stops drawing while in town (`B3.pause`). Phones: no shadow maps, pixel ratio 1.5.

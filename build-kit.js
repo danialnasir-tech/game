@@ -4,7 +4,7 @@ const fs=require('fs');const D=require('./data.js');(function(){const X2=require
 const X=require('./defences.js');D.OPENINGS=D.OPENINGS.concat(X.EXTRA_OPENINGS);
 const V=require('./voicelines.js');
 const MI=require('./missions.js');
-const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES(), V.QUIZ_LINES(D), V.HINT_LINES(), Object.keys(MI.MISSIONS).flatMap(k=>MI.MISSIONS[k].map(m=>({id:'N-'+m.id,text:m.text,group:'more'}))));
+const lines=V.VOICE_LINES(D).concat(V.TOUR_LINES(), V.VARIANT_LINES(), V.MOVE_LINES(), V.MORE_LINES(D), X.DEFENCE_LINES(), require('./career-data.js').CAREER_LINES, V.QUIZ_LINES(D), V.HINT_LINES(), Object.keys(MI.MISSIONS).flatMap(k=>MI.MISSIONS[k].map(m=>({id:'N-'+m.id,text:m.text,group:'more'}))));
 const ids=new Set();lines.forEach(l=>{if(ids.has(l.id))throw new Error('duplicate id '+l.id);ids.add(l.id);});
 const have0=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{},man0=fs.existsSync('dist/voice-manifest.json')?JSON.parse(fs.readFileSync('dist/voice-manifest.json','utf8')):{};
 const h0=t=>require('crypto').createHash('sha1').update('B52raBK48m23qWYbwchQ'+t).digest('hex').slice(0,12);
