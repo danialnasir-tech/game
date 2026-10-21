@@ -21,6 +21,10 @@ function greedyRun(m, seed) {
   // our side plays the move that minimises the remaining distance (iterative deepening each turn); coach wanders randomly
   const rnd = seeded(seed), g = new Game(m.fen), st = { caps: 0 };
   if (m.pre) g.move(m.pre);
+  if (m.goal === 'sequence' && m.replies) { // scripted replies: play the written moves against the coach's scripted answers
+    for (let n = 1; n <= m.seq.length; n++) { const r = g.move(m.seq[n - 1]); if (!r) return null; const res = M.missionCheck(m, g, r, st); if (res === 'win') return n; if (res === 'wrong') return null; const c = M.missionReply(m, g, n, rnd); if (!c) return null; g.move(c); }
+    return null;
+  }
   for (let n = 1; n <= m.limit; n++) {
     let best = null;
     for (let d = 1; d <= Math.min(5, m.limit - n + 1) && !best; d++) {

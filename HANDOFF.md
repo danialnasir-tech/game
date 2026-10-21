@@ -330,3 +330,15 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Lesson done screen: stars text celebrates first, one primary next step with alternatives folded under "More options".
 - Progress: rating sources labelled, chart green when climbing, placed-out lessons shown as "already known".
 - Tests: harness `H.start(page)` taps through the splash like a person (the old `#sp-go` click no longer starts the welcome).
+
+## Phone lesson polish
+- Steady board: on phones each lesson lays out every step once before it starts (`phoneFit.pre`) and picks one board size
+  that fits the busiest step; afterwards the board only shrinks for a reading step that truly needs it, and grows back.
+  Measured over 120 steps at 375x667 and 393x750: 0 size changes, 0 overflow (tests in pw/bsz.js).
+- Short text: step text over ~95 characters shows a short lead and a "More ▸" tap on phones (`shortText`); desktop shows
+  everything. The voice still reads the whole text.
+- Coach missions are now "Leo's challenges": a dare line (`dare` in missions.js), "You beat my challenge!", and the
+  Meet the Pieces set is Leo Says / x Marks the Take / Lightning Reader (no opening names on day 1).
+  tests/missions.js plays scripted replies for sequence challenges.
+- Town: speech bubbles stay on screen and step around the quest card, map, buttons and each other; signs fade out when
+  the camera is right next to them.

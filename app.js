@@ -1646,11 +1646,23 @@
     var I = PIECE_INFO[t];
     return '<div class="meet-card"><span class="meet-pc">' + pieceSVG(t, 'w', 64) + '</span><span class="meet-txt"><b>' + PIECE_NAME[t].charAt(0).toUpperCase() + PIECE_NAME[t].slice(1) + '</b><span>Letter: <b class="mono">' + I.letter + '</b> · Worth: ' + I.value + '</span></span></div>';
   }
+  // Long step text: a short lead to read, the rest one tap away (phones only; desktops show it all)
+  function shortText(t, i) {
+    t = String(t || ''); if (t.length <= 95) return esc(t);
+    var parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t], lead = '', k = 0;
+    while (k < parts.length && lead.length < 45) { lead += parts[k]; k++; } // one or two short sentences up front
+    var rest = parts.slice(k).join('');
+    if (!rest.trim() || rest.length < 25) return esc(t);
+    var open = LS && LS.more === i;
+    return esc(lead.trim()) + ' <span class="ct-more' + (open ? ' open' : '') + '">' + esc(rest.trim()) + '</span><button class="ct-btn' + (open ? ' open' : '') + '" data-act="moreText" data-i="' + i + '">More ▸</button>';
+  }
+  ACT.moreText = function (d) { if (!LS) return; LS.more = +d.i; var m = $('.ct-more'), b = $('.ct-btn'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
       LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0 };
       Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
+      if (phoneFit.pre) phoneFit.pre(); // phones: one board size for every step, chosen up front
       MODES.lesson.render();
       MODES.lesson.loadStep();
     },
@@ -1672,7 +1684,7 @@
         '<h1 class="h1">' + esc(L.title) + '</h1>' +
         '<p class="lede">' + esc(L.goal) + '</p>' +
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
-        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' + askBox(step) +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + shortText(step.text, LS.i) + '</p>' + askBox(step) +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
         (step.t === 'pieces' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap your <b>' + PIECE_NAME[step.targets[LS.sq.i]] + '</b> <span class="sq-glyph">' + pieceSVG(step.targets[LS.sq.i], 'w', 34) + '</span>' : '✓ All six found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
@@ -1874,7 +1886,7 @@
     var cards = [];
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     var ms = MISSIONS[id], msDone = coachMissionsDone(id);
-    if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Coach missions (replay)' : 'Coach missions: ' + ms.map(function (m) { return m.title; }).slice(0, 2).join(', ') + '…', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
+    if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Leo\'s challenges (replay)' : 'Beat Leo\'s 3 challenges', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
     if (!ms && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
@@ -3107,7 +3119,7 @@
 
   // ================= Coach missions: short hands-on scenarios right after a lesson =================
   var MS = null;
-  var GOAL_TXT = { sequence: 'Play the written moves', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
+  var GOAL_TXT = { sequence: 'Play the moves Leo calls', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
   function missionStars(m, n) { return n <= m.par ? 3 : n <= m.par + Math.ceil((m.limit - m.par) / 2) ? 2 : 1; }
   function coachMissionsDone(id) { return (MISSIONS[id] || []).filter(function (m) { return S.missions && S.missions[m.id]; }).length; }
   function missionGoalCount(m, g) { return m.goal === 'sequence' ? m.seq.length : m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
@@ -3185,22 +3197,22 @@
       var body;
       if (MS.over === 'win') {
         var nx = list[MS.i + 1];
-        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>Mission complete!</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? (MS.hint ? '. Without a hint it is worth 3 stars.' : '. ' + m.par + ' moves gets you 3 stars.') : '. Perfect.') + '</p></div>' +
-          '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next mission: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All missions done →</button>') +
+        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>' + (MS.stars === 3 ? 'You beat my challenge! 🎉' : 'Challenge beaten!') + '</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? (MS.hint ? '. Without a hint it is worth 3 stars.' : '. ' + m.par + ' moves gets you 3 stars.') : '. Perfect.') + '</p></div>' +
+          '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next challenge: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All three beaten →</button>') +
           (MS.stars < 3 ? '<button class="btn" data-act="missionRetry">↻ Go for 3 stars</button>' : '') + '</div>';
       } else if (MS.over === 'fail') {
         body = '<div class="ms-result fail"><h2>Not this time</h2><p>' + esc(MS.why || '') + '</p></div><div class="actions"><button class="btn primary wide" data-act="missionRetry">↻ Try again</button><button class="btn ghost" data-act="missionHint">Show me a hint</button></div>';
       } else {
         body = '<div class="ms-track"><div class="ms-goal"><span class="ms-goal-ico">◎</span><b>' + esc(GOAL_TXT[m.goal]) + '</b>' + (MS.total > 1 ? '<span class="ms-count">' + got + ' / ' + MS.total + '</span>' : '') + '</div>' +
-          '<div class="ms-moves"><span>' + (MS.busy ? 'Coach is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
+          '<div class="ms-moves"><span>' + (MS.busy ? 'Leo is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
           (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') +
           (m.goal === 'sequence' ? '<div class="ms-seq">' + m.seq.map(function (x, k) { return '<span class="mono' + (k < got ? ' done' : k === got ? ' now' : '') + '">' + esc(x) + '</span>'; }).join('') + '</div>' : '') + '</div>' +
           (MS.hint ? '<p class="ms-tip">💡 ' + esc(m.tip) + '</p>' : '') +
           '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
       }
       setPanel('<button class="back" data-act="lesson" data-id="' + MS.lesson + '">← ' + esc(L.title) + '</button>' +
-        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Coach mission ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I defend for real' : ' · I play gently') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
-        (MS.over ? '' : '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p>' + esc(m.text) + '</p></div>') + body);
+        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Leo\'s challenge ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I fight back' : ' · I go easy') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
+        (MS.over ? '' : '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p><b class="ms-dare">' + esc(m.dare || 'Bet you can\'t do this:') + '</b> ' + esc(m.text) + '</p></div>') + body);
       if (MS.over) { var pn = $('#panel'); setTimeout(function () { pn.scrollTop = pn.scrollHeight; }, 60); }
     },
     leave: function () { MS = null; }
@@ -3369,7 +3381,7 @@
   // what comes after a lesson: its missions, then its practice, then the next lesson
   function flowNext(lid) {
     var ms = MISSIONS[lid];
-    if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Coach missions', s: ms.length + ' quick challenges against me' };
+    if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Beat Leo\'s challenges', s: ms.length + ' quick dares, with stars to win' };
     if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
     var nl = nextLesson(); return nl ? { k: 'lesson', lid: nl, t: 'Next lesson', s: LESSONS[nl].title } : null;
   }
@@ -5698,7 +5710,10 @@
       raf = requestAnimationFrame(function () {
         if (!(mq && mq.matches) || document.body.dataset.layout !== 'board') { if (last) { st.style.removeProperty('height'); last = 0; } return; }
         var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight;
-        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * (document.body.dataset.passive === '1' ? 0.23 : 0.31)), maxB);
+        var inLesson = document.body.dataset.mode === 'lesson' && LS, key = inLesson ? LS.id + '|' + h + '|' + innerWidth : null;
+        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * (document.body.dataset.passive === '1' ? 0.23 : 0.31)), maxB), passive = document.body.dataset.passive === '1';
+        if (key && LS.more === LS.i && fitBoard.key === key) return; // the player opened more text: let the panel scroll, keep the board
+        if (key && fitBoard.key === key) maxB = Math.max(minB, Math.min(maxB, fitBoard.cap)); // a steady board: squares stay under your thumb
         // start from the biggest board, then give back exactly what the panel is missing
         st.style.setProperty('height', maxB + 'px', 'important'); last = maxB; void panel.offsetHeight;
         for (var k = 0; k < 3; k++) {
@@ -5707,9 +5722,22 @@
           if (Math.abs(next - cur) < 2) break;
           st.style.setProperty('height', next + 'px', 'important'); last = next; void panel.offsetHeight;
         }
+        if (key && (!passive || fitBoard.key !== key)) { fitBoard.key = key; fitBoard.cap = last; } // a reading step that needed extra room does not shrink the rest of the lesson
       });
     }
     phoneFit.fit = fitBoard;
+    // Before a lesson starts, lay out each step once and keep the board small enough for the busiest one
+    phoneFit.pre = function () {
+      if (!(mq && mq.matches) || !LS) return;
+      var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight, maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * 0.31), maxB);
+      var prevLayout = document.body.dataset.layout, need = 0, keepI = LS.i;
+      document.body.dataset.layout = 'board'; st.style.setProperty('height', maxB + 'px', 'important');
+      try {
+        for (var k = 0; k < LS.L.steps.length; k++) { var sk = LS.L.steps[k]; LS.i = k; LS.quizI = -1; LS.ak = (sk.ask || sk.tap) ? { found: [], done: false, miss: 0 } : null; MODES.lesson.render(); void panel.offsetHeight; need = Math.max(need, panel.scrollHeight - panel.clientHeight + (sk.t === 'squares' || sk.t === 'pieces' ? 44 : 0) + (QUIZ_OF(sk) ? 30 : 0)); } // games and quizzes add a row once they start
+      } catch (e) { }
+      LS.i = keepI; LS.quizI = -1; LS.quiz = null; LS.ak = null; document.body.dataset.layout = prevLayout;
+      fitBoard.key = LS.id + '|' + h + '|' + innerWidth; fitBoard.cap = Math.max(minB, Math.min(maxB, maxB - need - 20)); // a little room for a feedback line
+    };
     new MutationObserver(fitBoard).observe(panel, { childList: true, subtree: true, characterData: true });
     new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }

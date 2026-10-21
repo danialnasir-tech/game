@@ -5,12 +5,12 @@
 //        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
 var MISSIONS = {
   'l-pieces': [
-    { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
-      text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
-    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6'],
-      text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
-    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
-      text: 'Now a real opening that many club players use, called the London System: d4, Bf4, e3, Nf3. Read each move and play it.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+    { id: 'read-italian', title: 'Leo Says', dare: 'Leo says…', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6'],
+      text: 'I call the move, you play it. e4! Nf3! Bc4! N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
+    { id: 'read-take', title: 'x Marks the Take', dare: 'Watch out, I bite back:', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'exd5', 'Nc3'], limit: 3, par: 3, coach: 'wander', replies: ['d5', 'Qxd5'],
+      text: 'An x means takes. Play e4. When I answer d5, take it: exd5. I take back with my queen, so chase her away: Nc3!', tip: 'exd5 is the e-pawn taking on d5. Nc3 is the knight from b1 jumping to c3.' },
+    { id: 'read-race', title: 'Lightning Reader', dare: 'Faster now. Can you keep up?', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Nc3', 'Bf4', 'Qd2'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
+      text: 'Four moves, no mistakes: d4, Nc3, Bf4, Qd2. Q is the queen.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
   'l-firstmoves': [
     { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6', 'Nf6'], sol: ['e2e4', 'g1f3', 'b1c3'],

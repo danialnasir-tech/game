@@ -586,7 +586,7 @@
       if (sub) { x.font = '600 34px system-ui, sans-serif'; x.fillStyle = color || '#c4ff3d'; x.fillText(sub, 256, 124); }
       var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
       var s = new T.Sprite(new T.SpriteMaterial({ map: tx, depthWrite: false, transparent: true, toneMapped: false }));
-      var k = scale || 1; s.scale.set(5.2 * k, 5.2 * k * c.height / 512, 1); s.renderOrder = 5; return s;
+      var k = scale || 1; s.scale.set(5.2 * k, 5.2 * k * c.height / 512, 1); s.renderOrder = 5; (W.signs = W.signs || []).push(s); return s;
     }
   }
   function careerRebuildPlayer() {
@@ -867,6 +867,7 @@
     W.puffs.forEach(function (u) { var t = (W.t * 0.18 + u.userData.t) % 1; u.position.set(W.chimney.x + t * 1.2, W.chimney.y + t * 4, W.chimney.z - t * 0.6); u.scale.setScalar(0.5 + t * 1.4); u.material.opacity = 0.65 * (1 - t); });
     W.drops.forEach(function (u) { var t = (W.t * 0.9 + u.userData.t) % 1, a = u.userData.a; u.position.set(W.fountain.x + Math.sin(a) * t * 0.9, 2.1 + Math.sin(t * Math.PI) * 0.9 - t * 1.3, W.fountain.z + Math.cos(a) * t * 0.9); });
     W.birds.forEach(function (b) { var u = b.userData, a = W.t * u.s + u.a; b.position.set(Math.sin(a) * u.r, u.h + Math.sin(W.t + u.a) * 1.5, Math.cos(a) * u.r); b.rotation.y = a + Math.PI / 2; var fl = Math.sin(W.t * 9 + u.a) * 0.7; u.wl.rotation.z = fl; u.wr.rotation.z = -fl; });
+    if (W.signs) { var cp = W.cam.position, wp = W.v3s || (W.v3s = new THREE.Vector3()); W.signs.forEach(function (sg) { sg.getWorldPosition(wp); var d = wp.distanceTo(cp); sg.material.opacity = Math.max(0, Math.min(1, (d - 5) / 4)); sg.visible = d > 5; }); } // signs fade out when the camera is right next to them
     if (W.pollen) { var pa = W.pollen.geometry.attributes.position.array; for (var pi2 = 0; pi2 < pa.length; pi2 += 3) { pa[pi2] += Math.sin(W.t * 0.7 + pi2) * dt * 0.3; pa[pi2 + 1] += dt * 0.18; if (pa[pi2 + 1] > 5.5) pa[pi2 + 1] = 0.3; } W.pollen.geometry.attributes.position.needsUpdate = true; W.pollen.position.set(Math.round(p.x / 30) * 30, 0, Math.round(p.z / 30) * 30); }
     W.flies.forEach(function (f) { var u = f.userData, t = W.t * 0.8 + u.a; f.position.set(u.cx + Math.sin(t * 1.3) * 1.2, 0.9 + Math.sin(t * 2.1) * 0.3, u.cz + Math.cos(t) * 1.2); f.rotation.y = t; var fl = Math.sin(W.t * 18 + u.a) * 1.1; u.w1.rotation.y = fl; u.w2.rotation.y = -fl; });
     // golden pawns
@@ -946,10 +947,15 @@
         edge.style.transform = 'translate(' + Math.round(ex) + 'px,' + Math.round(ey) + 'px) translate(-50%,-50%) rotate(' + (ang * 180 / Math.PI - 90) + 'deg)';
       }
     } else { ptr.hidden = true; edge.hidden = true; }
+    var hb = W.bub.length ? W.host.getBoundingClientRect() : null, obs = hb ? ['#w-quest', '#w-map', '.w-btns'].map(function (q) { var e = $(q); if (!e || e.offsetParent === null) return null; var r = e.getBoundingClientRect(); return { l: r.left - hb.left - 6, r: r.right - hb.left + 6, t: r.top - hb.top - 6, b: r.bottom - hb.top + 6 }; }).filter(Boolean) : [];
     W.bub = W.bub.filter(function (b) {
       if (W.t > b.until || W.cine) { b.el.remove(); return false; }
       var g = b.p.g.position, s2 = proj(g.x, (b.p.lift || 0) + 3.3 + g.y, g.z); b.el.style.display = s2.on ? '' : 'none';
-      b.el.style.transform = 'translate(' + Math.round(s2.x) + 'px,' + Math.round(s2.y) + 'px) translate(-50%,-100%)'; return true;
+      // keep the bubble on screen and clear of the quest card, the map and the buttons
+      var bw = b.el.offsetWidth || 180, bh = b.el.offsetHeight || 50, x = Math.max(bw / 2 + 8, Math.min(w - bw / 2 - 8, s2.x)), y = s2.y;
+      for (var k = 0; k < 3; k++) obs.forEach(function (o) { if (x + bw / 2 > o.l && x - bw / 2 < o.r && y > o.t && y - bh < o.b) y = o.b + bh; });
+      if (s2.on) obs.push({ l: x - bw / 2 - 4, r: x + bw / 2 + 4, t: y - bh - 4, b: y + 4 }); // the next bubble steps around this one
+      b.el.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px) translate(-50%,-100%)'; return true;
     });
     if (W.tg) { var fx2 = -Math.sin(W.camYaw), fz2 = -Math.cos(W.camYaw), tx2 = W.tg.x - p.x, tz2 = W.tg.z - p.z; $('#w-arrow').style.transform = 'rotate(' + (Math.atan2(tx2 * (-fz2) + tz2 * fx2, tx2 * fx2 + tz2 * fz2) * 180 / Math.PI - 90) + 'deg)'; }
     if (W.t - (W.mapT || 0) > 0.15) { W.mapT = W.t; careerMap(); }

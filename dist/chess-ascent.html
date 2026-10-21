@@ -178,6 +178,8 @@ button:disabled { cursor: not-allowed; }
 .coach-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 15px; position: relative; }
 .coach-tag { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; margin-bottom: 6px; }
 .coach-text { margin: 0; font-size: 15.5px; }
+.ct-btn { display: none; border: 0; background: none; padding: 0 0 0 4px; color: #c4ff3d; font: 800 13px var(--f-body); cursor: pointer; white-space: nowrap; }
+@media (max-width: 880px) and (orientation: portrait) { .ct-more:not(.open) { display: none; } .ct-btn:not(.open) { display: inline; } }
 .turn-note, .collect-count { margin: 10px 0 0; font-family: var(--f-mono); font-size: 12.5px; color: var(--brass-hi); }
 .next-note { margin: 10px 0 0; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px; }
 .status { margin-top: 12px; min-height: 22px; font-size: 14.5px; border-radius: 9px; }
@@ -360,7 +362,7 @@ button:disabled { cursor: not-allowed; }
   body[data-layout="board"] .ask-opts { gap: 5px; } body[data-layout="board"] .ask-opt { padding: 6px 9px; font-size: 13.5px; line-height: 1.25; }
   body[data-layout="board"] .ask-msg { font-size: 13px; line-height: 1.35; }
   body.mob[data-layout="board"] .panel .h1 { font-size: 16px; margin: 0; }
-  body.mob .panel .meet-card { padding: 5px 9px; gap: 9px; margin: 0 0 6px; } body.mob .panel .meet-pc { width: 34px; height: 34px; } body.mob .panel .meet-pc svg { width: 30px; height: 30px; }
+  body.mob .panel .meet-card { padding: 4px 9px; gap: 9px; margin: 0 0 5px; } body.mob .panel .meet-txt { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; } body.mob .panel .meet-txt > b { font-size: 16px; } body.mob .panel .meet-pc { width: 34px; height: 34px; } body.mob .panel .meet-pc svg { width: 30px; height: 30px; }
   body.mob .panel .meet-txt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; font-size: 13px; } body.mob .panel .meet-txt > b { font-size: 16px; }
   .top { min-height: 46px; } .sound { width: 34px; height: 34px; }
 }
@@ -563,6 +565,7 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 @keyframes fiDraw { to { stroke-dashoffset: 0; } }
 /* guiding hand */
 .wn-more { margin: 4px 0 0; } .wn-more > summary { cursor: pointer; list-style: none; padding: 10px 0; font-weight: 800; color: var(--dim, #aab); } .wn-more > summary::before { content: '▸ '; } .wn-more[open] > summary::before { content: '▾ '; } .wn-more > summary::-webkit-details-marker { display: none; }
+.ms-dare { color: #ffd23f; font-weight: 900; margin-right: 2px; }
 .g-glow { animation: gGlow 1.1s ease-in-out 4; position: relative; z-index: 1; border-radius: 14px; }
 @keyframes gGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,63,0); } 50% { box-shadow: 0 0 0 4px rgba(255,210,63,.9), 0 0 24px rgba(255,210,63,.6); } }
 #w-dlg .btn.pulse { animation: spBeat 1.6s ease-in-out infinite; }
@@ -6024,12 +6027,12 @@ if (typeof module !== 'undefined') module.exports = { BOSSES: BOSSES, CHALLENGES
 //        'defend' = the coach defends for real (used for checkmate missions). `pre` = the coach's first move, played before yours.
 var MISSIONS = {
   'l-pieces': [
-    { id: 'read-e4', title: 'Read and Play', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4'], limit: 1, par: 1, coach: 'wander',
-      text: 'I will name a move, you play it. The move is written e4.', tip: 'No letter means a pawn. Which pawn can reach e4?' },
-    { id: 'read-italian', title: 'Three in a Row', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6'],
-      text: 'Play these three moves in order: e4, then Nf3, then Bc4. N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
-    { id: 'read-london', title: 'Build a Setup', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Bf4', 'e3', 'Nf3'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
-      text: 'Now a real opening that many club players use, called the London System: d4, Bf4, e3, Nf3. Read each move and play it.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+    { id: 'read-italian', title: 'Leo Says', dare: 'Leo says…', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'Nf3', 'Bc4'], limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6'],
+      text: 'I call the move, you play it. e4! Nf3! Bc4! N is the knight, B is the bishop.', tip: 'Read the letter for the piece, then find the square it lands on.' },
+    { id: 'read-take', title: 'x Marks the Take', dare: 'Watch out, I bite back:', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['e4', 'exd5', 'Nc3'], limit: 3, par: 3, coach: 'wander', replies: ['d5', 'Qxd5'],
+      text: 'An x means takes. Play e4. When I answer d5, take it: exd5. I take back with my queen, so chase her away: Nc3!', tip: 'exd5 is the e-pawn taking on d5. Nc3 is the knight from b1 jumping to c3.' },
+    { id: 'read-race', title: 'Lightning Reader', dare: 'Faster now. Can you keep up?', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Nc3', 'Bf4', 'Qd2'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
+      text: 'Four moves, no mistakes: d4, Nc3, Bf4, Qd2. Q is the queen.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
   'l-firstmoves': [
     { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6', 'Nf6'], sol: ['e2e4', 'g1f3', 'b1c3'],
@@ -8401,11 +8404,23 @@ function BOARD2D_FACTORY() {
     var I = PIECE_INFO[t];
     return '<div class="meet-card"><span class="meet-pc">' + pieceSVG(t, 'w', 64) + '</span><span class="meet-txt"><b>' + PIECE_NAME[t].charAt(0).toUpperCase() + PIECE_NAME[t].slice(1) + '</b><span>Letter: <b class="mono">' + I.letter + '</b> · Worth: ' + I.value + '</span></span></div>';
   }
+  // Long step text: a short lead to read, the rest one tap away (phones only; desktops show it all)
+  function shortText(t, i) {
+    t = String(t || ''); if (t.length <= 95) return esc(t);
+    var parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t], lead = '', k = 0;
+    while (k < parts.length && lead.length < 45) { lead += parts[k]; k++; } // one or two short sentences up front
+    var rest = parts.slice(k).join('');
+    if (!rest.trim() || rest.length < 25) return esc(t);
+    var open = LS && LS.more === i;
+    return esc(lead.trim()) + ' <span class="ct-more' + (open ? ' open' : '') + '">' + esc(rest.trim()) + '</span><button class="ct-btn' + (open ? ' open' : '') + '" data-act="moreText" data-i="' + i + '">More ▸</button>';
+  }
+  ACT.moreText = function (d) { if (!LS) return; LS.more = +d.i; var m = $('.ct-more'), b = $('.ct-btn'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
       LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0 };
       Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
+      if (phoneFit.pre) phoneFit.pre(); // phones: one board size for every step, chosen up front
       MODES.lesson.render();
       MODES.lesson.loadStep();
     },
@@ -8427,7 +8442,7 @@ function BOARD2D_FACTORY() {
         '<h1 class="h1">' + esc(L.title) + '</h1>' +
         '<p class="lede">' + esc(L.goal) + '</p>' +
         '<div class="dots" aria-label="Step ' + (LS.i + 1) + ' of ' + L.steps.length + '">' + dots + '</div>' +
-        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + esc(step.text) + '</p>' + askBox(step) +
+        '<div class="coach-card"><div class="coach-tag">' + kind + ' · ' + (LS.i + 1) + '/' + L.steps.length + '</div>' + (step.meet && !(Q && Q.live && !Q.done) ? meetCard(step.meet) : '') + (Q && Q.live && !Q.done ? quizBox(Q) : '') + '<p class="coach-text">' + shortText(step.text, LS.i) + '</p>' + askBox(step) +
         (step.t === 'collect' ? '<p class="collect-count" id="collect-count"></p>' : '') +
         (step.t === 'pieces' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap your <b>' + PIECE_NAME[step.targets[LS.sq.i]] + '</b> <span class="sq-glyph">' + pieceSVG(step.targets[LS.sq.i], 'w', 34) + '</span>' : '✓ All six found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
         (step.t === 'squares' && LS.sq ? '<div class="sq-game"><span class="sq-ask">' + (LS.sq.i < step.targets.length ? 'Tap <b class="mono">' + step.targets[LS.sq.i] + '</b>' : '✓ All found') + '</span><span class="quiz-pips">' + step.targets.map(function (t, k) { return '<i class="' + (k < LS.sq.i ? 'on' : '') + '"></i>'; }).join('') + '</span></div>' : '') +
@@ -8629,7 +8644,7 @@ function BOARD2D_FACTORY() {
     var cards = [];
     var playNew = wasLocked.play && !isLocked('play'), opNew = wasLocked.openings && !isLocked('openings');
     var ms = MISSIONS[id], msDone = coachMissionsDone(id);
-    if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Coach missions (replay)' : 'Coach missions: ' + ms.map(function (m) { return m.title; }).slice(0, 2).join(', ') + '…', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
+    if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Leo\'s challenges (replay)' : 'Beat Leo\'s 3 challenges', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
     if (!ms && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
     var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
@@ -9862,7 +9877,7 @@ function BOARD2D_FACTORY() {
 
   // ================= Coach missions: short hands-on scenarios right after a lesson =================
   var MS = null;
-  var GOAL_TXT = { sequence: 'Play the written moves', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
+  var GOAL_TXT = { sequence: 'Play the moves Leo calls', check: 'Give check', capture: 'Win pieces', captureAll: 'Take every piece', mate: 'Checkmate', promote: 'Make a queen', castle: 'Castle', ep: 'Capture en passant' };
   function missionStars(m, n) { return n <= m.par ? 3 : n <= m.par + Math.ceil((m.limit - m.par) / 2) ? 2 : 1; }
   function coachMissionsDone(id) { return (MISSIONS[id] || []).filter(function (m) { return S.missions && S.missions[m.id]; }).length; }
   function missionGoalCount(m, g) { return m.goal === 'sequence' ? m.seq.length : m.goal === 'captureAll' ? missionMaterial(g, m.side === 'b' ? 'w' : 'b') : m.goal === 'capture' ? m.count || 1 : 1; }
@@ -9940,22 +9955,22 @@ function BOARD2D_FACTORY() {
       var body;
       if (MS.over === 'win') {
         var nx = list[MS.i + 1];
-        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>Mission complete!</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? (MS.hint ? '. Without a hint it is worth 3 stars.' : '. ' + m.par + ' moves gets you 3 stars.') : '. Perfect.') + '</p></div>' +
-          '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next mission: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All missions done →</button>') +
+        body = '<div class="ms-result win"><div class="big-stars">' + '★'.repeat(MS.stars) + '<span class="dim">' + '★'.repeat(3 - MS.stars) + '</span></div><h2>' + (MS.stars === 3 ? 'You beat my challenge! 🎉' : 'Challenge beaten!') + '</h2><p>' + esc(GOAL_TXT[m.goal]) + ' in ' + MS.n + ' move' + (MS.n > 1 ? 's' : '') + (MS.stars < 3 ? (MS.hint ? '. Without a hint it is worth 3 stars.' : '. ' + m.par + ' moves gets you 3 stars.') : '. Perfect.') + '</p></div>' +
+          '<div class="actions">' + (nx ? '<button class="btn primary wide" data-act="mission" data-l="' + MS.lesson + '" data-i="' + (MS.i + 1) + '">Next challenge: ' + esc(nx.title) + ' →</button>' : '<button class="btn primary wide" data-act="missionsDone">All three beaten →</button>') +
           (MS.stars < 3 ? '<button class="btn" data-act="missionRetry">↻ Go for 3 stars</button>' : '') + '</div>';
       } else if (MS.over === 'fail') {
         body = '<div class="ms-result fail"><h2>Not this time</h2><p>' + esc(MS.why || '') + '</p></div><div class="actions"><button class="btn primary wide" data-act="missionRetry">↻ Try again</button><button class="btn ghost" data-act="missionHint">Show me a hint</button></div>';
       } else {
         body = '<div class="ms-track"><div class="ms-goal"><span class="ms-goal-ico">◎</span><b>' + esc(GOAL_TXT[m.goal]) + '</b>' + (MS.total > 1 ? '<span class="ms-count">' + got + ' / ' + MS.total + '</span>' : '') + '</div>' +
-          '<div class="ms-moves"><span>' + (MS.busy ? 'Coach is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
+          '<div class="ms-moves"><span>' + (MS.busy ? 'Leo is moving…' : left + ' move' + (left === 1 ? '' : 's') + ' left') + '</span><span class="ms-mvs">' + moves + '</span></div>' +
           (MS.total > 1 ? '<div class="ms-bar"><i style="width:' + Math.round(got / MS.total * 100) + '%"></i></div>' : '') +
           (m.goal === 'sequence' ? '<div class="ms-seq">' + m.seq.map(function (x, k) { return '<span class="mono' + (k < got ? ' done' : k === got ? ' now' : '') + '">' + esc(x) + '</span>'; }).join('') + '</div>' : '') + '</div>' +
           (MS.hint ? '<p class="ms-tip">💡 ' + esc(m.tip) + '</p>' : '') +
           '<div class="actions"><button class="btn ghost" data-act="missionHint">Hint</button><button class="btn ghost" data-act="missionRetry">↻ Restart</button></div>';
       }
       setPanel('<button class="back" data-act="lesson" data-id="' + MS.lesson + '">← ' + esc(L.title) + '</button>' +
-        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Coach mission ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I defend for real' : ' · I play gently') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
-        (MS.over ? '' : '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p>' + esc(m.text) + '</p></div>') + body);
+        '<div class="ms-head"><div class="ms-steps">' + steps + '</div><div class="eyebrow">Leo\'s challenge ' + (MS.i + 1) + ' of ' + list.length + (m.coach === 'defend' ? ' · I fight back' : ' · I go easy') + '</div><h1 class="h1">' + esc(m.title) + '</h1></div>' +
+        (MS.over ? '' : '<div class="ms-coach"><span class="ms-ava">' + coachAvatar() + '</span><p><b class="ms-dare">' + esc(m.dare || 'Bet you can\'t do this:') + '</b> ' + esc(m.text) + '</p></div>') + body);
       if (MS.over) { var pn = $('#panel'); setTimeout(function () { pn.scrollTop = pn.scrollHeight; }, 60); }
     },
     leave: function () { MS = null; }
@@ -10124,7 +10139,7 @@ function BOARD2D_FACTORY() {
   // what comes after a lesson: its missions, then its practice, then the next lesson
   function flowNext(lid) {
     var ms = MISSIONS[lid];
-    if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Coach missions', s: ms.length + ' quick challenges against me' };
+    if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Beat Leo\'s challenges', s: ms.length + ' quick dares, with stars to win' };
     if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
     var nl = nextLesson(); return nl ? { k: 'lesson', lid: nl, t: 'Next lesson', s: LESSONS[nl].title } : null;
   }
@@ -11614,7 +11629,7 @@ function BOARD2D_FACTORY() {
       if (sub) { x.font = '600 34px system-ui, sans-serif'; x.fillStyle = color || '#c4ff3d'; x.fillText(sub, 256, 124); }
       var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
       var s = new T.Sprite(new T.SpriteMaterial({ map: tx, depthWrite: false, transparent: true, toneMapped: false }));
-      var k = scale || 1; s.scale.set(5.2 * k, 5.2 * k * c.height / 512, 1); s.renderOrder = 5; return s;
+      var k = scale || 1; s.scale.set(5.2 * k, 5.2 * k * c.height / 512, 1); s.renderOrder = 5; (W.signs = W.signs || []).push(s); return s;
     }
   }
   function careerRebuildPlayer() {
@@ -11895,6 +11910,7 @@ function BOARD2D_FACTORY() {
     W.puffs.forEach(function (u) { var t = (W.t * 0.18 + u.userData.t) % 1; u.position.set(W.chimney.x + t * 1.2, W.chimney.y + t * 4, W.chimney.z - t * 0.6); u.scale.setScalar(0.5 + t * 1.4); u.material.opacity = 0.65 * (1 - t); });
     W.drops.forEach(function (u) { var t = (W.t * 0.9 + u.userData.t) % 1, a = u.userData.a; u.position.set(W.fountain.x + Math.sin(a) * t * 0.9, 2.1 + Math.sin(t * Math.PI) * 0.9 - t * 1.3, W.fountain.z + Math.cos(a) * t * 0.9); });
     W.birds.forEach(function (b) { var u = b.userData, a = W.t * u.s + u.a; b.position.set(Math.sin(a) * u.r, u.h + Math.sin(W.t + u.a) * 1.5, Math.cos(a) * u.r); b.rotation.y = a + Math.PI / 2; var fl = Math.sin(W.t * 9 + u.a) * 0.7; u.wl.rotation.z = fl; u.wr.rotation.z = -fl; });
+    if (W.signs) { var cp = W.cam.position, wp = W.v3s || (W.v3s = new THREE.Vector3()); W.signs.forEach(function (sg) { sg.getWorldPosition(wp); var d = wp.distanceTo(cp); sg.material.opacity = Math.max(0, Math.min(1, (d - 5) / 4)); sg.visible = d > 5; }); } // signs fade out when the camera is right next to them
     if (W.pollen) { var pa = W.pollen.geometry.attributes.position.array; for (var pi2 = 0; pi2 < pa.length; pi2 += 3) { pa[pi2] += Math.sin(W.t * 0.7 + pi2) * dt * 0.3; pa[pi2 + 1] += dt * 0.18; if (pa[pi2 + 1] > 5.5) pa[pi2 + 1] = 0.3; } W.pollen.geometry.attributes.position.needsUpdate = true; W.pollen.position.set(Math.round(p.x / 30) * 30, 0, Math.round(p.z / 30) * 30); }
     W.flies.forEach(function (f) { var u = f.userData, t = W.t * 0.8 + u.a; f.position.set(u.cx + Math.sin(t * 1.3) * 1.2, 0.9 + Math.sin(t * 2.1) * 0.3, u.cz + Math.cos(t) * 1.2); f.rotation.y = t; var fl = Math.sin(W.t * 18 + u.a) * 1.1; u.w1.rotation.y = fl; u.w2.rotation.y = -fl; });
     // golden pawns
@@ -11974,10 +11990,15 @@ function BOARD2D_FACTORY() {
         edge.style.transform = 'translate(' + Math.round(ex) + 'px,' + Math.round(ey) + 'px) translate(-50%,-50%) rotate(' + (ang * 180 / Math.PI - 90) + 'deg)';
       }
     } else { ptr.hidden = true; edge.hidden = true; }
+    var hb = W.bub.length ? W.host.getBoundingClientRect() : null, obs = hb ? ['#w-quest', '#w-map', '.w-btns'].map(function (q) { var e = $(q); if (!e || e.offsetParent === null) return null; var r = e.getBoundingClientRect(); return { l: r.left - hb.left - 6, r: r.right - hb.left + 6, t: r.top - hb.top - 6, b: r.bottom - hb.top + 6 }; }).filter(Boolean) : [];
     W.bub = W.bub.filter(function (b) {
       if (W.t > b.until || W.cine) { b.el.remove(); return false; }
       var g = b.p.g.position, s2 = proj(g.x, (b.p.lift || 0) + 3.3 + g.y, g.z); b.el.style.display = s2.on ? '' : 'none';
-      b.el.style.transform = 'translate(' + Math.round(s2.x) + 'px,' + Math.round(s2.y) + 'px) translate(-50%,-100%)'; return true;
+      // keep the bubble on screen and clear of the quest card, the map and the buttons
+      var bw = b.el.offsetWidth || 180, bh = b.el.offsetHeight || 50, x = Math.max(bw / 2 + 8, Math.min(w - bw / 2 - 8, s2.x)), y = s2.y;
+      for (var k = 0; k < 3; k++) obs.forEach(function (o) { if (x + bw / 2 > o.l && x - bw / 2 < o.r && y > o.t && y - bh < o.b) y = o.b + bh; });
+      if (s2.on) obs.push({ l: x - bw / 2 - 4, r: x + bw / 2 + 4, t: y - bh - 4, b: y + 4 }); // the next bubble steps around this one
+      b.el.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px) translate(-50%,-100%)'; return true;
     });
     if (W.tg) { var fx2 = -Math.sin(W.camYaw), fz2 = -Math.cos(W.camYaw), tx2 = W.tg.x - p.x, tz2 = W.tg.z - p.z; $('#w-arrow').style.transform = 'rotate(' + (Math.atan2(tx2 * (-fz2) + tz2 * fx2, tx2 * fx2 + tz2 * fz2) * 180 / Math.PI - 90) + 'deg)'; }
     if (W.t - (W.mapT || 0) > 0.15) { W.mapT = W.t; careerMap(); }
@@ -14255,7 +14276,10 @@ function BOARD2D_FACTORY() {
       raf = requestAnimationFrame(function () {
         if (!(mq && mq.matches) || document.body.dataset.layout !== 'board') { if (last) { st.style.removeProperty('height'); last = 0; } return; }
         var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight;
-        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * (document.body.dataset.passive === '1' ? 0.23 : 0.31)), maxB);
+        var inLesson = document.body.dataset.mode === 'lesson' && LS, key = inLesson ? LS.id + '|' + h + '|' + innerWidth : null;
+        var maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * (document.body.dataset.passive === '1' ? 0.23 : 0.31)), maxB), passive = document.body.dataset.passive === '1';
+        if (key && LS.more === LS.i && fitBoard.key === key) return; // the player opened more text: let the panel scroll, keep the board
+        if (key && fitBoard.key === key) maxB = Math.max(minB, Math.min(maxB, fitBoard.cap)); // a steady board: squares stay under your thumb
         // start from the biggest board, then give back exactly what the panel is missing
         st.style.setProperty('height', maxB + 'px', 'important'); last = maxB; void panel.offsetHeight;
         for (var k = 0; k < 3; k++) {
@@ -14264,9 +14288,22 @@ function BOARD2D_FACTORY() {
           if (Math.abs(next - cur) < 2) break;
           st.style.setProperty('height', next + 'px', 'important'); last = next; void panel.offsetHeight;
         }
+        if (key && (!passive || fitBoard.key !== key)) { fitBoard.key = key; fitBoard.cap = last; } // a reading step that needed extra room does not shrink the rest of the lesson
       });
     }
     phoneFit.fit = fitBoard;
+    // Before a lesson starts, lay out each step once and keep the board small enough for the busiest one
+    phoneFit.pre = function () {
+      if (!(mq && mq.matches) || !LS) return;
+      var h = parseFloat(getComputedStyle(root).getPropertyValue('--app-h')) || innerHeight, maxB = Math.min(innerWidth - 4, Math.round(h * 0.6)), minB = Math.min(232, Math.round(h * 0.31), maxB);
+      var prevLayout = document.body.dataset.layout, need = 0, keepI = LS.i;
+      document.body.dataset.layout = 'board'; st.style.setProperty('height', maxB + 'px', 'important');
+      try {
+        for (var k = 0; k < LS.L.steps.length; k++) { var sk = LS.L.steps[k]; LS.i = k; LS.quizI = -1; LS.ak = (sk.ask || sk.tap) ? { found: [], done: false, miss: 0 } : null; MODES.lesson.render(); void panel.offsetHeight; need = Math.max(need, panel.scrollHeight - panel.clientHeight + (sk.t === 'squares' || sk.t === 'pieces' ? 44 : 0) + (QUIZ_OF(sk) ? 30 : 0)); } // games and quizzes add a row once they start
+      } catch (e) { }
+      LS.i = keepI; LS.quizI = -1; LS.quiz = null; LS.ak = null; document.body.dataset.layout = prevLayout;
+      fitBoard.key = LS.id + '|' + h + '|' + innerWidth; fitBoard.cap = Math.max(minB, Math.min(maxB, maxB - need - 20)); // a little room for a feedback line
+    };
     new MutationObserver(fitBoard).observe(panel, { childList: true, subtree: true, characterData: true });
     new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }
@@ -15217,4 +15254,5 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .ask-hint { float: right; margin: -2px 0 4px 8px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 700 12px var(--f-body); cursor: pointer; } .ask-hint:hover { color: var(--fg); }
 .combo-chip { display: inline-block; margin: 0 0 0 8px; padding: 1px 8px; border-radius: 999px; background: rgba(255,181,71,.15); color: var(--warn); font: 800 12px var(--f-mono); animation: tagpop .3s both; }
 @media (max-width: 880px) and (orientation: portrait) { body[data-layout="board"] .ask-box { padding: 8px 10px; margin-top: 6px; } body[data-layout="board"] .ask-opt { padding: 8px 10px; font-size: 14px; } body[data-layout="board"] .ask-q { font-size: 14px; margin-bottom: 6px; } body[data-layout="board"] .ask-opts { display: flex; flex-wrap: wrap; gap: 6px; } body[data-layout="board"] .ask-opt { flex: 1 1 auto; padding: 7px 10px; } body[data-layout="board"] .ask-msg { font-size: 13.5px; margin-top: 6px; } }
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-layout="board"] .ask-box { padding: 6px 9px; margin-top: 4px; } body[data-layout="board"] .ask-opt { padding: 6px 9px; font-size: 13.5px; line-height: 1.25; } body[data-layout="board"] .ask-opts { gap: 4px; } }
 </style>

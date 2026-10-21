@@ -178,6 +178,8 @@ button:disabled { cursor: not-allowed; }
 .coach-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 15px; position: relative; }
 .coach-tag { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; margin-bottom: 6px; }
 .coach-text { margin: 0; font-size: 15.5px; }
+.ct-btn { display: none; border: 0; background: none; padding: 0 0 0 4px; color: #c4ff3d; font: 800 13px var(--f-body); cursor: pointer; white-space: nowrap; }
+@media (max-width: 880px) and (orientation: portrait) { .ct-more:not(.open) { display: none; } .ct-btn:not(.open) { display: inline; } }
 .turn-note, .collect-count { margin: 10px 0 0; font-family: var(--f-mono); font-size: 12.5px; color: var(--brass-hi); }
 .next-note { margin: 10px 0 0; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px; }
 .status { margin-top: 12px; min-height: 22px; font-size: 14.5px; border-radius: 9px; }
@@ -360,7 +362,7 @@ button:disabled { cursor: not-allowed; }
   body[data-layout="board"] .ask-opts { gap: 5px; } body[data-layout="board"] .ask-opt { padding: 6px 9px; font-size: 13.5px; line-height: 1.25; }
   body[data-layout="board"] .ask-msg { font-size: 13px; line-height: 1.35; }
   body.mob[data-layout="board"] .panel .h1 { font-size: 16px; margin: 0; }
-  body.mob .panel .meet-card { padding: 5px 9px; gap: 9px; margin: 0 0 6px; } body.mob .panel .meet-pc { width: 34px; height: 34px; } body.mob .panel .meet-pc svg { width: 30px; height: 30px; }
+  body.mob .panel .meet-card { padding: 4px 9px; gap: 9px; margin: 0 0 5px; } body.mob .panel .meet-txt { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; } body.mob .panel .meet-txt > b { font-size: 16px; } body.mob .panel .meet-pc { width: 34px; height: 34px; } body.mob .panel .meet-pc svg { width: 30px; height: 30px; }
   body.mob .panel .meet-txt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; font-size: 13px; } body.mob .panel .meet-txt > b { font-size: 16px; }
   .top { min-height: 46px; } .sound { width: 34px; height: 34px; }
 }
@@ -563,6 +565,7 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 @keyframes fiDraw { to { stroke-dashoffset: 0; } }
 /* guiding hand */
 .wn-more { margin: 4px 0 0; } .wn-more > summary { cursor: pointer; list-style: none; padding: 10px 0; font-weight: 800; color: var(--dim, #aab); } .wn-more > summary::before { content: '▸ '; } .wn-more[open] > summary::before { content: '▾ '; } .wn-more > summary::-webkit-details-marker { display: none; }
+.ms-dare { color: #ffd23f; font-weight: 900; margin-right: 2px; }
 .g-glow { animation: gGlow 1.1s ease-in-out 4; position: relative; z-index: 1; border-radius: 14px; }
 @keyframes gGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,63,0); } 50% { box-shadow: 0 0 0 4px rgba(255,210,63,.9), 0 0 24px rgba(255,210,63,.6); } }
 #w-dlg .btn.pulse { animation: spBeat 1.6s ease-in-out infinite; }
@@ -1625,4 +1628,5 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
 .ask-hint { float: right; margin: -2px 0 4px 8px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 700 12px var(--f-body); cursor: pointer; } .ask-hint:hover { color: var(--fg); }
 .combo-chip { display: inline-block; margin: 0 0 0 8px; padding: 1px 8px; border-radius: 999px; background: rgba(255,181,71,.15); color: var(--warn); font: 800 12px var(--f-mono); animation: tagpop .3s both; }
 @media (max-width: 880px) and (orientation: portrait) { body[data-layout="board"] .ask-box { padding: 8px 10px; margin-top: 6px; } body[data-layout="board"] .ask-opt { padding: 8px 10px; font-size: 14px; } body[data-layout="board"] .ask-q { font-size: 14px; margin-bottom: 6px; } body[data-layout="board"] .ask-opts { display: flex; flex-wrap: wrap; gap: 6px; } body[data-layout="board"] .ask-opt { flex: 1 1 auto; padding: 7px 10px; } body[data-layout="board"] .ask-msg { font-size: 13.5px; margin-top: 6px; } }
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { body[data-layout="board"] .ask-box { padding: 6px 9px; margin-top: 4px; } body[data-layout="board"] .ask-opt { padding: 6px 9px; font-size: 13.5px; line-height: 1.25; } body[data-layout="board"] .ask-opts { gap: 4px; } }
 </style>
