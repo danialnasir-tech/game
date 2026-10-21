@@ -61,6 +61,10 @@ function threatFrom(p, text) {
 const doneSeen = new Set();
 function moveFrom(p, text, hint) {
   used.add(p.id);
+  // keep the prompt honest about the position: no "two things" without a fork, no "no defender" when it is defended
+  const g0 = new Game(fenOf(p)), r0 = U(g0, p.sol[0]), guarded = r0 && r0.captured && g0.moves().some(m => m.to === r0.to);
+  if (/two things|double attack/i.test(text) && p.theme !== 'fork') text = guarded ? 'Find the move that wins material.' : 'Something is loose. Find the move that wins it.';
+  if (/no defender|is loose/i.test(text) && (guarded || p.theme === 'fork')) text = p.theme === 'fork' ? 'Find the double attack.' : 'Find the move that wins material.';
   let done = p.explain;
   if (doneSeen.has(done)) { const g = new Game(fenOf(p)), r = U(g, p.sol[0]); done = (r ? r.san + '! ' : '') + done; }
   doneSeen.add(done);

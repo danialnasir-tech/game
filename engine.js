@@ -378,6 +378,11 @@ function ENGINE_FACTORY(Game) {
 
   function uciOf(m) { return m.from + m.to + (m.promotion || ''); }
 
+  function allowsMate1(g, m) {
+    if (!g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined })) return false;
+    var mate = g.moves().some(function (x) { g.move(x); var y = g.inCheckmate(); g.undo(); return y; });
+    g.undo(); return mate;
+  }
   function pickMove(fen, level, prevFens) {
     // level: {depth, time, margin}
     var r = rootSearch(fen, level.depth, level.time, level.margin ? Math.max(level.margin, 1) : 0, prevFens);
@@ -386,6 +391,14 @@ function ENGINE_FACTORY(Game) {
     var pool = level.margin ? r.moves.filter(function (m) { return m.score >= best - level.margin; }) : [r.moves[0]];
     // never randomly miss a mate or walk into one
     if (best > MATE - 100) pool = [r.moves[0]];
+    // shallow levels play the opening like people do: no early queen trips while other moves are fine
+    if (level.depth <= 3 && +fen.split(' ')[5] <= 6) { var calm = pool.filter(function (m) { return m.piece !== 'q' || m.captured; }); if (calm.length) pool = calm; }
+    // shallow levels: never walk into a mate in one (a real 1000 player sees that)
+    if (level.depth <= 2 && best < MATE - 100) {
+      var gg = new Game(fen), safe = pool.filter(function (m) { return !allowsMate1(gg, m); });
+      if (!safe.length) safe = r.moves.filter(function (m) { return !allowsMate1(gg, m); }).slice(0, 1);
+      if (safe.length) pool = safe;
+    }
     var pick = pool[Math.floor(Math.random() * pool.length)];
     return { move: pick, score: pick.score, depth: r.depth, best: r.moves[0] };
   }

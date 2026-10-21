@@ -36,7 +36,7 @@
       grid.querySelectorAll('.mb-sq').forEach(function (d) { if (cls === 'all') d.classList.remove('dot', 'hl', 'bad', 'good', 'sel'); else d.classList.toggle(cls, sqs.indexOf(d.dataset.sq) >= 0); });
     };
     api.star = function (sq) { var s = document.createElement('span'); s.className = 'mb-star'; s.textContent = '⭐'; place(s, sq); fx.appendChild(s); return s; };
-    api.pop = function (sq, text, cls) { var s = document.createElement('span'); s.className = 'mb-pop ' + (cls || ''); s.innerHTML = '<span>' + esc(text) + '</span>'; place(s, sq); fx.appendChild(s); setTimeout(function () { s.remove(); }, 2400); };
+    api.pop = function (sq, text, cls) { fx.querySelectorAll('.mb-pop').forEach(function (o) { o.remove(); }); var s = document.createElement('span'); s.className = 'mb-pop ' + (cls || ''); s.innerHTML = '<span>' + esc(text) + '</span>'; place(s, sq); fx.appendChild(s); setTimeout(function () { s.remove(); }, 2400); };
     api.clearFx = function () { fx.innerHTML = ''; svg.innerHTML = ''; };
     api.tap = function (fn) { onTap = fn; host.classList.toggle('live', !!fn); };
     grid.addEventListener('click', function (e) { var d = e.target.closest('.mb-sq'); if (d && onTap) onTap(d.dataset.sq); });
@@ -500,30 +500,36 @@
   var FEATURES = {
     puzzles: { icon: '🧩', title: 'Puzzles: find the winning move', line: 'fi_puzzles', fen: '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1', seq: [function (m) { m.mark(['a1'], 'sel'); }, ['a1', 'a8', 'g'], function (m) { m.pop('a8', 'Checkmate · +12 rating', 'big'); m.mark(['g8'], 'bad'); }], guide: ['.b2-board', '#three canvas'], label: 'Your turn: tap a piece, then its square' },
     openings: { icon: '📖', title: 'Openings: start every game well', line: 'fi_openings', fen: Game.START, seq: [['e2', 'e4'], ['e7', 'e5'], ['g1', 'f3'], ['b8', 'c6'], ['f1', 'c4'], function (m) { m.pop('c4', 'Italian Game', 'big'); m.arrow([['c4', 'f7', 'r']]); }], guide: ['.rec-card', '.op-card'], label: 'Pick an opening to learn' },
-    play: { icon: '🤝', title: 'Play me: feedback on every move', line: 'fi_play', fen: Game.START, seq: [['e2', 'e4'], function (m) { m.pop('e4', '✓ Good: takes the centre', 'good'); }, ['e7', 'e5'], ['d1', 'h5'], function (m) { m.pop('h5', '⚠ Early queen: she gets chased', 'warn'); }, ['b8', 'c6'], function (m) { m.pop('c6', '✓ Black develops with tempo', 'good'); }], guide: ['[data-act="startGame"]'], label: 'Choose a level, then start' },
-    arena: { icon: '⚔️', title: 'The Arena: quick wins', line: 'fi_arena', fen: 'r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1', seq: [['b5', 'c7'], function (m) { m.arrow([['c7', 'e8', 'r'], ['c7', 'a8', 'r']]); m.pop('c7', 'Fork! ⭐⭐⭐', 'big'); }], guide: ['.boss-row:not([disabled])', '.ar-tile', '.ex-tile'], label: 'Pick a challenge' },
+    play: { icon: '🤝', title: 'Play me: feedback on every move', line: 'fi_play', fen: Game.START, seq: [['e2', 'e4'], function (m) { m.pop('e4', '✓ Good: takes the centre', 'good'); }, ['e7', 'e5'], ['d1', 'h5'], function (m) { m.pop('h5', '⚠ Early queen: she can be chased', 'warn'); }, ['b8', 'c6'], function (m) { m.pop('c6', '✓ Black develops and guards e5', 'good'); }], guide: ['[data-act="startGame"]'], label: 'Choose a level, then start' },
+    arena: { icon: '⚔️', title: 'The Arena: quick wins', line: 'fi_arena', fen: 'r3k3/8/8/8/8/8/8/3QK3 w - - 0 1', seq: [['d1', 'a4'], function (m) { m.arrow([['a4', 'e8', 'r'], ['a4', 'a8', 'r']]); m.pop('a4', 'Queen fork! ⭐⭐⭐', 'big'); }], guide: ['.boss-row:not([disabled])', '.ar-tile', '.ex-tile'], label: 'Pick a challenge' },
     progress: { icon: '📈', title: 'Progress: see yourself improve', line: 'fi_progress', chart: true, guide: null }
   };
   var FeatureIntro = (function () {
     var el = null, demo = null;
     function close(tryIt, mode) {
       if (demo) { demo.stop(); demo = null; } if (!el) return; el.classList.add('out'); var e = el; setTimeout(function () { e.remove(); }, 300); el = null;
-      var F = FEATURES[mode]; if (tryIt && F && F.guide) setTimeout(function () { Guide.show(F.guide.join(','), F.label); }, 350);
+      var F = FEATURES[mode]; if (tryIt && F && F.guide) setTimeout(function () { glow(F.guide.join(',')); toast(F.label); }, 350);
     }
     function show(mode) {
       var F = FEATURES[mode]; if (!F || el) return;
       el = document.createElement('div'); el.className = 'fi-wrap';
       el.innerHTML = '<div class="fi-card" role="dialog" aria-modal="true"><div class="fi-head"><span class="fi-ico">' + F.icon + '</span><b>' + esc(F.title) + '</b></div>' +
-        (F.chart ? '<svg class="fi-chart" viewBox="0 0 300 120" aria-hidden="true"><path class="fi-line" d="M10 104 C 50 98, 70 92, 100 84 S 150 70, 180 60 S 240 30, 290 14" fill="none"/><circle cx="290" cy="14" r="6"/><text x="196" y="40">+180 in 30 days</text></svg>' : '<div class="fi-board" id="fi-board"></div>') +
-        '<p class="fi-text">' + esc(CAREER_TEXT[F.line]) + '</p><div class="wl-acts"><button class="btn primary big" data-fi="try">' + (F.guide ? 'Try it now ▶' : 'Got it') + '</button></div></div>';
+        (F.chart ? '<svg class="fi-chart" viewBox="0 0 300 120" aria-hidden="true"><path class="fi-line" d="M10 104 C 50 98, 70 92, 100 84 S 150 70, 180 60 S 240 30, 290 14" fill="none"/><circle cx="290" cy="14" r="6"/><text x="286" y="40" text-anchor="end">+180 in 30 days</text></svg>' : '<div class="fi-board" id="fi-board"></div>') +
+        '<p class="fi-text">' + esc(CAREER_TEXT[F.line]) + '</p><div class="wl-acts"><button class="btn primary big" data-fi="try">' + (F.guide ? 'Try it now ▶' : 'Got it') + '</button><button class="link small" data-fi="notips">Skip all tips</button></div></div>';
       document.body.appendChild(el);
-      if (!F.chart) { var mb = MiniBoard($('#fi-board')); demo = mbPlay(mb, F.fen, F.seq, { loop: true, gap: 950, hold: 2600, lead: 500 }); }
-      el.addEventListener('click', function (e) { if (e.target.closest('[data-fi]') || e.target === el) close(true, mode); });
+      if (!F.chart) { var mb = MiniBoard($('#fi-board')); demo = mbPlay(mb, F.fen, F.seq, { loop: true, gap: 1200, hold: 2600, lead: 500 }); }
+      el.addEventListener('click', function (e) { var b = e.target.closest('[data-fi]'); if (b && b.dataset.fi === 'notips') { S.noTips = true; save(); return close(false, mode); } if (b || e.target === el) close(true, mode); });
       Voice.say([WT(F.line)]);
     }
     return { show: show, has: function (m) { return !!FEATURES[m]; }, open: function () { return !!el; } };
   })();
 
+  // a soft pulsing outline on the first visible match, for a few seconds
+  function glow(sel) {
+    var list = document.querySelectorAll(sel), t = null;
+    for (var i = 0; i < list.length && !t; i++) { var r = list[i].getBoundingClientRect(); if (r.width > 4 && r.height > 4 && r.top < innerHeight && r.bottom > 0) t = list[i]; }
+    if (!t) return; t.classList.add('g-glow'); setTimeout(function () { t.classList.remove('g-glow'); }, 4500);
+  }
   // ---------- the guiding hand: points at what to tap next and goes away once it is tapped
   var Guide = (function () {
     var el = null, tgt = null, raf = 0, until = 0, cb = null;
@@ -532,7 +538,7 @@
       var sels = tgt.split(','); for (var k = 0; k < sels.length; k++) { var list = document.querySelectorAll(sels[k]); for (var i = 0; i < list.length; i++) { var r = list[i].getBoundingClientRect(); if (r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight) return r; } } return null;
     }
     function loop() {
-      if (!el) return; var r = find();
+      if (!el) return; var sp = document.getElementById('splash'), r = sp && !sp.classList.contains('out') ? null : find(); // never point through the splash
       if (!r) el.style.opacity = '0';
       else {
         var x = r.left + r.width / 2, y = r.top + Math.min(r.height * 0.62, r.height - 6), up = y + 120 < innerHeight;

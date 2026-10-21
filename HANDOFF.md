@@ -308,3 +308,25 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Testing note: headless software rendering runs at ~2 fps, so the intro finishes before a test sees it; stepping the
   flight by hand (`ChessAscent.dbg().Stage.dbg().path`) shows the frames. Tests that skip onboarding should call
   `ChessAscent.dbg().Stage.stop()` so the scene does not keep rendering behind them.
+
+## Playtest round (three first-time personas: beginner phone, ~700 laptop, ~1300 small phone)
+- Launch: the welcome now starts after the splash is dismissed (it used to run underneath it, so the splash reappeared
+  after "Start Day 1"). Splash tips match the player's level. The guide hand never points through the splash.
+- Town first visit: shorter fly-over, the player starts next to Leo, Leo's first button starts the first lesson directly,
+  and the wardrobe opens after that first lesson instead of before anything. Minimap opens a travel menu; the golden-pawn
+  counter explains itself. "All lessons" opens the course list without switching the home screen off the town.
+- Chess text: tests/fix-explain.js rewrote 35 puzzle explanations that wrongly said "undefended" (they now say what
+  really happens) and made titles honest; lesson prompts no longer say "two things at once" without a fork.
+  Feature demos fixed (Play card: "develops and guards e5"; Arena uses a queen fork).
+- Coach games: a mistake with no concrete reason is shown as "Could be better"; better reasons for the best move
+  (rescues a piece / attacks a piece); "Show me" plays 5 plies and explains when material stays level; recaptures are not
+  "the only move"; no Brilliant/Great medal for a move the arrow showed after Retry; old Retry buttons cannot rewind a
+  game that moved on. Coach plays main-line openings from the library (never trap lines) for its first moves; levels
+  up to depth 3 avoid early queen trips; depth ≤ 2 never walks into mate in one.
+- Puzzles: another clearly winning move (engine within 0.7 pawns of best and ≥ +2.5) is accepted.
+- Rivals: fights are never blocked by the coach-games lock; outside the town a rival gets a VS entrance (`vsFlash`).
+- Celebrations close on any tap, auto-close after 5 s, and wait for the result card. Daily chest only on home screens.
+- Players at 800+ (or who tap "Skip all tips") get no per-tab intro popup; "Try it now" glows the target instead of a hand.
+- Lesson done screen: stars text celebrates first, one primary next step with alternatives folded under "More options".
+- Progress: rating sources labelled, chart green when climbing, placed-out lessons shown as "already known".
+- Tests: harness `H.start(page)` taps through the splash like a person (the old `#sp-go` click no longer starts the welcome).

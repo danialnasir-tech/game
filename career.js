@@ -506,6 +506,7 @@
     function animate(p, dt) { animPerson(p, dt, W.t); }
     W.person = person; W.animate = animate; W.label = label;
     W.P = person(myLook()); W.P.g.position.set(0, 0, 12.5);
+    if (!(S.careerSt && S.careerSt.met)) W.P.g.position.set(1.4, 0, -10.6); // first visit: Leo is a few steps away
     function npc(id, name, sub, color, L, x, z, ry) {
       var p = person(L); p.g.position.set(x, 0, z); p.g.rotation.y = ry; p.home = ry; p.id = id; p.name = name; p.color = color;
       var lb = label(name, sub, color, 0.6); lb.position.y = 3.05; p.g.add(lb); p.lbl = lb;
@@ -696,9 +697,8 @@
       text = CAREER_TEXT[line];
       if (q.lesson && line === 'lesson_go') { text = 'Next up: ' + LESSONS[q.lesson].title + '. ' + LESSONS[q.lesson].goal + ' Follow the golden trail to my Academy.'; btn = '<button class="btn primary small" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + q.lesson + '">Start the lesson</button>'; }
       else if (q.boss) btn = '<button class="btn primary small" data-wact="walk" data-to="boss-' + q.boss.id + '">Walk me to ' + esc(q.boss.name.split(' ')[1] || q.boss.name) + '</button>';
-      else if (line === 'welcome') btn = '<button class="btn primary small" data-wact="walk" data-to="academy">Show me the Academy</button>';
+      else if (line === 'welcome') { var fl = nextLesson(); btn = fl ? '<button class="btn primary small pulse" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + fl + '">▶ Start my first lesson</button>' : '<button class="btn primary small pulse" data-wact="walk" data-to="academy">Show me the Academy</button>'; }
       careerDialog('Coach Leo', '#c4ff3d', text, '', btn, coachAvatar());
-      if (line === 'welcome') setTimeout(function () { Guide.show('#w-dlg .btn.primary', 'Tap here', { ms: 25000 }); }, 1800);
       Voice.say([line === 'lesson_go' && q.lesson ? null : WL(line)].filter(Boolean));
       careerRefresh();
     } else if (n.id === 'gia') {
@@ -747,7 +747,7 @@
     setTimeout(function () {
       CW.busy = false;
       if (mode === 'lesson') return go('lesson', arg);
-      if (mode === 'path') { S.career = false; return go('path'); }
+      if (mode === 'path') { go('path', { list: true }); setTimeout(function () { var j = document.querySelector('.jhead[aria-expanded="true"]') || document.querySelector('.jhead'); if (j && j.scrollIntoView) j.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 500); return; }
       go(mode, arg || undefined);
     }, 650);
   }
@@ -785,6 +785,10 @@
     };
     window.addEventListener('keydown', W.onKey); window.addEventListener('keyup', W.onKey);
     W.host.addEventListener('click', function (e) {
+      if (e.target.closest('#w-map') && !W.cine && !W.mg && !W.ward) { // the map is a travel menu
+        careerDialog('Town map', '#ffd23f', 'Where to? I will walk you there.', '', CAREER_LOCS.map(function (L) { return '<button class="btn ghost small" data-wact="walk" data-to="' + L.id + '">' + L.icon + ' ' + esc(L.name) + '</button>'; }).join(''), '🗺️', 'Close'); W.talking = 'map'; return;
+      }
+      if (e.target.closest('#w-pawns')) { careerNote('♟ ' + CAREER_TEXT.pawns_intro, 4500); return; }
       var b = e.target.closest('[data-wact]'); if (!b) return; var a = b.dataset.wact;
       if (a === 'enter') careerEnter(b.dataset.loc, b.dataset.m, b.dataset.arg);
       if (a === 'close') { if (W.victoryRestore) careerVictoryDone(); else if (W.talking) careerCloseTalk(); else $('#w-dlg').hidden = true; }
@@ -997,17 +1001,15 @@
     };
   }
   function careerIntro() {
-    var W = CW, A = W.Lb.arena, leo = W.npcs[0];
+    var W = CW, leo = W.npcs[0], P0 = W.P.g.position;
     careerCine([
-      { from: [70, 46, 70], to: [-50, 40, 60], look: [0, 0, 0], dur: 3.6, title: '<small>Welcome to</small>ASCENT TOWN' },
-      { from: [-30, 20, -2], to: [-12, 8, -10], lookFrom: [-26, 3, -8], look: [0, 3, -24], dur: 2.6, title: '<small>Learn at</small>LEO\'S ACADEMY' },
+      { from: [60, 40, 60], to: [-30, 30, 50], look: [0, 0, -6], dur: 3, title: '<small>Welcome to</small>ASCENT TOWN' },
       { from: [9, 4, -11], to: [6.6, 2.6, -13.4], lookFrom: [2, 2, -18], look: [3.6, 1.8, -17.4], dur: 2.2, title: '<small>Your coach</small>COACH LEO', each: function () { leo.act = 'wave'; leo.g.rotation.y = 0.9; } },
-      { from: [A.x + 8, 14, A.z + 12], to: [A.x - 9, 6, A.z + 8], look: [A.x, 2, A.z], dur: 2.4, title: '<small>Beat the rivals at</small>THE ARENA' },
-      { from: [0, 9, 26], to: [0, W.camH, 12.5 + W.camDist], look: [0, 1.5, 8.5], dur: 2, title: '' }
+      { from: [P0.x, 9, P0.z + 14], to: [P0.x, W.camH, P0.z + W.camDist], look: [P0.x, 1.5, P0.z - 4], dur: 1.6, title: '' }
     ], { done: function () { S.careerSt.intro = 1; save(); leo.g.rotation.y = leo.home; careerRefresh(); careerAfterIntro(); } });
   }
   function careerAfterIntro() {
-    if (!S.careerSt.look) { careerNote(CAREER_TEXT.look_intro, 4500); careerWardrobe(true, true); return; }
+    if (!S.careerSt.look && lessonsDone() >= 1) { careerNote(CAREER_TEXT.look_intro, 4500); careerWardrobe(true, true); return; }
     if (S.careerSt.met) careerNote(CW.mob ? CAREER_TEXT.hint_tap : CAREER_TEXT.hint_keys, 6000);
   }
 
@@ -1217,7 +1219,8 @@
         var ch = careerChapter(), seen = S.careerSt.ch;
         if (S.careerSt.met && seen != null && ch > seen && ch < STAGES.length) { S.careerSt.ch = ch; save(); setTimeout(function () { careerBanner(ch); }, 700); }
         else if (first && !at) setTimeout(function () { if (current === MODES.career && S.careerSt.met) Voice.say([WL('welcome_back')], true); }, 900);
-        if (!S.careerSt.pawnHint && S.careerSt.met) { S.careerSt.pawnHint = 1; save(); setTimeout(function () { if (current === MODES.career) careerNote('♟ ' + CAREER_TEXT.pawns_intro, 5000); }, 6000); }
+        if (!S.careerSt.look && S.careerSt.met && lessonsDone() >= 1 && !S.careerSt.fight) setTimeout(function () { if (current === MODES.career && !CW.cine && !CW.talking && !CW.ward) { careerNote(CAREER_TEXT.look_intro, 4500); careerWardrobe(true, true); } }, 2400);
+        else if (!S.careerSt.pawnHint && S.careerSt.met) { S.careerSt.pawnHint = 1; save(); setTimeout(function () { if (current === MODES.career) careerNote('♟ ' + CAREER_TEXT.pawns_intro, 5000); }, 6000); }
       }
       cancelAnimationFrame(CW.raf); CW.raf = requestAnimationFrame(careerLoop);
     },

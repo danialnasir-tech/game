@@ -29,7 +29,7 @@ var CAREER_TEXT = {
   leo_call: 'Hey! Over here! Come and talk to me.',
   tut_trail: 'See the golden trail on the ground? It always leads to your next goal. Follow it, or press Go.',
   tut_door: 'Walk up to the glowing door to go inside.',
-  look_intro: 'First things first. Every champion needs a look. Make your character, then come and find me.',
+  look_intro: 'Great first lesson! Now make your character. Every champion needs a look.',
   gia: 'Hi, I am Gia, the Games Master! Two games on the giant board: run to the square I call, or hop the knight onto the stars. Fancy a go?',
   tia: 'Welcome to the Style Shop! Change your look whenever you like. Beat the rivals at the Arena to unlock their special hats.',
   rush_start: 'Square Rush! Run to the square I call out. Letter first, then number. Go!',

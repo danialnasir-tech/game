@@ -322,7 +322,7 @@ var LESSONS2 = {
    {
     "t": "move",
     "fen": "r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1",
-    "text": "Something is loose. Find the move that wins it.",
+    "text": "Find the double attack.",
     "sol": [
      "b5c7",
      "e8d7",
@@ -335,12 +335,12 @@ var LESSONS2 = {
    {
     "t": "move",
     "fen": "5rk1/1p1bnq2/r2p2p1/p2PN2p/P3R3/1P1Q4/2P2PPP/1R1K4 b - - 0 24",
-    "text": "An enemy piece has no defender. Go and win it.",
+    "text": "Find the move that wins material.",
     "sol": [
      "d6e5"
     ],
     "hint": "Look for a move that attacks two things at once, or a check that hits a loose piece.",
-    "done": "dxe5 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a piece ahead.",
+    "done": "dxe5 wins material. The knight is defended, but even if they take back you have traded a pawn for a knight. That is 2 points in your favour.",
     "src": "y020"
    },
    {
@@ -357,12 +357,12 @@ var LESSONS2 = {
    {
     "t": "move",
     "fen": "1rbk2r1/ppp1p3/3pq3/3P1p1Q/1RP1n3/2P4P/P4PP1/2B1K2R w K - 0 20",
-    "text": "Which move hits two things at once?",
+    "text": "Find the move that wins material.",
     "sol": [
      "d5e6"
     ],
     "hint": "Look for a move that attacks two things at once, or a check that hits a loose piece.",
-    "done": "dxe6 simply grabs an undefended piece. Always check what your opponent left unprotected. You come out a queen ahead.",
+    "done": "dxe6 wins material. The queen is defended, but even if they take back you have traded a pawn for a queen. That is 8 points in your favour.",
     "src": "y105"
    },
    {
