@@ -291,3 +291,20 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Lessons: the stars pop in one by one with rising chimes.
 - Daily chest (`dailyChest`, home and town, once a day after the first lesson): XP, every third chest a streak shield
   (max 2; `touchActivity` spends one to cover a single missed day), a golden chest on every 7th streak day.
+
+## 3D polish: new characters and a cinematic opening
+- Characters (career.js `personParts`, `rigPerson`, `animPerson`): slightly chibi proportions, lathe-shaped torso/limbs,
+  sneakers, big eyes with iris and highlights, hair caps with fringes, a baked-in ink outline (inside-out shell, no extra draw
+  calls), soft three-step toon shading with a warm rim (`personMat`). Eyelids blink; idle breathing, weight shift and glances;
+  walk cycle with bob, sway and lean; townsfolk turn their heads to watch you pass. New acts: `bow`, `point`.
+  Shared Leo look: `LEO_LOOK`. The player wears a pawn emblem.
+- Town: vertex-coloured ground gradient, ~1,600 grass tufts in one instanced draw, drifting pollen, a soft vignette.
+- Opening (welcome.js `Stage`): a floating board above a sea of clouds at sunset. First-run players get a 5 s flight in with
+  the title, then Coach Leo beside the board while the finish of Morphy's Opera Game (1858) plays out with real pieces:
+  captures knocked off the board, a queen sacrifice, the king toppling on mate. The welcome cards sit over the scene; the
+  camera fits each view into the free part of the screen (`region`, `setViewOffset`). Level choice shows five pieces
+  (hover lifts one); the try-it step has Leo react; the plan builds a bridge of light to Ascent Town and "Start Day 1"
+  flies along it into the town. Falls back to the flat welcome without WebGL. Sounds: `whoosh`, `sting`, `boom`.
+- Testing note: headless software rendering runs at ~2 fps, so the intro finishes before a test sees it; stepping the
+  flight by hand (`ChessAscent.dbg().Stage.dbg().path`) shows the frames. Tests that skip onboarding should call
+  `ChessAscent.dbg().Stage.stop()` so the scene does not keep rendering behind them.

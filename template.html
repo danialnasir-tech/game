@@ -371,6 +371,7 @@ button:disabled { cursor: not-allowed; }
 #world { position: fixed; z-index: 30; overflow: hidden; background: #8fd3ff; touch-action: none; user-select: none; -webkit-user-select: none; font-family: var(--f-body); }
 #world[hidden] { display: none; }
 #world .w-canvas { display: block; touch-action: none; }
+#world .w-vig { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 85% 75% at 50% 48%, transparent 60%, rgba(24,14,50,.32) 100%); }
 #world [hidden] { display: none !important; }
 body[data-mode="career"] .stage, body[data-mode="career"] .panel { visibility: hidden; }
 #world.w-hidetop .w-top { display: none; }
@@ -497,6 +498,40 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .wl-chapter { margin: 0; text-align: center; font-size: 13.5px; color: rgba(255,255,255,.75); }
 @media (min-width: 900px) and (min-height: 760px) { .wl-board { width: min(360px, 44vh); } .wl-card { width: 500px; } }
 @media (max-height: 700px) { .wl-card { gap: 9px; } .wl-say { font-size: 14px; } .wl-band { padding: 8px 12px; } .wl-tile { padding: 9px 12px; } .wl-board { width: min(250px, 70vw, 34vh); } }
+/* the 3D opening stage behind the welcome cards */
+.wl-stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; touch-action: manipulation; }
+#welcome.has-stage { background: #120c2c; place-items: end center; padding: 0; overflow: hidden; }
+#welcome.has-stage .wl-card { position: relative; z-index: 2; width: 100%; max-width: 560px; max-height: 68%; overflow-y: auto; gap: 10px; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; background: linear-gradient(180deg, rgba(24,14,58,.86), rgba(11,8,30,.96) 60%); border: 1px solid rgba(255,255,255,.13); border-bottom: 0; box-shadow: 0 -24px 60px rgba(8,4,24,.55); transition: transform .7s cubic-bezier(.2,.9,.25,1), opacity .5s; }
+#welcome.has-stage.intro .wl-card { transform: translateY(110%); opacity: 0; pointer-events: none; }
+#welcome.has-stage.launch .wl-card { transform: translateY(110%); opacity: 0; transition-duration: .5s; }
+#welcome.has-stage .wl-title { font-size: clamp(22px, 6vw, 30px); }
+#welcome.has-stage .wl-cap { margin: 0; font-weight: 700; min-height: 2.8em; transition: color .2s, transform .2s; }
+#welcome.has-stage .wl-cap.hot { color: #ff7eb6; transform: scale(1.04); }
+.wl-band.picked { border-color: #c4ff3d; background: rgba(196,255,61,.18); transform: scale(1.02); }
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  #welcome.has-stage { place-items: center end; padding: 24px clamp(24px, 4vw, 64px); }
+  #welcome.has-stage .wl-card { width: 440px; max-height: calc(100% - 48px); border-radius: 26px; border-bottom: 1px solid rgba(255,255,255,.13); padding: 22px; box-shadow: 0 30px 80px rgba(8,4,24,.6); }
+  #welcome.has-stage.intro .wl-card, #welcome.has-stage.launch .wl-card { transform: translateX(120%); }
+}
+@media (max-width: 699px) { #welcome.has-stage [data-step="2"] .wl-coach { display: none; } #welcome.has-stage .wl-band { padding: 8px 12px; } #welcome.has-stage .wb-ico { font-size: 20px; } }
+@media (max-height: 700px) { #welcome.has-stage .wl-card { max-height: 72%; padding-top: 12px; gap: 8px; } #welcome.has-stage .wl-coach { padding: 8px 10px; } }
+.wl-intro { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none; transition: opacity .7s; }
+.wl-intro.out { opacity: 0; }
+.wi-bar { position: absolute; left: 0; right: 0; height: 9vh; background: #07050f; animation: wiBar 5.2s ease both; } .wi-bar.t { top: 0; } .wi-bar.b { bottom: 0; }
+@keyframes wiBar { 0% { transform: scaleY(1.6); } 80% { transform: none; } 100% { transform: none; } }
+.wi-title { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: #fff; font: 900 clamp(40px, 11vw, 92px)/1 var(--f-display, var(--f-body)); letter-spacing: -.02em; text-shadow: 0 6px 40px rgba(255,120,80,.55), 0 2px 0 rgba(0,0,0,.25); animation: wiTitle 5.2s ease both; }
+.wi-title em { font-style: normal; background: linear-gradient(90deg, #ffd23f, #ff7eb6 55%, #7af0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wi-title small { font: 800 clamp(12px, 3vw, 15px) var(--f-body); letter-spacing: .4em; text-transform: uppercase; color: rgba(255,255,255,.75); text-shadow: none; }
+.wi-title span { margin-top: 6px; font: 600 clamp(14px, 3.6vw, 18px) var(--f-body); letter-spacing: 0; color: rgba(255,255,255,.88); text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+@keyframes wiTitle { 0%, 12% { opacity: 0; transform: translateY(18px) scale(.94); letter-spacing: .12em; filter: blur(8px); } 30% { opacity: 1; transform: none; letter-spacing: -.02em; filter: none; } 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-30px) scale(1.04); } }
+.wi-skip { position: absolute; right: 14px; bottom: calc(9vh + 12px); pointer-events: auto; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.35); color: #fff; border-radius: 999px; padding: 8px 16px; font: 700 13px var(--f-body); cursor: pointer; }
+.st-pop { position: fixed; left: 0; top: 0; z-index: 1; pointer-events: none; will-change: transform; }
+.st-pop span { display: block; padding: 6px 12px; border-radius: 12px; background: #ffd23f; color: #1b1a22; font: 900 18px var(--f-display, var(--f-body)); box-shadow: 0 6px 20px rgba(0,0,0,.35); animation: stPop .45s cubic-bezier(.2,1.6,.4,1) both; white-space: nowrap; }
+.st-pop.mate span { background: linear-gradient(90deg, #ffd23f, #ff7eb6); font-size: 24px; padding: 8px 16px; }
+@keyframes stPop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+.wl-flash { position: fixed; inset: 0; z-index: 4; background: radial-gradient(circle at 55% 40%, #fffbe8, #ffe9b0 40%, #ffd0a0); opacity: 0; pointer-events: none; transition: opacity .55s ease-in; }
+.wl-flash.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .wi-bar, .wi-title { animation-duration: .01s; } }
 /* mini demo board */
 .mb { position: relative; border-radius: 12px; box-shadow: 0 0 0 6px #6b4a2e, 0 14px 30px rgba(0,0,0,.45); }
 .mb-grid { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); }

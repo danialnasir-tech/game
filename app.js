@@ -122,6 +122,21 @@
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
     }
+    function sweep(dur, f0, f1, gain) { // filtered noise that rises or falls: whooshes and wind
+      var c = ensure(); if (!c) return;
+      var n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0), t = c.currentTime;
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / n);
+      var s = c.createBufferSource(); s.buffer = buf;
+      var f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.9; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      var g = c.createGain(); g.gain.value = gain; s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+    }
+    function pad(freq, dur, when, gain) { // a slow swell, for the opening chord
+      var c = ensure(); if (!c) return;
+      var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + (when || 0);
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+    }
     var BUZZ = { combo: [10, 30, 18], mate: [30, 40, 30, 40, 60], stamp: 25, chest: [20, 30, 20, 30, 40], move: 6, capture: 14, check: [10, 40, 10], good: [12, 30, 12], win: [20, 40, 20, 40, 30], bad: [35, 40, 35], star: 8 };
     function play(kind, n) {
       if (!S.sound) return;
@@ -129,6 +144,9 @@
       if (kind === 'mate') { noise(0.25, 300, 1.1); [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.4, 0.08 + i * 0.09, 'sawtooth', 0.04); tone(f, 0.45, 0.08 + i * 0.09, 'triangle', 0.08); }); return; }
       if (kind === 'stamp') { noise(0.09, 600, 1.2); tone(150, 0.18, 0, 'sine', 0.2); return; }
       if (kind === 'chest') { [659, 784, 988, 1319, 1568].forEach(function (f, i) { tone(f, 0.3, i * 0.07, 'triangle', 0.08); }); noise(0.4, 4000, 0.2); return; }
+      if (kind === 'whoosh') { sweep(n || 1.6, 300, 2600, 0.5); return; }
+      if (kind === 'sting') { [262, 330, 392, 523].forEach(function (f, i) { pad(f, 2.6, i * 0.12, 0.05); pad(f * 2, 2.2, 0.5 + i * 0.12, 0.018); }); sweep(1.2, 4000, 800, 0.12); return; }
+      if (kind === 'boom') { tone(70, 0.6, 0, 'sine', 0.3); tone(52, 0.8, 0.02, 'sine', 0.22); noise(0.35, 180, 1.0); return; }
       if (kind === 'tick') { tone(1400 + (n || 0) * 40, 0.04, 0, 'square', 0.03); return; }
       try { if (navigator.vibrate && BUZZ[kind]) navigator.vibrate(BUZZ[kind]); } catch (e) { }
       if (kind === 'move') noise(0.08, 1500 + Math.random() * 600, 0.7);
@@ -5721,6 +5739,6 @@
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(false); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, walk: function (id) { return careerWalkTo(id); }, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, Stage: Stage, walk: function (id) { return careerWalkTo(id); }, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
