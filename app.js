@@ -1479,7 +1479,12 @@
       var chip = function (done, label, sub, act, icon) {
         return '<button class="mchip ' + (done ? 'done' : '') + '" data-act="' + act + '"><span class="mc-ico" aria-hidden="true">' + (done ? '✓' : icon) + '</span><span class="mc-label">' + label + '</span><span class="mc-sub">' + sub + '</span></button>';
       };
-      var html =
+      // today's plan done: celebrate it and say what is waiting tomorrow, so there is a reason to come back
+      var dayDone = missionsTotal() && missionsDone(d) >= missionsTotal(), tmr = nl && !allClear ? LESSONS[nl].title : null;
+      var dayEnd = dayDone ? '<section class="dayend"><span class="de-fire" aria-hidden="true">🔥</span><div class="de-t"><div class="eyebrow">Day ' + day + ' complete' + (S.streak > 1 ? ' · ' + S.streak + '-day streak' : '') + '</div>' +
+        '<b>' + (S.name ? esc(S.name) + ', you' : 'You') + ' did today\'s training!</b>' +
+        '<span>Tomorrow: ' + (tmr ? '<em>' + esc(tmr) + '</em>, ' : '') + 'a new daily puzzle and a fresh chest. Come back to keep your streak' + (S.streak > 1 ? ' at ' + (S.streak + 1) : ' going') + '.</span></div></section>' : '';
+      var html = dayEnd +
         '<section class="hero-card"><span class="hero-mark" aria-hidden="true">' + pieceSVG('n', 'w', 130) + '</span>' +
         '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + ' · ' + STAGES[cur].band + '</div>' +
         (allClear ? '<h1 class="h1">Every stage cleared</h1><p class="lede">The whole course is behind you. Keep sharpening with puzzles at your rating, master openings, and beat the strongest coach.</p>' +
@@ -1855,6 +1860,7 @@
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
+      document.body.classList.remove('ls-done');
       LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0, score: 0, mood: 'think' }; LS.final = lessonFinal(LS.L);
       Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
       if (phoneFit.pre) phoneFit.pre(); // phones: one board size for every step, chosen up front
@@ -2045,7 +2051,7 @@
       MODES.lesson.render(); funHit();
       setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good');
     },
-    leave: function () { IX.collect = null; }
+    leave: function () { IX.collect = null; document.body.classList.remove('ls-done'); }
   };
   ACT.nextStep = function () {
     if (!LS) return;
@@ -2070,12 +2076,12 @@
     var runHtml = '<div class="ls-run"><div><span class="muted small">Score</span><b class="ls-run-n" data-to="' + sc + '">0</b>' + (newBest && oldBest ? '<em class="ls-pb">New best!</em>' : oldBest && !newBest ? '<span class="muted small">Best ' + oldBest + '</span>' : '') + '</div>' +
       '<div><span class="muted small">First try</span><b>' + (LS.clean || 0) + '</b></div><div><span class="muted small">Bonus</span><b>+' + bonus + ' XP</b></div></div>' +
       (card ? '<div class="cc-reveal"><div class="eyebrow">New chess card · ' + card.n + ' / ' + CARDS.length + '</div>' + cardHtml(card.i, card.tier, true) + '</div>' : '');
-    document.body.dataset.layout = 'browse';
+    document.body.dataset.layout = 'browse'; document.body.classList.add('ls-done'); // phones: the end screen gets the whole height
     setTimeout(function () { var n = $('.ls-run-n'); if (n) { var to = +n.dataset.to, t0 = Date.now(); (function tick() { var k = Math.min(1, (Date.now() - t0) / 900); n.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); else if (newBest && oldBest) Sound.play('star'); })(); } var cf = $('.cc-reveal .cc-card'); if (cf) setTimeout(function () { cf.classList.remove('flip'); Sound.play('chest'); }, 1300); }, 300);
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
       '<p class="big-stars pop" aria-label="' + stars + ' of 3 stars">' + [0, 1, 2].map(function (k) { return '<i class="' + (k < stars ? 'on' : 'off') + '" style="--i:' + k + '">★</i>'; }).join('') + '</p></div>' +
       '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : stars + ' of 3 stars, well done! ' + [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a star route with extra moves' : ''].filter(Boolean).join(', ').replace(/^./, function (c) { return c.toUpperCase(); }) + ' this time. Replay it any day to collect all 3.') + '</p>' +
-      runHtml + flowCta(LS.id) + whatNext(LS.id, nl, wasLocked) +
+      flowCta(LS.id) + runHtml + whatNext(LS.id, nl, wasLocked) + // the next step first, so it is on screen without scrolling
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
       '<div class="actions plain"><button class="btn ghost" data-act="lesson" data-id="' + LS.id + '">Repeat lesson</button><button class="btn ghost" data-act="goPath">Back to path</button></div>');
   };

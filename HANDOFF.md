@@ -409,3 +409,8 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   someone you step to their side so their face is never covered.
 - Phones: the top bar no longer wraps "Day / 0/4 / today" onto three lines on board screens; on short phones the
   puzzle screen shows the rating on one line so the screen fits without scrolling.
+- Lesson complete: the next-step button comes right under the stars, and on phones the board is hidden on that screen
+  (`body.ls-done`), so the button, score and new chess card all fit without scrolling.
+- Day done: when today's plan is complete, Home opens with a "Day N complete" card (streak, and what is waiting
+  tomorrow: the next lesson, a new daily puzzle and a fresh chest). It replaces the plan card; on short phones the
+  share and install cards wait behind the "Course map…" button.

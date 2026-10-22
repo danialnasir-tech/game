@@ -262,6 +262,20 @@ button:disabled { cursor: not-allowed; }
   .top-stats:has(.stage-top) .ts-day .small { display: none; }
   .top-stats:has(.stage-top) { gap: 8px; }
 }
+@media (max-width: 880px) and (orientation: portrait) { body.ls-done .stage { display: none !important; } }
+.dayend { display: flex; gap: 12px; align-items: center; margin: 0 0 12px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(135deg, rgba(255,140,60,.22), rgba(255,79,139,.16)); border: 1px solid rgba(255,160,80,.45); animation: dePop .5s cubic-bezier(.2,1.4,.4,1) both; }
+.de-fire { font-size: 34px; filter: drop-shadow(0 0 10px rgba(255,140,60,.7)); animation: mapbob 1.6s ease-in-out infinite; }
+.de-t { display: grid; gap: 2px; font-size: 13.5px; } .de-t b { font-size: 16px; } .de-t span { color: var(--muted, #b9b3d6); } .de-t em { font-style: normal; color: #ffd23f; font-weight: 700; }
+@keyframes dePop { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+/* phones: Home fits one screen. The day-done card replaces the plan card (it says the same), and on short phones the
+   extra cards wait behind "Course map, today's goals and your rating" */
+@media (max-width: 880px) and (orientation: portrait) {
+  body[data-mode="path"] .panel:not(.show-all):has(> .dayend) > .prog-card { display: none !important; }
+}
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 760px) {
+  body[data-mode="path"] .panel:not(.show-all) > .social-row, body[data-mode="path"] .panel:not(.show-all) > .install-card { display: none !important; }
+  .dayend { padding: 9px 12px; } .de-fire { font-size: 26px; } .de-t { font-size: 12.5px; } .de-t b { font-size: 14.5px; }
+}
 /* short phones: the puzzle rating becomes one compact line so the puzzle screen fits without scrolling */
 @media (max-width: 880px) and (orientation: portrait) and (max-height: 720px) {
   body[data-mode="puzzles"] #spark { display: none; }
@@ -8402,7 +8416,12 @@ function BOARD2D_FACTORY() {
       var chip = function (done, label, sub, act, icon) {
         return '<button class="mchip ' + (done ? 'done' : '') + '" data-act="' + act + '"><span class="mc-ico" aria-hidden="true">' + (done ? '✓' : icon) + '</span><span class="mc-label">' + label + '</span><span class="mc-sub">' + sub + '</span></button>';
       };
-      var html =
+      // today's plan done: celebrate it and say what is waiting tomorrow, so there is a reason to come back
+      var dayDone = missionsTotal() && missionsDone(d) >= missionsTotal(), tmr = nl && !allClear ? LESSONS[nl].title : null;
+      var dayEnd = dayDone ? '<section class="dayend"><span class="de-fire" aria-hidden="true">🔥</span><div class="de-t"><div class="eyebrow">Day ' + day + ' complete' + (S.streak > 1 ? ' · ' + S.streak + '-day streak' : '') + '</div>' +
+        '<b>' + (S.name ? esc(S.name) + ', you' : 'You') + ' did today\'s training!</b>' +
+        '<span>Tomorrow: ' + (tmr ? '<em>' + esc(tmr) + '</em>, ' : '') + 'a new daily puzzle and a fresh chest. Come back to keep your streak' + (S.streak > 1 ? ' at ' + (S.streak + 1) : ' going') + '.</span></div></section>' : '';
+      var html = dayEnd +
         '<section class="hero-card"><span class="hero-mark" aria-hidden="true">' + pieceSVG('n', 'w', 130) + '</span>' +
         '<div class="eyebrow">Day ' + day + ' of 30 · ' + esc(STAGES[cur].name) + ' · ' + STAGES[cur].band + '</div>' +
         (allClear ? '<h1 class="h1">Every stage cleared</h1><p class="lede">The whole course is behind you. Keep sharpening with puzzles at your rating, master openings, and beat the strongest coach.</p>' +
@@ -8778,6 +8797,7 @@ function BOARD2D_FACTORY() {
   MODES.lesson = {
     label: 'Lesson',
     enter: function (id) {
+      document.body.classList.remove('ls-done');
       LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0, score: 0, mood: 'think' }; LS.final = lessonFinal(LS.L);
       Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
       if (phoneFit.pre) phoneFit.pre(); // phones: one board size for every step, chosen up front
@@ -8968,7 +8988,7 @@ function BOARD2D_FACTORY() {
       MODES.lesson.render(); funHit();
       setStatus('<strong>Correct.</strong> ' + esc(step.done || ''), 'good');
     },
-    leave: function () { IX.collect = null; }
+    leave: function () { IX.collect = null; document.body.classList.remove('ls-done'); }
   };
   ACT.nextStep = function () {
     if (!LS) return;
@@ -8993,12 +9013,12 @@ function BOARD2D_FACTORY() {
     var runHtml = '<div class="ls-run"><div><span class="muted small">Score</span><b class="ls-run-n" data-to="' + sc + '">0</b>' + (newBest && oldBest ? '<em class="ls-pb">New best!</em>' : oldBest && !newBest ? '<span class="muted small">Best ' + oldBest + '</span>' : '') + '</div>' +
       '<div><span class="muted small">First try</span><b>' + (LS.clean || 0) + '</b></div><div><span class="muted small">Bonus</span><b>+' + bonus + ' XP</b></div></div>' +
       (card ? '<div class="cc-reveal"><div class="eyebrow">New chess card · ' + card.n + ' / ' + CARDS.length + '</div>' + cardHtml(card.i, card.tier, true) + '</div>' : '');
-    document.body.dataset.layout = 'browse';
+    document.body.dataset.layout = 'browse'; document.body.classList.add('ls-done'); // phones: the end screen gets the whole height
     setTimeout(function () { var n = $('.ls-run-n'); if (n) { var to = +n.dataset.to, t0 = Date.now(); (function tick() { var k = Math.min(1, (Date.now() - t0) / 900); n.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); else if (newBest && oldBest) Sound.play('star'); })(); } var cf = $('.cc-reveal .cc-card'); if (cf) setTimeout(function () { cf.classList.remove('flip'); Sound.play('chest'); }, 1300); }, 300);
     setPanel('<button class="back" data-act="goPath">← Path</button><div class="done-head"><div><div class="eyebrow">Lesson complete · +50 XP</div><h1 class="h1">' + esc(LS.L.title) + '</h1></div>' +
       '<p class="big-stars pop" aria-label="' + stars + ' of 3 stars">' + [0, 1, 2].map(function (k) { return '<i class="' + (k < stars ? 'on' : 'off') + '" style="--i:' + k + '">★</i>'; }).join('') + '</p></div>' +
       '<p class="muted small">' + (stars === 3 ? 'Flawless: no slips, no hints.' : stars + ' of 3 stars, well done! ' + [LS.mistakes ? Math.ceil(LS.mistakes) + ' slip' + (LS.mistakes > 1 ? 's' : '') : '', LS.hintsTotal ? LS.hintsTotal + ' hint' + (LS.hintsTotal > 1 ? 's' : '') : '', LS.stars && LS.stars < 3 ? 'a star route with extra moves' : ''].filter(Boolean).join(', ').replace(/^./, function (c) { return c.toUpperCase(); }) + ' this time. Replay it any day to collect all 3.') + '</p>' +
-      runHtml + flowCta(LS.id) + whatNext(LS.id, nl, wasLocked) +
+      flowCta(LS.id) + runHtml + whatNext(LS.id, nl, wasLocked) + // the next step first, so it is on screen without scrolling
       (LS.L.takeaways ? '<div class="takeaways"><div class="eyebrow">Key takeaways</div><ul>' + LS.L.takeaways.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
       '<div class="actions plain"><button class="btn ghost" data-act="lesson" data-id="' + LS.id + '">Repeat lesson</button><button class="btn ghost" data-act="goPath">Back to path</button></div>');
   };
@@ -15683,7 +15703,7 @@ body.board-2d .dim-seg span[data-d="2"], body:not(.board-2d) .dim-seg span[data-
   body[data-layout="board"][data-mode="mission"] .ms-track { padding: 8px 11px; }
   body[data-layout="board"][data-mode="mission"] .ms-goal { font-size: 14.5px; }
   /* home fits one screen: the next step first, everything else one tap away */
-  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card):not(.prog-card):not(.career-card) { display: none !important; }
+  body[data-mode="path"] .panel:not(.show-all) > *:not(.hero-card):not(.dayend):not(.warm-card):not(.disc):not(.an-home):not(.home-more):not(.first-hint):not(.social-row):not(.install-card):not(.prog-card):not(.career-card) { display: none !important; }
   body[data-mode="path"] .panel:not(.show-all) .disc-item:not(.next) { display: none; }
   body[data-mode="path"] .panel:not(.show-all) .disc { padding: 10px 12px; } body[data-mode="path"] .panel:not(.show-all) .disc-head { margin-bottom: 6px; }
   body[data-mode="path"] .panel:not(.show-all) .hero-card .lede { font-size: 14px; margin: 4px 0 10px; }
