@@ -2827,6 +2827,7 @@
       var fen = sp ? specFen(sp) : PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
       var lvl = guided ? levelById('novice') : sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
+      if (sp && sp.kind === 'boss' && lvl.human) lvl = Object.assign({}, lvl, { human: { miss: 0, max: 0 } }); // rivals play their natural moves, no gifts
       PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: guided ? 'teach' : sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0, guided: guided };
       PL.book = guided ? null : sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
       if (sp && sp.kind === 'boss') { PL.bookPool = specBook(sp.b.book); if (sp.vs) vsFlash(sp.b, lvl); }

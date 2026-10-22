@@ -414,3 +414,15 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Day done: when today's plan is complete, Home opens with a "Day N complete" card (streak, and what is waiting
   tomorrow: the next lesson, a new daily puzzle and a fresh chest). It replaces the plan card; on short phones the
   share and install cards wait behind the "Course map…" button.
+
+## Town chat, E to talk, calmer easy coach
+- Everyone in town can be talked to: Leo, Gia, Tia, the rivals and the seven walkers, who now have names and
+  personalities (`TOWN_FOLK` in career-data.js). The talk dialog has a chat log, quick replies and a text box;
+  `careerReply` matches what you type (greetings, how are you, who are you, rating, tips, rules, pieces, where is…,
+  let's play, jokes, favourites, compliments, rude words, what should I do next) to lines in `CHAT`, in each person's
+  own way. Replies can carry a button: walk somewhere, challenge the rival, start the next lesson, Gia's games, Tia's
+  wardrobe. No internet or AI service is used.
+- PC: walk up to anyone and a "E 💬 Talk to …" chip appears; press E (phones: tap the chip). In a chat, E focuses the
+  text box; WASD never moves you while typing; Esc closes. Walkers stop while you talk to them.
+- The easy coach blundered too often: Novice now misses your threat 8% of moves (was 20%), Club 3% (was 7%), and the
+  town rivals never give pieces away on purpose. Practice games re-verified: 46.

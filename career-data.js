@@ -58,4 +58,33 @@ var CAREER_TEXT = {
 };
 var CAREER_TIPS = ['Knights love the centre. On the edge they are dim!', 'Before every move, ask what my opponent wants.', 'Castle early, and keep your king safe.', 'Count attackers and defenders before you capture.', 'A rook on an open file is a happy rook.', 'Did you find today\'s golden pawns?', 'The Puzzle Tower has a new puzzle every day.', 'Checks, captures, threats. Every move!', 'Pawns cannot move backwards. Think before you push.', 'In the endgame, your king is a fighter.', 'Gia runs games on the giant board. Try Square Rush!', 'Trapper Tess got me with the Englund Gambit again…'];
 var CAREER_LINES = Object.keys(CAREER_TEXT).map(function (k) { return { id: 'W-' + k, text: CAREER_TEXT[k], group: 'career' }; });
-if (typeof module !== 'undefined') module.exports = { CAREER_TEXT: CAREER_TEXT, CAREER_LINES: CAREER_LINES, CAREER_TIPS: CAREER_TIPS };
+// Town chat: everyone in town can be talked to. Replies come from each person's own lines (no internet needed).
+// {name} is the player's name. A reply may carry an action button: walk:<place>, fight:<boss>, mg:<game>, look, lesson.
+var TOWN_FOLK = [
+  { name: 'Maya', vibe: 'puzzles', rating: 900, fav: 'knight forks', line: 'I do ten puzzles with my breakfast. Forks are my favourite!' },
+  { name: 'Omar', vibe: 'blitz', rating: 1100, fav: 'three-minute games', line: 'Blitz is life! But I lose half my games on time, ha.' },
+  { name: 'Priya', vibe: 'openings', rating: 1250, fav: 'the Italian Game', line: 'Ask me about openings. I could talk about the Italian Game all day.' },
+  { name: 'Ben', vibe: 'beginner', rating: 350, fav: 'castling', line: 'I only learned castling last week. It feels like a magic trick!' },
+  { name: 'Lena', vibe: 'endgames', rating: 1400, fav: 'king and pawn endings', line: 'Everyone loves attacks. I love endgames. The king becomes a fighter there.' },
+  { name: 'Kofi', vibe: 'club', rating: 1000, fav: 'the Arena rivals', line: 'I am training to beat the rivals at the Arena. Rex was easy, the others not so much.' },
+  { name: 'Yuki', vibe: 'tactics', rating: 1300, fav: 'sacrifices', line: 'A good sacrifice is the most beautiful thing in chess. Change my mind.' }
+];
+var CHAT = {
+  any: {
+    greet: ['Hey {name}! Nice to see you.', 'Hi {name}! How is your chess going?', 'Hello there, {name}!'],
+    how: ['I am great, thanks! The sun is out and the boards are set up. And you?', 'Doing well! Just thinking about a puzzle I could not solve this morning. You?', 'Good, good. Chess makes every day better. How about you?'],
+    good: ['Love to hear it!', 'Nice! Keep that energy for your next game.', 'Great. Let us keep it that way.'],
+    bad: ['Oh no. A short puzzle usually cheers me up. Want to try the Tower?', 'Sorry to hear that. Even grandmasters have bad days. Tomorrow is a new game.'],
+    thanks: ['Any time, {name}!', 'Happy to help.', 'You are welcome!'],
+    bye: ['See you around, {name}!', 'Bye! Good luck in your games.', 'Later! Go win something.'],
+    joke: ['Why did the chess player bring a ladder? To reach the top rank!', 'My pawn wanted a promotion, so it went to the end of the board. Hard work pays off.', 'I tried to tell my bishop a joke, but it only goes diagonally around the point.', 'Why are knights so good at parties? They always find a way to jump in.'],
+    nice: ['Thank you! You are pretty great yourself.', 'Aw, that made my day.', 'Ha, thanks {name}!'],
+    rude: ['Hey, no need for that. We are all here to learn.', 'Let us keep it friendly. Chess is better with good manners.', 'Deep breath. Losing happens to everyone. Want a tip instead?'],
+    tip: ['Before every move, ask: what does my opponent want?', 'Knights on the rim are dim. Bring them to the centre.', 'Castle early. A safe king lets you attack.', 'Count attackers and defenders before you take anything.', 'Checks, captures, threats. Look at those first, every move.', 'When you are ahead, trade pieces. When you are behind, keep them on.'],
+    where: { academy: 'The Academy is the big building with the knight on the roof. Coach Leo teaches there.', arena: 'The Arena is where the rivals wait. Beat them to clear each chapter.', park: 'The Park has chess tables. You can play the coach or a friend there.', tower: 'The Puzzle Tower is the tall one. A new puzzle every day!', library: 'The Opening Library is full of openings, every move explained.', home: 'Your Home shows your progress and your 30-day plan.', shop: 'Tia runs the Style Shop. She can change your look.', gia: 'Gia is at the plaza with her mini-games.', leo: 'Coach Leo is usually in front of the Academy.' },
+    unknown: ['Hmm, I am not sure what you mean. Ask me for a tip, a joke, or where something is!', 'Ha, chess has fried my brain today. Try asking me something else?', 'Interesting! I only really know about chess and this town, though.']
+  },
+  pieces: { pawn: 'Pawns move forward one square, two on their first move, and capture diagonally. Get one to the end and it becomes a queen!', knight: 'The knight jumps in an L: two squares one way, one square to the side. It is the only piece that jumps over others.', bishop: 'Bishops slide diagonally as far as they like. Each one stays on its colour all game.', rook: 'Rooks slide in straight lines, up, down and sideways. They love open files.', queen: 'The queen moves like a rook and a bishop together. Worth 9 points, so do not hang her!', king: 'The king moves one square any way. Keep him safe early, then use him as a fighter in the endgame.' },
+  rules: { castle: 'Castling: the king moves two squares toward a rook, and the rook jumps over to his other side. Only if neither has moved and the king is not in check.', passant: 'En passant: if an enemy pawn jumps two squares and lands right beside your pawn, you can capture it as if it moved one. Only on the very next move!', promot: 'When a pawn reaches the last rank it becomes any piece you choose, almost always a queen.', stalemate: 'Stalemate is when the player to move has no legal move but is not in check. It is a draw, so be careful when you are winning!', checkmate: 'Checkmate is when the king is attacked and has no way to escape. That ends the game.', check: 'Check means the king is attacked. You must get out of it right away: move the king, block, or take the attacker.' }
+};
+if (typeof module !== 'undefined') module.exports = { TOWN_FOLK: TOWN_FOLK, CHAT: CHAT, CAREER_TEXT: CAREER_TEXT, CAREER_LINES: CAREER_LINES, CAREER_TIPS: CAREER_TIPS };

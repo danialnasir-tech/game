@@ -529,6 +529,8 @@
     ['#4cc9f0', '#ff8c42', '#f78fb3', '#a29bfe', '#55efc4', '#fdcb6e', '#e17055'].forEach(function (c, k) {
       var L = { skin: LOOK.skin[k % 6], hair: LOOK.hair[k % 5], hairC: LOOK.hairC[(k * 3) % 8], shirt: c, pants: LOOK.pants[k % 6], hat: k === 2 ? 'cap' : k === 5 ? 'beanie' : 'none' };
       var p = person(L, { lod: 1 }), s = spots[k % spots.length]; p.g.position.set(s[0] + 1, 0, s[1] + 1); p.goal = spots[(k + 3) % spots.length]; p.wait = k * 0.7; p.tipAt = 0; W.walkers.push(p);
+      var fk = TOWN_FOLK[k % TOWN_FOLK.length]; p.folk = fk; p.id = 'folk-' + k; p.name = fk.name; p.color = c;
+      hitBox(1.6, 3, 1.6, 0, 1.4, 0, { type: 'npc', id: p.id }, p.g);
     });
     W.parkTables.forEach(function (tb, k) {
       var c = Math.cos(W.parkRot), s = Math.sin(W.parkRot);
@@ -615,7 +617,7 @@
       '<div class="w-side"><div class="w-btns"><span class="w-pawns" id="w-pawns" title="Golden pawns found today"></span><button class="w-btn" data-wact="look" aria-label="Change your look">👕</button><button class="w-btn" data-wact="list" aria-label="List view">☰</button></div><canvas class="w-map" id="w-map" width="200" height="200" aria-label="Town map"></canvas></div></div>' +
       '<div class="w-ptr" id="w-ptr" hidden><b id="w-ptr-t"></b><span>▼</span></div><div class="w-edge" id="w-edge" hidden>➤</div>' +
       '<div class="w-bubs" id="w-bubs"></div><div class="w-tut" id="w-tut" hidden></div>' +
-      '<div class="w-card" id="w-card" hidden></div><div class="w-dlg" id="w-dlg" hidden></div><div class="w-note" id="w-note" hidden></div>' +
+      '<div class="w-card" id="w-card" hidden></div><div class="w-dlg" id="w-dlg" hidden></div><button class="w-near" id="w-near" hidden></button><div class="w-note" id="w-note" hidden></div>' +
       '<div class="w-mg" id="w-mg" hidden></div><div class="w-ward" id="w-ward" hidden></div>' +
       '<div class="w-cine" id="w-cine" hidden><i class="w-bar t"></i><i class="w-bar b"></i><div class="w-title" id="w-title"></div><button class="w-skip" data-wact="skip">Skip ▸▸</button></div>' +
       '<div class="w-vs" id="w-vs" hidden></div><div class="w-fade" id="w-fade"></div>');
@@ -646,7 +648,7 @@
   }
   function careerTarget(id) {
     if (!id) return null;
-    var n = CW.npcs.filter(function (x) { return x.id === id; })[0]; if (n) return { x: n.g.position.x, z: n.g.position.z, y: 3.9 + (n.lift || 0), name: n.name, npc: n };
+    var n = CW.npcs.concat(CW.walkers).filter(function (x) { return x.id === id; })[0]; if (n) { if (n.folk && CW.talking !== n.id) n.wait = Math.max(n.wait, 4); return { x: n.g.position.x, z: n.g.position.z, y: 3.9 + (n.lift || 0), name: n.name, npc: n }; }
     var L = CAREER_LOCS.filter(function (l) { return l.id === id; })[0]; return L ? { x: L.door[0], z: L.door[1], y: 3.4, name: L.name, loc: L } : null;
   }
   function careerRefresh() {
@@ -694,6 +696,11 @@
     var pp = CW.P.g.position, np = n.g.position, cx = np.x - CW.cam.position.x, cz = np.z - CW.cam.position.z, cl = Math.hypot(cx, cz) || 1;
     if (Math.hypot(pp.x - np.x, pp.z - np.z) < 5) { var side = ((pp.x - np.x) * -cz + (pp.z - np.z) * cx) >= 0 ? 1 : -1; pp.x = np.x + (-cz / cl) * 1.7 * side - cx / cl * 0.4; pp.z = np.z + (cx / cl) * 1.7 * side - cz / cl * 0.4; }
     careerFace(n); n.act = 'talk'; CW.talking = n.id; CW.goal = null; CW.pend = null; Guide.hide();
+    if (n.folk) { // a townsperson stops and chats
+      n.wait = 1e9; n.speed = 0;
+      n.introSaid = true; careerDialog(n.name + ' · ' + n.folk.rating + ' online', n.color, chatFill(chatPick(CHAT.any.greet)) + ' ' + n.folk.line, '', '', '🙂');
+      careerChat(n); return;
+    }
     if (n.id === 'leo') {
       if (!S.careerSt.met) { S.careerSt.met = true; S.careerSt.ch = careerChapter(); save(); line = 'welcome'; }
       else line = q.line;
@@ -701,28 +708,114 @@
       if (q.lesson && line === 'lesson_go') { text = 'Next up: ' + LESSONS[q.lesson].title + '. ' + LESSONS[q.lesson].goal + ' Follow the golden trail to my Academy.'; btn = '<button class="btn primary small" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + q.lesson + '">Start the lesson</button>'; }
       else if (q.boss) btn = '<button class="btn primary small" data-wact="walk" data-to="boss-' + q.boss.id + '">Walk me to ' + esc(q.boss.name.split(' ')[1] || q.boss.name) + '</button>';
       else if (line === 'welcome') { var fl = nextLesson(); btn = fl ? '<button class="btn primary small pulse" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + fl + '">▶ Start my first lesson</button>' : '<button class="btn primary small pulse" data-wact="walk" data-to="academy">Show me the Academy</button>'; }
-      careerDialog('Coach Leo', '#c4ff3d', text, '', btn, coachAvatar());
+      careerDialog('Coach Leo', '#c4ff3d', text, '', btn, coachAvatar()); careerChat(n);
       Voice.say([line === 'lesson_go' && q.lesson ? null : WL(line)].filter(Boolean));
       careerRefresh();
     } else if (n.id === 'gia') {
       var R = S.careerSt.mg || {};
       careerDialog('Gia · Plaza games', '#4cc9f0', CAREER_TEXT.gia, 'Best scores: Square Rush ' + (R.rush || 0) + ' · Knight Hop ' + (R.hop || 0),
-        '<button class="btn primary small" data-wact="mg" data-k="rush">🏃 Square Rush</button><button class="btn primary small" data-wact="mg" data-k="hop">♞ Knight Hop</button>', '🎲', 'Later');
+        '<button class="btn primary small" data-wact="mg" data-k="rush">🏃 Square Rush</button><button class="btn primary small" data-wact="mg" data-k="hop">♞ Knight Hop</button>', '🎲', 'Later'); careerChat(n);
       Voice.say([WL('gia')]);
     } else if (n.id === 'tia') {
-      careerDialog('Tia · Style Shop', '#ff4f8b', CAREER_TEXT.tia, '', '<button class="btn primary small" data-wact="look">👕 Change my look</button>', '✂️');
+      careerDialog('Tia · Style Shop', '#ff4f8b', CAREER_TEXT.tia, '', '<button class="btn primary small" data-wact="look">👕 Change my look</button>', '✂️'); careerChat(n);
       Voice.say([WL('tia')]);
     } else {
       var b = n.boss, beat = S.bosses[b.id], open = bossOpen(b.stage), need = bossNeed(b.stage);
       text = beat ? CAREER_TEXT.boss_beaten : open ? CAREER_TEXT['boss_' + b.id] : CAREER_TEXT.boss_locked;
       small = open ? esc(b.intro) : need ? need + ' more lesson' + (need > 1 ? 's' : '') + ' in ' + esc(STAGES[b.stage].name) + ' unlock this fight.' : '';
       if (open) btn = '<button class="btn primary small" data-wact="fight" data-id="' + b.id + '">⚔️ ' + (beat ? 'Rematch' : 'Challenge ' + esc(b.name.split(' ')[1] || b.name)) + '</button>';
-      careerDialog(b.name + ' · ' + b.title, b.color, text, small, btn, '⚔️');
+      careerDialog(b.name + ' · ' + b.title, b.color, text, small, btn, '⚔️'); careerChat(n);
       Voice.say([WL(beat ? 'boss_beaten' : open ? 'boss_' + b.id : 'boss_locked')]);
     }
   }
+  // ---------- town chat: type to anyone in town, they answer in their own way ----------
+  function chatPick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function chatFill(t) { return t.replace(/\{name\}/g, S.name || 'friend'); }
+  var CHAT_PLACES = { academy: 'academy', school: 'academy', lesson: 'academy', arena: 'arena', rival: 'arena', boss: 'arena', park: 'park', table: 'park', tower: 'tower', puzzle: 'tower', library: 'library', opening: 'library', home: 'home', shop: 'tia', style: 'tia', clothes: 'tia', tia: 'tia', gia: 'gia', game: 'gia', leo: 'leo', coach: 'leo' };
+  function careerReply(n, raw) {
+    var t = ' ' + raw.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ') + ' ', C = CHAT.any, f = n.folk, b = n.boss, me = n.id;
+    var has = function (re) { return re.test(t); };
+    var who = me === 'leo' ? 'leo' : me === 'gia' ? 'gia' : me === 'tia' ? 'tia' : b ? 'boss' : 'folk';
+    if (has(/ (bye|goodbye|see ya|see you|cya|gotta go|later) /)) return { t: chatFill(chatPick(C.bye)), bye: 1 };
+    if (has(/ (thanks|thank you|thx|ty|cheers) /)) return { t: chatFill(chatPick(C.thanks)) };
+    if (has(/ (stupid|idiot|dumb|hate you|noob|trash|shut up|loser) /)) return { t: chatPick(C.rude) };
+    if (has(/where|how do i get|take me|go to|find /)) for (var k in CHAT_PLACES) if (t.indexOf(k) >= 0) { var to = CHAT_PLACES[k], wt = C.where[to] || C.where[k]; if (to === me) return { t: 'You found me already! I am right here.' }; return { t: wt || 'Follow me, it is this way.', act: { walk: to } }; }
+    if (has(/ how (are|r) (you|u) |how s it going|whats up|what's up|wassup| sup /)) return { t: who === 'leo' ? 'I am proud of my students today. How are you feeling about your chess?' : b ? 'Sharp and ready. Are you?' : chatPick(C.how) };
+    if (has(/^ (hi|hello|hey|yo|hiya|salam|assalam|salaam|good morning|good evening|good afternoon|howdy) /)) { var intro = !n.introSaid && (f ? f.line : ''); n.introSaid = true; return { t: chatFill(chatPick(C.greet)) + (intro ? ' ' + intro : '') }; }
+    if (has(/^ (i m |im |i am )?(good|great|fine|ok|okay|well|not bad|awesome|amazing|happy) /)) return { t: chatPick(C.good) };
+    if (has(/ (sad|bad|tired|angry|bored|upset|lost again|lost my) /)) return { t: chatPick(C.bad), act: who === 'folk' ? { walk: 'tower' } : null };
+    if (has(/your name|who are you|who r u|what are you/)) return { t: who === 'leo' ? 'I am Coach Leo. I run the Academy and I have taught hundreds of players their first checkmate.' : who === 'gia' ? 'I am Gia! I run the plaza games. Quick, fun, and they train your eyes.' : who === 'tia' ? 'I am Tia, the stylist. Best outfits in town, guaranteed.' : b ? (CAREER_TEXT['boss_' + b.id] || 'I am ' + b.name + ', ' + b.title + '.') : 'I am ' + f.name + '. ' + f.line };
+    if (has(/what (should|do) i do|what now|whats next|what's next|next step|where do i start|what next|help me/)) {
+      var nq = careerQuest();
+      if (who === 'leo') { var nl2 = nq.lesson || nextLesson(); return nq.boss ? { t: 'You are ready for ' + nq.boss.name + ' at the Arena. Go and win!', act: { fight: nq.boss.id } } : nl2 ? { t: 'Next for you: ' + LESSONS[nl2].title + '. ' + LESSONS[nl2].goal, act: { lesson: nl2 } } : { t: 'Play a full game at the Park and keep your puzzles going at the Tower.', act: { walk: 'park' } }; }
+      return { t: 'Ask Coach Leo, he always knows the next step. He is in front of the Academy.', act: { walk: 'leo' } };
+    }
+    if (has(/rating|elo|how good|how strong|your level/)) return { t: (who === 'leo' ? 'Strong enough to make you stronger than me one day.' : b ? 'I play at about ' + ((typeof levelById === 'function' && levelById(b.level).elo) || '?') + '. Think you can handle that?' : f ? 'About ' + f.rating + ' online. Getting better every week!' : 'Good enough to beat you at my own games!') + ' Your puzzle rating is ' + Math.round(S.puzzle.rating) + '.' };
+    if (has(/ (play|game|match|challenge|fight|duel|versus|vs|battle|beat you) /)) {
+      if (b) { var open = bossOpen(b.stage); return open ? { t: S.bosses[b.id] ? 'A rematch? I have been practising. Let us go!' : 'Finally, someone brave. Let us play!', act: { fight: b.id } } : { t: 'Not yet. Finish your lessons in ' + STAGES[b.stage].name + ' first, then come back and face me.' }; }
+      if (who === 'leo') { var nl = nextLesson(); return nl ? { t: 'The best game you can play right now is your next lesson. Then come prove it at the Arena.', act: { lesson: nl } } : { t: 'Head to the Park and play a full game against me.', act: { walk: 'park' } }; }
+      if (who === 'gia') return { t: 'Pick one! Square Rush trains your board vision, Knight Hop trains your knight.', act: { mg: 1 } };
+      if (who === 'tia') return { t: 'I only fight with fashion. But the Park has chess tables!', act: { walk: 'park' } };
+      return { t: 'I would love to, but I am on my way somewhere. The coach plays games at the Park, and the rivals wait at the Arena!', act: { walk: 'park' } };
+    }
+    if (who === 'tia' && has(/look|style|clothes|outfit|hair|shirt|change/)) return { t: 'Ooh, a makeover! Come on in.', act: { look: 1 } };
+    if (has(/ (my )?(look|style|clothes|outfit|hair|shirt)|change my /)) return { t: 'Tia at the Style Shop can change your look. Tell her I sent you!', act: { walk: 'tia' } };
+    for (var r in CHAT.rules) if (t.indexOf(r) >= 0 || (r === 'castle' && t.indexOf('castl') >= 0)) return { t: CHAT.rules[r] };
+    for (var pc in CHAT.pieces) if (t.indexOf(pc) >= 0) return { t: CHAT.pieces[pc] };
+    if (has(/ (tip|tips|advice|help|improve|better|teach|learn|how do i|how to|secret) /)) return { t: (f && f.vibe === 'endgames' ? 'Learn king and pawn endings. They decide more games than you think. ' : f && f.vibe === 'blitz' ? 'In fast games, play safe moves quickly and save your time for the hard moments. ' : '') + chatPick(C.tip) };
+    if (has(/ (joke|funny|laugh|lol|haha) /)) return { t: chatPick(C.joke) };
+    if (has(/favou?rite|you like|you love|do you enjoy/)) return { t: who === 'leo' ? 'Watching a student find their first checkmate. Never gets old.' : b ? 'Winning. Obviously.' : f ? 'I love ' + f.fav + '!' : 'Chess, of course!' };
+    if (has(/ (cool|nice|awesome|great|amazing|love you|you re good|you are good|beautiful|smart) /)) return { t: chatFill(chatPick(C.nice)) };
+    if (has(/^ (yes|yeah|yep|sure|ok|okay) /)) return { t: 'Great!' };
+    if (has(/^ (no|nope|nah) /)) return { t: 'No worries.' };
+    return { t: chatPick(C.unknown) };
+  }
+  function chatChips(n) {
+    var b = n.boss, play = b ? 'Let us play!' : n.id === 'leo' ? 'What should I do next?' : n.id === 'gia' ? 'Can we play a game?' : n.id === 'tia' ? 'Change my look' : 'Want to play?';
+    return ['How are you?', 'Any tips?', play, 'Tell me a joke', 'Bye'];
+  }
+  function careerChat(n) {
+    var d = $('#w-dlg'), a = d.querySelector('.w-card-a'); if (!a) return;
+    var box = document.createElement('div'); box.className = 'w-chat';
+    box.innerHTML = '<div class="w-log" id="w-log"></div><div class="w-chips">' + chatChips(n).map(function (c) { return '<button type="button" class="w-chip" data-chat="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') + '</div>' +
+      '<form class="w-chatf" autocomplete="off"><input id="w-in" maxlength="120" placeholder="Say something to ' + esc((n.name || '').split(' ')[0]) + '…" enterkeyhint="send"><button class="btn small w-send" type="submit" aria-label="Send">➤</button></form>';
+    d.insertBefore(box, a);
+    var log = box.querySelector('.w-log'), inp = box.querySelector('#w-in');
+    function add(cls, html) { var m = document.createElement('div'); m.className = 'w-msg ' + cls; m.innerHTML = html; log.appendChild(m); log.scrollTop = log.scrollHeight; return m; }
+    function send(text) {
+      text = (text || '').trim(); if (!text || CW.talking !== n.id) return; inp.value = '';
+      clearInterval(careerDialog._i); var sy = $('#w-say'); if (sy) sy.classList.add('w-said');
+      add('me', esc(text)); var r = careerReply(n, text), dots = add('them typing', '<i></i><i></i><i></i>');
+      n.act = 'talk';
+      setTimeout(function () {
+        if (CW.talking !== n.id) return; dots.remove();
+        var m = add('them', ''), i = 0, txt = r.t;
+        var iv = setInterval(function () { i += 2; m.textContent = txt.slice(0, i); log.scrollTop = log.scrollHeight; if (i >= txt.length) { clearInterval(iv); actBtn(r); } }, 18);
+        Sound.play('move');
+        if (r.bye) setTimeout(function () { if (CW.talking === n.id) careerCloseTalk(); }, 1600);
+      }, 450 + Math.min(900, r.t.length * 8));
+    }
+    function actBtn(r) {
+      var x = r.act; if (!x) return; var h = '';
+      if (x.walk) { var tg = careerTarget(x.walk); h = '<button class="btn ghost small" data-wact="walk" data-to="' + x.walk + '">🧭 Take me to ' + esc(tg ? tg.name : x.walk) + '</button>'; }
+      if (x.fight) h = '<button class="btn primary small" data-wact="fight" data-id="' + x.fight + '">⚔️ Challenge now</button>';
+      if (x.lesson) h = '<button class="btn primary small" data-wact="enter" data-loc="academy" data-m="lesson" data-arg="' + x.lesson + '">▶ Start: ' + esc(LESSONS[x.lesson].title) + '</button>';
+      if (x.mg) h = '<button class="btn primary small" data-wact="mg" data-k="rush">🏃 Square Rush</button><button class="btn primary small" data-wact="mg" data-k="hop">♞ Knight Hop</button>';
+      if (x.look) h = '<button class="btn primary small" data-wact="look">👕 Change my look</button>';
+      if (h) add('acts', h);
+    }
+    box.querySelector('.w-chatf').addEventListener('submit', function (e) { e.preventDefault(); send(inp.value); });
+    box.querySelector('.w-chips').addEventListener('click', function (e) { var c = e.target.closest('[data-chat]'); if (c) send(c.dataset.chat); });
+    inp.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') { inp.blur(); careerCloseTalk(); } });
+  }
+  // the nearest person you could talk to (for the E key and the "Talk" chip)
+  function careerNearest() {
+    var p = CW.P.g.position, best = null, bd = 4.6;
+    CW.npcs.concat(CW.walkers).forEach(function (n) { if (!n.id) return; var d = Math.hypot(n.g.position.x - p.x, n.g.position.z - p.z); if (d < bd) { bd = d; best = n; } });
+    return best;
+  }
   function careerFace(n) { var p = CW.P.g.position, q = n.g.position; n.g.rotation.y = Math.atan2(p.x - q.x, p.z - q.z); CW.P.g.rotation.y = Math.atan2(q.x - p.x, q.z - p.z); }
-  function careerCloseTalk() { $('#w-dlg').hidden = true; clearInterval(careerDialog._i); var n = CW.npcs.filter(function (x) { return x.id === CW.talking; })[0]; CW.talking = null; if (n) { n.act = null; n.g.rotation.y = n.home; } careerRefresh(); }
+  function careerCloseTalk() { $('#w-dlg').hidden = true; clearInterval(careerDialog._i); var wk = CW.walkers.filter(function (x) { return x.id === CW.talking; })[0]; if (wk) { wk.wait = 0.6; wk.act = null; } var n = CW.npcs.filter(function (x) { return x.id === CW.talking; })[0]; CW.talking = null; if (n) { n.act = null; n.g.rotation.y = n.home; } careerRefresh(); }
   // walk around buildings: go to the plaza ring, follow it, then take the right road
   function careerRoute(fx, fz, tx, tz) {
     function blocked(ax, az, bx, bz) { return CW.col.some(function (c) { if (c.r < 1.3) return false; var dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1, u = Math.max(0, Math.min(1, ((c.x - ax) * dx + (c.z - az) * dz) / L2)); return Math.hypot(ax + dx * u - c.x, az + dz * u - c.z) < c.r + 0.6; }); }
@@ -781,9 +874,14 @@
     });
     el.addEventListener('wheel', function (e) { e.preventDefault(); W.camDist = Math.max(7, Math.min(28, W.camDist + e.deltaY * 0.01)); }, { passive: false });
     W.onKey = function (e) {
-      if (current !== MODES.career || W.ward || W.cine) return; var k = e.key.toLowerCase(), dn = e.type === 'keydown';
+      if (current !== MODES.career || W.ward || W.cine) return; if (e.target && e.target.closest && e.target.closest('input,textarea')) return; var k = e.key.toLowerCase(), dn = e.type === 'keydown';
       if (/^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$/.test(k)) { if (W.mg && W.mg.kind === 'hop') return; W.keys[k] = dn; e.preventDefault(); W.goal = null; W.pend = null; }
-      if (dn && (k === 'e' || k === 'enter')) { var b = document.querySelector('#w-dlg:not([hidden]) .btn.primary, #w-card:not([hidden]) .btn.primary'); if (b) b.click(); }
+      if (dn && (k === 'e' || k === 'enter')) {
+        var nb = !W.talking && !W.mg && careerNearest(); // E next to someone: talk to them
+        if (nb && $('#w-dlg').hidden && $('#w-card').hidden) { e.preventDefault(); careerTalk(nb); return; }
+        if (dn && k === 'e' && W.talking && $('#w-in')) { e.preventDefault(); $('#w-in').focus(); return; } // E in a chat: start typing
+        var b = document.querySelector('#w-dlg:not([hidden]) .w-card-a .btn.primary, #w-card:not([hidden]) .btn.primary'); if (b) b.click();
+      }
       if (dn && k === 'escape' && W.talking) careerCloseTalk();
     };
     window.addEventListener('keydown', W.onKey); window.addEventListener('keyup', W.onKey);
@@ -791,6 +889,7 @@
       if (e.target.closest('#w-map') && !W.cine && !W.mg && !W.ward) { // the map is a travel menu
         careerDialog('Town map', '#ffd23f', 'Where to? I will walk you there.', '', CAREER_LOCS.map(function (L) { return '<button class="btn ghost small" data-wact="walk" data-to="' + L.id + '">' + L.icon + ' ' + esc(L.name) + '</button>'; }).join(''), '🗺️', 'Close'); W.talking = 'map'; return;
       }
+      var nr = e.target.closest('#w-near'); if (nr) { var tn = W.npcs.concat(W.walkers).filter(function (x) { return x.id === nr.dataset.id; })[0]; if (tn) careerTalk(tn); return; }
       if (e.target.closest('#w-pawns')) { careerNote('♟ ' + CAREER_TEXT.pawns_intro, 4500); return; }
       var b = e.target.closest('[data-wact]'); if (!b) return; var a = b.dataset.wact;
       if (a === 'enter') careerEnter(b.dataset.loc, b.dataset.m, b.dataset.arg);
@@ -852,9 +951,14 @@
         W.col.forEach(function (c) { var ex = gp.x - c.x, ez = gp.z - c.z, e = Math.hypot(ex, ez), m = c.r + 0.4; if (e < m && e > 0.0001) { gp.x = c.x + ex / e * m; gp.z = c.z + ez / e * m; } });
         gp.y = Math.abs(gp.x) < 7.2 && Math.abs(gp.z) < 7.2 ? 0.22 : 0;
       }
+      if (W.talking === q.id) { q.speed = 0; W.animate(q, dt); return; }
       if (!W.cine && !W.mg && S.careerSt.met && W.t > q.tipAt && Math.hypot(gp.x - p.x, gp.z - p.z) < 3.4) { q.tipAt = W.t + 25 + Math.random() * 20; q.wait = 2.5; q.speed = 0; q.g.rotation.y = Math.atan2(p.x - gp.x, p.z - gp.z); careerBubble(q, CAREER_TIPS[Math.floor(Math.random() * CAREER_TIPS.length)], 3800); }
       W.animate(q, dt);
     });
+    // someone close by: show "E Talk to …" (tap it on phones)
+    var nbr = !W.talking && !W.mg && !W.cine && !W.ward && $('#w-card').hidden ? careerNearest() : null, nel = $('#w-near');
+    if (nbr) { if (nel.dataset.id !== nbr.id) { nel.dataset.id = nbr.id; nel.innerHTML = (W.mob ? '' : '<kbd>E</kbd> ') + '💬 Talk to ' + esc(nbr.name.split(' · ')[0]); } nel.hidden = false; }
+    else if (!nel.hidden) { nel.hidden = true; nel.dataset.id = ''; }
     W.npcs.forEach(function (n) { // townsfolk turn their heads to watch you go by
       n.speed = n.walk || 0; var dx = p.x - n.g.position.x, dz = p.z - n.g.position.z, want = 0;
       if (!n.walk && dx * dx + dz * dz < 64) { var a = Math.atan2(dx, dz) - n.g.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); want = Math.max(-1, Math.min(1, a)); }
