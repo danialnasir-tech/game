@@ -342,3 +342,15 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   tests/missions.js plays scripted replies for sequence challenges.
 - Town: speech bubbles stay on screen and step around the quest card, map, buttons and each other; signs fade out when
   the camera is right next to them.
+
+## Fun lessons: every lesson is a score run
+- `funHit(clean)` / `funMiss()` are called at every right/wrong point in lessons (questions, taps, moves, A/B picks,
+  piece and square games, star collecting). A step done first try builds a combo: points = 10 × comboMult, +5 for an
+  answer within 9 s (⚡), +30 for passing the final test first try. Score flies up from the counter (`.ls-float`).
+- The lesson header row holds the step dots plus a HUD (`funHud`): Leo's face with a mood emoji (thinking, happy, wow,
+  on fire, oops, proud) that pops when you answer, the score, the combo and your best for this lesson.
+- The last question of each lesson (`lessonFinal`) is the FINAL TEST: a short full-screen banner and a gold card frame.
+- Lesson complete: score counts up, personal best ("New best!", stored in `S.lessonBest`), bonus XP = score / 10, and a
+  chess card flips over (`funCard`: 40 fun facts in `CARDS`; common, rare at 3 stars, gold at 3 stars with no slips).
+  Badges wait until the card has been revealed (`Celebrate.hold`). The album is on the Progress tab (`cardAlbum`);
+  the course list shows each lesson's best score.
