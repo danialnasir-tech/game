@@ -12,6 +12,14 @@ var MISSIONS = {
     { id: 'read-race', title: 'Lightning Reader', dare: 'Faster now. Can you keep up?', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Nc3', 'Bf4', 'Qd2'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
       text: 'Four moves, no mistakes: d4, Nc3, Bf4, Qd2. Q is the queen.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
   ],
+  'l-capture': [
+    { id: 'cap-snack', title: 'Pawn Snack', dare: 'Hungry? I left some pawns out.', fen: '4k3/1p4p1/8/3p4/8/8/8/3QK3 w - - 0 1', goal: 'capture', count: 3, limit: 6, par: 4, coach: 'wander',
+      text: 'Eat three of my pawns with your queen in six moves.', tip: 'The queen moves like a rook and a bishop together. Look along the straight lines and the diagonals.' },
+    { id: 'cap-hop', title: 'Knight Hops', dare: 'Bet your knight can\'t catch these:', fen: '4k3/8/8/2p5/4p3/8/3N4/4K3 w - - 0 1', goal: 'capture', count: 2, limit: 4, par: 2, coach: 'wander',
+      text: 'Take both of my pawns with your knight in four moves.', tip: 'From d2 the knight can jump to e4. From e4, which squares can it reach?' },
+    { id: 'cap-sweep', title: 'Clean Sweep', dare: 'Two hunters, three pawns:', fen: '4k3/p6p/8/8/5p2/8/8/R1B1K3 w - - 0 1', goal: 'captureAll', limit: 7, par: 3, coach: 'wander',
+      text: 'Use your rook and your bishop to take every one of my pawns in seven moves.', tip: 'The rook takes along lines, the bishop along diagonals. Which pawn can each one reach right now?' }
+  ],
   'l-firstmoves': [
     { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6', 'Nf6'], sol: ['e2e4', 'g1f3', 'b1c3'],
       text: 'In three moves: one pawn in the centre and both knights out.', tip: 'e4 or d4 first, then Nf3 and Nc3.' },

@@ -368,3 +368,26 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   `survive` with `strict` (play N moves without losing any material). Coach ~1000 for 400-800, ~1400 for 800-1200,
   full strength when defending against mate. Each lesson's flow is now Learn → Practice puzzles → Play it out.
 - Removed the invented "+180 in 30 days" from the Progress intro chart.
+
+## Beginners, real opponents, clocks, 1200+ practice, course map
+- New lesson "Taking Pieces" (l-capture, after l-king-pawn): how capturing works for every piece, the pawn's diagonal
+  capture, "you can't take your own pieces", and "is it safe to take?". Coach missions cap-snack / cap-hop / cap-sweep
+  and a 5-puzzle drill.
+- Guided first game (`go('play', {guided:true})`, `ACT.guidedGame`): Leo draws two good moves every turn (green and
+  blue arrows, with a reason each from `explainMove`) and explains each of his own moves. Offered after l-firstmoves
+  (`flowNext` step `guided`) and on the Play setup under 900. Sets `S.guidedDone`.
+- Celebrations are top ribbons (`.cel-rib`) that never cover an end screen.
+- Human-style coach: levels with `human: { miss, max }` (Novice 20% / 360 cp, Club 7% / 240 cp) weight moves by how
+  tempting they look (captures, checks, development, castling, central pawns; aimless king and rook moves less), and
+  sometimes "miss" your threat by playing a natural move that loses up to `max`. Never walks into mate in one, never
+  hangs the queen-sized amount. See `natural()` and `pickMove` in engine.js.
+- Clock games: Play setup has Clock (No clock, 10 min, 5|3, 3|2), stored in `S.coach.clock`. Each side's clock runs only
+  on its own turn (`clkRun`/`clkStop`, increment added after each move), 0:00 loses (`clkFlag`), under 30 s turns red and
+  Leo warns once. On the clock the coach takes human-like time per move. Not used in arena, practice or guided games.
+- Practice games now cover 1200+ lessons too (tests/practice-build.js): mate puzzles for candidates / calc / deep,
+  survive games for defence / pro-threats / outposts / structure / the Philidor rook ending, promote games for king and
+  pawn endings (verified with a deeper search, `deep`), and mate-with-extra-material for convert. Mating the coach also
+  counts in a survive game.
+- Course map: the open stage on Home is a winding road (`drawMap`, `.cmap`): big round lesson nodes, diamond nodes for
+  openings and play-it-out games (now listed under each finished lesson), a pulsing START node, and the road painted
+  green up to where you are. Redrawn on resize and when the full home list opens.

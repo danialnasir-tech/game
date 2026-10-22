@@ -251,6 +251,15 @@ button:disabled { cursor: not-allowed; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--brass); }
 .play-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .turn-ind { font-family: var(--f-display); font-weight: 700; font-size: 20px; }
+.clocks { display: flex; gap: 6px; margin-top: 6px; }
+.clk { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--card2, rgba(127,127,127,.12)); border: 1px solid var(--line, rgba(127,127,127,.25)); font-variant-numeric: tabular-nums; opacity: .6; transition: opacity .2s, background .2s; }
+.clk em { font-style: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.clk b { font-family: var(--f-mono, monospace); font-size: 17px; }
+.clk.run { opacity: 1; background: var(--brass); color: #1b1408; border-color: transparent; }
+.clk.low b { color: #e5484d; }
+.clk.run.low { background: #e5484d; color: #fff; animation: pulse 1s infinite; }
+.clk.run.low b { color: #fff; }
+.clk-seg button { flex: 1; }
 .turn-ind.busy::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--brass); animation: pulse 1s infinite; vertical-align: middle; }
 @keyframes pulse { 50% { opacity: .2; } }
 .play-btns { display: flex; gap: 6px; }
@@ -605,6 +614,15 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .cc-mini.locked { border-style: dashed; border-color: rgba(255,255,255,.18); background: transparent; color: rgba(255,255,255,.35); cursor: default; font-size: 18px; }
 .cc-modal { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(5,6,14,.75); animation: fiIn .2s both; } .cc-modal .cc-card { width: 260px; height: 172px; } .cc-modal .cc-front b { font-size: 18px; } .cc-modal .cc-front p { font-size: 14px; }
 @media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { .ls-face, .ls-face svg { width: 24px; height: 24px; } .ls-hud { font-size: 12px; gap: 4px; } .ls-best { display: none; } }
+.cel-rib { position: fixed; z-index: 96; top: max(10px, env(safe-area-inset-top)); left: 50%; width: min(440px, calc(100% - 20px)); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: linear-gradient(120deg, #3a1f8a, #6b2fb3 55%, #c2187a); color: #fff; box-shadow: 0 12px 34px rgba(0,0,0,.45), 0 0 0 2px rgba(255,210,63,.6); cursor: pointer; animation: crIn .55s cubic-bezier(.2,1.5,.4,1) both; }
+.cel-rib.level { background: linear-gradient(120deg, #0f6e5a, #1aa37a 55%, #c4a20f); }
+.cel-rib.out { animation: crOut .35s ease-in forwards; }
+.cr-medal { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #fff3b0, #ffd23f 45%, #c98a00); box-shadow: 0 0 18px rgba(255,210,63,.7); animation: crSpin 1.2s ease-out; }
+.cr-t { display: flex; flex-direction: column; min-width: 0; } .cr-t small { font: 800 10.5px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: #ffd23f; } .cr-t b { font-size: 16px; } .cr-t span { font-size: 12.5px; color: rgba(255,255,255,.85); }
+@keyframes crIn { from { transform: translate(-50%, -140%) scale(.9); } to { transform: translate(-50%, 0); } } @keyframes crOut { to { transform: translate(-50%, -150%); opacity: 0; } }
+@keyframes crSpin { from { transform: rotateY(0) scale(.4); } 60% { transform: rotateY(540deg) scale(1.15); } to { transform: rotateY(720deg) scale(1); } }
+.gd-idea { display: block; margin: 2px 0 4px; } .gd-g { color: #3ddc97; } .gd-b { color: #6fa8dc; }
+.guided-entry { border-color: rgba(61,220,151,.55) !important; background: linear-gradient(120deg, rgba(61,220,151,.16), rgba(76,201,240,.1)) !important; }
 .g-glow { animation: gGlow 1.1s ease-in-out 4; position: relative; z-index: 1; border-radius: 14px; }
 @keyframes gGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,63,0); } 50% { box-shadow: 0 0 0 4px rgba(255,210,63,.9), 0 0 24px rgba(255,210,63,.6); } }
 #w-dlg .btn.pulse { animation: spBeat 1.6s ease-in-out infinite; }
@@ -883,6 +901,34 @@ body.speaking .brand-mark { animation: talk .5s ease-in-out infinite alternate; 
 .jl-title { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
 .jlesson.next .jl-title { color: var(--brass); font-weight: 800; }
 .jl-meta { font-size: 12px; color: var(--dim); white-space: nowrap; }
+/* course map: the open stage as a winding road */
+.jlessons.cmap { gap: 10px; padding: 8px 8px 18px 12px; }
+.jlessons.cmap::before { display: none; }
+.cmap-road { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.cmap-road path { fill: none; stroke-linecap: round; }
+.cmap-road .road-bed { stroke: rgba(255,255,255,.06); stroke-width: 16px; }
+.cmap-road .road-dash { stroke: rgba(255,255,255,.22); stroke-width: 3px; stroke-dasharray: 1 9; }
+.cmap-road .road-done { stroke: var(--good); stroke-width: 5px; opacity: .85; filter: drop-shadow(0 0 6px rgba(61,220,151,.55)); }
+.cmap > button { position: relative; z-index: 1; margin-left: var(--x, 0); width: calc(100% - var(--x, 0px)); }
+.cmap .jlesson { padding: 6px 8px; background: none; }
+.cmap .jlesson:hover { background: rgba(255,255,255,.04); }
+.cmap .jl-num { width: 44px; height: 44px; font-size: 15px; border-width: 3px; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .15s; }
+.cmap .jlesson:active .jl-num { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.cmap .jlesson.done .jl-num { box-shadow: 0 4px 0 #1f8a5c, 0 0 14px rgba(61,220,151,.35); }
+.cmap .jlesson.next { background: none; }
+.cmap .jlesson.next .jl-num { width: 58px; height: 58px; font-size: 19px; margin-left: -7px; box-shadow: 0 5px 0 #8a6d12, 0 0 0 6px rgba(255,210,63,.18), 0 0 26px rgba(255,210,63,.45); animation: mapbob 1.8s ease-in-out infinite; }
+.cmap .jlesson.next::before { content: "START"; position: absolute; left: calc(var(--x, 0px) * 0 + 6px); top: -12px; z-index: 2; padding: 2px 8px; border-radius: 8px; background: var(--brass); color: var(--brass-ink); font: 800 10.5px var(--f-mono); letter-spacing: .08em; box-shadow: 0 3px 0 #8a6d12; animation: mapbob 1.8s ease-in-out infinite; }
+@keyframes mapbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.cmap .jlesson.jop .jl-num, .cmap .jlesson.jprac .jl-num { width: 34px; height: 34px; margin: 0 5px; border-radius: 11px; transform: rotate(45deg); }
+.jl-num > i { font-style: normal; display: grid; place-items: center; line-height: 1; }
+.cmap .jlesson.jop .jl-num > i, .cmap .jlesson.jprac .jl-num > i { transform: rotate(-45deg); }
+.cmap .jl-num.pr { border-color: rgba(255,120,73,.6); background: rgba(255,120,73,.14); color: #ff9a6b; font-size: 14px; }
+.cmap .jprac.done .jl-num.pr { background: var(--good); border-color: var(--good); color: #062b1c; }
+.op-kind.prac { background: rgba(255,120,73,.16); color: #ff9a6b; }
+.cmap .jmission { margin: 0 0 0 var(--x, 0); width: calc(100% - var(--x, 0px)); border: 0; background: none; padding: 4px 8px 4px 13px; }
+.cmap .jm-ico { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 3px solid rgba(255,210,63,.55); background: rgba(255,210,63,.12); box-shadow: 0 3px 0 rgba(0,0,0,.35); flex-shrink: 0; }
+.cmap .jmission.done .jm-ico { border-color: var(--good); background: var(--good); color: #062b1c; }
+.cmap .jboss .boss-ava { transform: scale(1.35); margin: 0 8px; }
 .jlesson.done .jl-meta { color: var(--brass); letter-spacing: 1px; }
 
 /* intro / onboarding */

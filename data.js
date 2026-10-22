@@ -364,8 +364,8 @@ var PUZZLES = [
 var COACH_LEVELS = [
   // strength comes from a fixed search depth, so a level plays the same on a fast laptop and a slow phone.
   // Calibrated against Stockfish 17.1 with its built-in Elo limit (tests/engine-calibration.md).
-  { id: 'novice', name: 'Novice', elo: 600, depth: 1, time: 400, margin: 150, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
-  { id: 'club', name: 'Club', elo: 1000, depth: 1, time: 500, margin: 80, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
+  { id: 'novice', name: 'Novice', elo: 600, depth: 1, time: 400, margin: 150, human: { miss: 0.2, max: 360 }, blurb: 'Plays like a real beginner: grabs pieces, misses your threats and sometimes leaves a piece loose for you to win.' },
+  { id: 'club', name: 'Club', elo: 1000, depth: 1, time: 500, margin: 80, human: { miss: 0.07, max: 240 }, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
   { id: 'strong', name: 'Strong', elo: 1400, depth: 2, time: 700, margin: 45, blurb: 'Sees short combinations and takes what you leave.' },
   { id: 'expert', name: 'Expert', elo: 1800, depth: 3, time: 1200, margin: 25, blurb: 'Solid and tactical. Punishes loose pieces and weak kings.' },
   { id: 'master', name: 'Master', elo: 2200, depth: 5, time: 2000, margin: 0, blurb: 'Accurate in every phase. Rarely gives anything away.' },
@@ -402,8 +402,25 @@ LESSONS['l-rookmate'] = {
     { t: 'move', fen: 'k7/8/1K6/8/8/8/8/7R w - - 0 1', text: 'Same idea in the corner.', sol: ['h1h8'], anyMate: true, hint: 'Your king already covers a7 and b7.', done: 'The corner version. You will win this endgame every time now.' }
   ]
 };
+LESSONS['l-capture'] = {
+  title: 'Taking Pieces', minutes: 5, goal: 'Capture enemy pieces with every kind of piece, and know which captures are safe.',
+  takeaways: ['To capture, move onto the enemy piece\'s square. It leaves the board for good.', 'Pieces capture the way they move, except the pawn, which takes diagonally.', 'Take pieces that nobody protects. The king is never taken: attacking it is check.'],
+  steps: [
+    { t: 'read', fen: '4k3/8/8/n7/8/8/8/R3K3 w - - 0 1', arrows: [['a1', 'a5', 'g']], tags: { a5: 'Enemy' }, text: 'Chess is a battle. You take an enemy piece by moving your piece onto its square. The enemy piece is removed from the board, for good.', tap: { q: 'Tap the black piece your rook can take.', targets: ['a5'], why: 'The rook moves up the a-file, lands on a5 and the knight is gone.', wrong: 'Follow the rook\'s straight line up the a-file.' } },
+    { t: 'move', fen: '4k3/8/8/n7/8/8/8/R3K3 w - - 0 1', text: 'Your turn: take the knight with your rook.', sol: ['a1a5'], hint: 'Move the rook straight up to a5.', done: 'Captured! The knight is off the board and never comes back.' },
+    { t: 'read', fen: '4k3/8/p7/8/8/P7/8/R3K3 w - - 0 1', tags: { a3: 'Yours', a6: 'Enemy' }, text: 'Two rules: you can never take your own pieces, and you cannot capture through a piece. Only the knight can jump over others.', ask: { q: 'Can your rook take the black pawn on a6?', options: ['Yes, rooks go straight', 'No, your own pawn blocks the way'], a: 1, why: 'Your pawn on a3 stands in the rook\'s path, so the rook cannot reach a6.', wrong: ['The line is blocked: your own pawn on a3 is in the way.', ''] } },
+    { t: 'move', fen: '4k3/8/8/4b3/3P1P2/2PNP3/8/4K3 w - - 0 1', text: 'Your knight is surrounded by its own pawns, but knights jump. Take the black bishop!', sol: ['d3e5'], hint: 'A knight move is an L: two squares one way, one square to the side. Look at e5.', done: 'The knight jumped over its pawns and took the bishop. Only knights can do that.' },
+    { t: 'move', fen: '4k3/8/5r2/8/8/8/1B6/4K3 w - - 0 1', text: 'Bishops take along the diagonals. Take the black rook.', sol: ['b2f6'], hint: 'Follow the diagonal from b2 up to the right.', done: 'A bishop for nothing? No: a rook for nothing. Long diagonals are dangerous.' },
+    { t: 'read', fen: '4k3/8/8/3pp3/4P3/8/8/4K3 w - - 0 1', marks: ['d5'], text: 'The pawn is the odd one: it moves straight ahead, but it captures one square diagonally forward. It can never take straight ahead.', ask: { q: 'Which black pawn can your e4 pawn take?', options: ['e5, straight ahead', 'd5, diagonally'], a: 1, why: 'Pawns capture diagonally, so e4 can take on d5 (or f5). The e5 pawn just blocks it.', wrong: ['A pawn never captures straight ahead. e5 only blocks your pawn.', ''] } },
+    { t: 'move', fen: '4k3/8/8/3pp3/4P3/8/8/4K3 w - - 0 1', text: 'Take the d5 pawn with your pawn.', sol: ['e4d5'], hint: 'One square diagonally forward, to the left.', done: 'Pawn takes pawn. Now your pawn stands on d5.' },
+    { t: 'read', fen: '4r1k1/8/8/8/8/8/4n3/4K3 w - - 0 1', arrows: [['e8', 'e2', 'r']], text: 'The king can capture too, one square in any direction. But never a protected piece: the king may not step onto a square the enemy attacks.', ask: { q: 'Can your king take the knight on e2?', options: ['Yes, it is right next to him', 'No, the black rook guards e2'], a: 1, why: 'The rook on e8 attacks e2. Taking there would put your king in check, and that is never allowed.', wrong: ['Look at the black rook on e8: it guards the whole e-file down to e2.', ''] } },
+    { t: 'read', fen: '4k3/8/8/8/8/8/8/4R1K1 b - - 0 1', arrows: [['e1', 'e8', 'r']], tags: { e8: 'Check!' }, text: 'One piece is never captured: the king. When you attack the king it is called check, and the other side must escape at once. If it cannot escape, that is checkmate and you win.', ask: { q: 'You attack the enemy king. What happens?', options: ['I take it off the board', 'It is check: it must escape'], a: 1, why: 'Kings are never taken. Check forces an escape, and checkmate ends the game.', wrong: ['Kings are never captured. Attacking one is called check.', ''] } },
+    { t: 'move', fen: '6k1/5ppp/4p3/3n4/b7/8/8/3QK3 w - - 0 1', marks: ['a4', 'd5'], text: 'Last one, the most important habit. Your queen can take two pieces. One of them is protected by a pawn. Take the free one.', sol: ['d1a4'], hint: 'The knight on d5 is guarded by the e6 pawn. The bishop on a4 has no guard.', done: 'Free piece taken, and your queen is safe. Before every capture ask: can they take back?' }
+  ]
+};
 (function () {
   function addAfter(stageIdx, afterId, id) { var L = STAGES[stageIdx].lessons, i = L.indexOf(afterId); L.splice(i < 0 ? L.length : i + 1, 0, id); }
+  addAfter(0, 'l-king-pawn', 'l-capture');
   addAfter(1, 'l-principles', 'l-traps');
   addAfter(2, 'l-patterns', 'l-smothered');
   addAfter(1, 'l-backrank', 'l-rookmate'); // a 600-800 player needs the rook mate to finish won games

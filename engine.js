@@ -383,6 +383,20 @@ function ENGINE_FACTORY(Game) {
     var mate = g.moves().some(function (x) { g.move(x); var y = g.inCheckmate(); g.undo(); return y; });
     g.undo(); return mate;
   }
+  // How tempting a move looks to a human: grabbing material, giving check, developing, castling and
+  // central pawn pushes catch the eye. Aimless king walks and rook shuffles do not.
+  function natural(g, m, ply) {
+    var w = 1, mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined });
+    if (!mv) return 0.2;
+    if (g.inCheck()) w += 1.5;
+    g.undo();
+    if (m.captured) w += 2;
+    if (m.piece === 'k') w = (Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 2) ? w + 2 : w * 0.3;
+    if (ply <= 12 && (m.piece === 'n' || m.piece === 'b') && (m.from[1] === '1' || m.from[1] === '8')) w += 1.5;
+    if (ply <= 10 && m.piece === 'p' && 'cdef'.indexOf(m.to[0]) >= 0) w += 1;
+    if (m.piece === 'r' && !m.captured && ply <= 16) w *= 0.6;
+    return w;
+  }
   function pickMove(fen, level, prevFens) {
     // level: {depth, time, margin}
     var r = rootSearch(fen, level.depth, level.time, level.margin ? Math.max(level.margin, 1) : 0, prevFens);
@@ -399,8 +413,20 @@ function ENGINE_FACTORY(Game) {
       if (!safe.length) safe = r.moves.filter(function (m) { return !allowsMate1(gg, m); }).slice(0, 1);
       if (safe.length) pool = safe;
     }
+    var slip = false;
+    if (level.human) {
+      var hg = new Game(fen), ply = +fen.split(' ')[5];
+      // a real beginner sometimes simply misses what you are threatening, or hangs something while
+      // playing a natural-looking move. Never the queen-sized blunders (capped by level.human.max).
+      if (ply >= 4 && best < MATE - 100 && best > -MATE + 100 && Math.random() < level.human.miss) {
+        var wide = r.moves.filter(function (m) { return m.score < best - (level.margin || 0) && m.score >= best - level.human.max && natural(hg, m, ply) > 1 && !allowsMate1(hg, m); });
+        if (wide.length) { pool = wide; slip = true; }
+      }
+      var ws = pool.map(function (m) { return natural(hg, m, ply); }), tot = ws.reduce(function (a, b) { return a + b; }, 0), x = Math.random() * tot;
+      for (var i = 0; i < pool.length; i++) { x -= ws[i]; if (x <= 0) return { move: pool[i], score: pool[i].score, depth: r.depth, best: r.moves[0], slip: slip }; }
+    }
     var pick = pool[Math.floor(Math.random() * pool.length)];
-    return { move: pick, score: pick.score, depth: r.depth, best: r.moves[0] };
+    return { move: pick, score: pick.score, depth: r.depth, best: r.moves[0], slip: slip };
   }
 
   // Analyse a move the user is about to make / just made, from the position before it.

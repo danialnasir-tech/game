@@ -251,6 +251,15 @@ button:disabled { cursor: not-allowed; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--brass); }
 .play-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .turn-ind { font-family: var(--f-display); font-weight: 700; font-size: 20px; }
+.clocks { display: flex; gap: 6px; margin-top: 6px; }
+.clk { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--card2, rgba(127,127,127,.12)); border: 1px solid var(--line, rgba(127,127,127,.25)); font-variant-numeric: tabular-nums; opacity: .6; transition: opacity .2s, background .2s; }
+.clk em { font-style: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.clk b { font-family: var(--f-mono, monospace); font-size: 17px; }
+.clk.run { opacity: 1; background: var(--brass); color: #1b1408; border-color: transparent; }
+.clk.low b { color: #e5484d; }
+.clk.run.low { background: #e5484d; color: #fff; animation: pulse 1s infinite; }
+.clk.run.low b { color: #fff; }
+.clk-seg button { flex: 1; }
 .turn-ind.busy::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--brass); animation: pulse 1s infinite; vertical-align: middle; }
 @keyframes pulse { 50% { opacity: .2; } }
 .play-btns { display: flex; gap: 6px; }
@@ -605,6 +614,15 @@ body.mob .career-card { padding: 7px 12px; margin-top: 8px; } body.mob .career-c
 .cc-mini.locked { border-style: dashed; border-color: rgba(255,255,255,.18); background: transparent; color: rgba(255,255,255,.35); cursor: default; font-size: 18px; }
 .cc-modal { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(5,6,14,.75); animation: fiIn .2s both; } .cc-modal .cc-card { width: 260px; height: 172px; } .cc-modal .cc-front b { font-size: 18px; } .cc-modal .cc-front p { font-size: 14px; }
 @media (max-width: 880px) and (orientation: portrait) and (max-height: 700px) { .ls-face, .ls-face svg { width: 24px; height: 24px; } .ls-hud { font-size: 12px; gap: 4px; } .ls-best { display: none; } }
+.cel-rib { position: fixed; z-index: 96; top: max(10px, env(safe-area-inset-top)); left: 50%; width: min(440px, calc(100% - 20px)); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; background: linear-gradient(120deg, #3a1f8a, #6b2fb3 55%, #c2187a); color: #fff; box-shadow: 0 12px 34px rgba(0,0,0,.45), 0 0 0 2px rgba(255,210,63,.6); cursor: pointer; animation: crIn .55s cubic-bezier(.2,1.5,.4,1) both; }
+.cel-rib.level { background: linear-gradient(120deg, #0f6e5a, #1aa37a 55%, #c4a20f); }
+.cel-rib.out { animation: crOut .35s ease-in forwards; }
+.cr-medal { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #fff3b0, #ffd23f 45%, #c98a00); box-shadow: 0 0 18px rgba(255,210,63,.7); animation: crSpin 1.2s ease-out; }
+.cr-t { display: flex; flex-direction: column; min-width: 0; } .cr-t small { font: 800 10.5px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: #ffd23f; } .cr-t b { font-size: 16px; } .cr-t span { font-size: 12.5px; color: rgba(255,255,255,.85); }
+@keyframes crIn { from { transform: translate(-50%, -140%) scale(.9); } to { transform: translate(-50%, 0); } } @keyframes crOut { to { transform: translate(-50%, -150%); opacity: 0; } }
+@keyframes crSpin { from { transform: rotateY(0) scale(.4); } 60% { transform: rotateY(540deg) scale(1.15); } to { transform: rotateY(720deg) scale(1); } }
+.gd-idea { display: block; margin: 2px 0 4px; } .gd-g { color: #3ddc97; } .gd-b { color: #6fa8dc; }
+.guided-entry { border-color: rgba(61,220,151,.55) !important; background: linear-gradient(120deg, rgba(61,220,151,.16), rgba(76,201,240,.1)) !important; }
 .g-glow { animation: gGlow 1.1s ease-in-out 4; position: relative; z-index: 1; border-radius: 14px; }
 @keyframes gGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,63,0); } 50% { box-shadow: 0 0 0 4px rgba(255,210,63,.9), 0 0 24px rgba(255,210,63,.6); } }
 #w-dlg .btn.pulse { animation: spBeat 1.6s ease-in-out infinite; }
@@ -1639,6 +1657,20 @@ function ENGINE_FACTORY(Game) {
     var mate = g.moves().some(function (x) { g.move(x); var y = g.inCheckmate(); g.undo(); return y; });
     g.undo(); return mate;
   }
+  // How tempting a move looks to a human: grabbing material, giving check, developing, castling and
+  // central pawn pushes catch the eye. Aimless king walks and rook shuffles do not.
+  function natural(g, m, ply) {
+    var w = 1, mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined });
+    if (!mv) return 0.2;
+    if (g.inCheck()) w += 1.5;
+    g.undo();
+    if (m.captured) w += 2;
+    if (m.piece === 'k') w = (Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 2) ? w + 2 : w * 0.3;
+    if (ply <= 12 && (m.piece === 'n' || m.piece === 'b') && (m.from[1] === '1' || m.from[1] === '8')) w += 1.5;
+    if (ply <= 10 && m.piece === 'p' && 'cdef'.indexOf(m.to[0]) >= 0) w += 1;
+    if (m.piece === 'r' && !m.captured && ply <= 16) w *= 0.6;
+    return w;
+  }
   function pickMove(fen, level, prevFens) {
     // level: {depth, time, margin}
     var r = rootSearch(fen, level.depth, level.time, level.margin ? Math.max(level.margin, 1) : 0, prevFens);
@@ -1655,8 +1687,20 @@ function ENGINE_FACTORY(Game) {
       if (!safe.length) safe = r.moves.filter(function (m) { return !allowsMate1(gg, m); }).slice(0, 1);
       if (safe.length) pool = safe;
     }
+    var slip = false;
+    if (level.human) {
+      var hg = new Game(fen), ply = +fen.split(' ')[5];
+      // a real beginner sometimes simply misses what you are threatening, or hangs something while
+      // playing a natural-looking move. Never the queen-sized blunders (capped by level.human.max).
+      if (ply >= 4 && best < MATE - 100 && best > -MATE + 100 && Math.random() < level.human.miss) {
+        var wide = r.moves.filter(function (m) { return m.score < best - (level.margin || 0) && m.score >= best - level.human.max && natural(hg, m, ply) > 1 && !allowsMate1(hg, m); });
+        if (wide.length) { pool = wide; slip = true; }
+      }
+      var ws = pool.map(function (m) { return natural(hg, m, ply); }), tot = ws.reduce(function (a, b) { return a + b; }, 0), x = Math.random() * tot;
+      for (var i = 0; i < pool.length; i++) { x -= ws[i]; if (x <= 0) return { move: pool[i], score: pool[i].score, depth: r.depth, best: r.moves[0], slip: slip }; }
+    }
     var pick = pool[Math.floor(Math.random() * pool.length)];
-    return { move: pick, score: pick.score, depth: r.depth, best: r.moves[0] };
+    return { move: pick, score: pick.score, depth: r.depth, best: r.moves[0], slip: slip };
   }
 
   // Analyse a move the user is about to make / just made, from the position before it.
@@ -2118,8 +2162,8 @@ var PUZZLES = [
 var COACH_LEVELS = [
   // strength comes from a fixed search depth, so a level plays the same on a fast laptop and a slow phone.
   // Calibrated against Stockfish 17.1 with its built-in Elo limit (tests/engine-calibration.md).
-  { id: 'novice', name: 'Novice', elo: 600, depth: 1, time: 400, margin: 150, blurb: 'Plays like a beginner on purpose: misses threats and sometimes leaves a piece loose for you to win.' },
-  { id: 'club', name: 'Club', elo: 1000, depth: 1, time: 500, margin: 80, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
+  { id: 'novice', name: 'Novice', elo: 600, depth: 1, time: 400, margin: 150, human: { miss: 0.2, max: 360 }, blurb: 'Plays like a real beginner: grabs pieces, misses your threats and sometimes leaves a piece loose for you to win.' },
+  { id: 'club', name: 'Club', elo: 1000, depth: 1, time: 500, margin: 80, human: { miss: 0.07, max: 240 }, blurb: 'Slips now and then on purpose, but punishes hanging pieces.' },
   { id: 'strong', name: 'Strong', elo: 1400, depth: 2, time: 700, margin: 45, blurb: 'Sees short combinations and takes what you leave.' },
   { id: 'expert', name: 'Expert', elo: 1800, depth: 3, time: 1200, margin: 25, blurb: 'Solid and tactical. Punishes loose pieces and weak kings.' },
   { id: 'master', name: 'Master', elo: 2200, depth: 5, time: 2000, margin: 0, blurb: 'Accurate in every phase. Rarely gives anything away.' },
@@ -2156,8 +2200,25 @@ LESSONS['l-rookmate'] = {
     { t: 'move', fen: 'k7/8/1K6/8/8/8/8/7R w - - 0 1', text: 'Same idea in the corner.', sol: ['h1h8'], anyMate: true, hint: 'Your king already covers a7 and b7.', done: 'The corner version. You will win this endgame every time now.' }
   ]
 };
+LESSONS['l-capture'] = {
+  title: 'Taking Pieces', minutes: 5, goal: 'Capture enemy pieces with every kind of piece, and know which captures are safe.',
+  takeaways: ['To capture, move onto the enemy piece\'s square. It leaves the board for good.', 'Pieces capture the way they move, except the pawn, which takes diagonally.', 'Take pieces that nobody protects. The king is never taken: attacking it is check.'],
+  steps: [
+    { t: 'read', fen: '4k3/8/8/n7/8/8/8/R3K3 w - - 0 1', arrows: [['a1', 'a5', 'g']], tags: { a5: 'Enemy' }, text: 'Chess is a battle. You take an enemy piece by moving your piece onto its square. The enemy piece is removed from the board, for good.', tap: { q: 'Tap the black piece your rook can take.', targets: ['a5'], why: 'The rook moves up the a-file, lands on a5 and the knight is gone.', wrong: 'Follow the rook\'s straight line up the a-file.' } },
+    { t: 'move', fen: '4k3/8/8/n7/8/8/8/R3K3 w - - 0 1', text: 'Your turn: take the knight with your rook.', sol: ['a1a5'], hint: 'Move the rook straight up to a5.', done: 'Captured! The knight is off the board and never comes back.' },
+    { t: 'read', fen: '4k3/8/p7/8/8/P7/8/R3K3 w - - 0 1', tags: { a3: 'Yours', a6: 'Enemy' }, text: 'Two rules: you can never take your own pieces, and you cannot capture through a piece. Only the knight can jump over others.', ask: { q: 'Can your rook take the black pawn on a6?', options: ['Yes, rooks go straight', 'No, your own pawn blocks the way'], a: 1, why: 'Your pawn on a3 stands in the rook\'s path, so the rook cannot reach a6.', wrong: ['The line is blocked: your own pawn on a3 is in the way.', ''] } },
+    { t: 'move', fen: '4k3/8/8/4b3/3P1P2/2PNP3/8/4K3 w - - 0 1', text: 'Your knight is surrounded by its own pawns, but knights jump. Take the black bishop!', sol: ['d3e5'], hint: 'A knight move is an L: two squares one way, one square to the side. Look at e5.', done: 'The knight jumped over its pawns and took the bishop. Only knights can do that.' },
+    { t: 'move', fen: '4k3/8/5r2/8/8/8/1B6/4K3 w - - 0 1', text: 'Bishops take along the diagonals. Take the black rook.', sol: ['b2f6'], hint: 'Follow the diagonal from b2 up to the right.', done: 'A bishop for nothing? No: a rook for nothing. Long diagonals are dangerous.' },
+    { t: 'read', fen: '4k3/8/8/3pp3/4P3/8/8/4K3 w - - 0 1', marks: ['d5'], text: 'The pawn is the odd one: it moves straight ahead, but it captures one square diagonally forward. It can never take straight ahead.', ask: { q: 'Which black pawn can your e4 pawn take?', options: ['e5, straight ahead', 'd5, diagonally'], a: 1, why: 'Pawns capture diagonally, so e4 can take on d5 (or f5). The e5 pawn just blocks it.', wrong: ['A pawn never captures straight ahead. e5 only blocks your pawn.', ''] } },
+    { t: 'move', fen: '4k3/8/8/3pp3/4P3/8/8/4K3 w - - 0 1', text: 'Take the d5 pawn with your pawn.', sol: ['e4d5'], hint: 'One square diagonally forward, to the left.', done: 'Pawn takes pawn. Now your pawn stands on d5.' },
+    { t: 'read', fen: '4r1k1/8/8/8/8/8/4n3/4K3 w - - 0 1', arrows: [['e8', 'e2', 'r']], text: 'The king can capture too, one square in any direction. But never a protected piece: the king may not step onto a square the enemy attacks.', ask: { q: 'Can your king take the knight on e2?', options: ['Yes, it is right next to him', 'No, the black rook guards e2'], a: 1, why: 'The rook on e8 attacks e2. Taking there would put your king in check, and that is never allowed.', wrong: ['Look at the black rook on e8: it guards the whole e-file down to e2.', ''] } },
+    { t: 'read', fen: '4k3/8/8/8/8/8/8/4R1K1 b - - 0 1', arrows: [['e1', 'e8', 'r']], tags: { e8: 'Check!' }, text: 'One piece is never captured: the king. When you attack the king it is called check, and the other side must escape at once. If it cannot escape, that is checkmate and you win.', ask: { q: 'You attack the enemy king. What happens?', options: ['I take it off the board', 'It is check: it must escape'], a: 1, why: 'Kings are never taken. Check forces an escape, and checkmate ends the game.', wrong: ['Kings are never captured. Attacking one is called check.', ''] } },
+    { t: 'move', fen: '6k1/5ppp/4p3/3n4/b7/8/8/3QK3 w - - 0 1', marks: ['a4', 'd5'], text: 'Last one, the most important habit. Your queen can take two pieces. One of them is protected by a pawn. Take the free one.', sol: ['d1a4'], hint: 'The knight on d5 is guarded by the e6 pawn. The bishop on a4 has no guard.', done: 'Free piece taken, and your queen is safe. Before every capture ask: can they take back?' }
+  ]
+};
 (function () {
   function addAfter(stageIdx, afterId, id) { var L = STAGES[stageIdx].lessons, i = L.indexOf(afterId); L.splice(i < 0 ? L.length : i + 1, 0, id); }
+  addAfter(0, 'l-king-pawn', 'l-capture');
   addAfter(1, 'l-principles', 'l-traps');
   addAfter(2, 'l-patterns', 'l-smothered');
   addAfter(1, 'l-backrank', 'l-rookmate'); // a 600-800 player needs the rook mate to finish won games
@@ -6082,8 +6143,8 @@ var VISION_GAMES = [
 if (typeof module !== 'undefined') module.exports = { BOSSES: BOSSES, CHALLENGES: CHALLENGES, VISION_GAMES: VISION_GAMES };
 
 ;
-// Play-it-out practice games after every 400-1200 lesson. Generated and verified by tests/practice-build.js.
-var PRACTICE = [ { "id": "pr-values-0", "title": "Count and Collect", "after": "l-values", "practice": true, "side": "b", "fen": "5n2/2r1k1b1/p2pp3/5p2/1p6/P2R4/1QP1NP2/4K3 b - - 0 45", "goal": "gain", "need": 5, "limit": 5, "par": 1, "level": "club", "text": "Somewhere on this board a piece is worth taking. Take it, and keep the extra material while I fight back.", "from": "x41" }, { "id": "pr-values-1", "title": "Free Material", "after": "l-values", "practice": true, "side": "b", "fen": "5R1r/3k2p1/p2p2p1/1q1Pp3/1P2p2P/6P1/3B2P1/4KR2 b - - 0 35", "goal": "gain", "need": 2, "limit": 8, "par": 5, "level": "club", "text": "Somewhere on this board a piece is worth taking. Take it, and keep the extra material while I fight back.", "from": "x42" }, { "id": "pr-captures-0", "title": "Pick the Right Capture", "after": "l-captures", "practice": true, "side": "b", "fen": "r1bq1rk1/p1pp2pp/1pn1p3/8/2PPB3/2P5/P4QPP/R1B1K1NR b KQ - 0 12", "goal": "gain", "need": 5, "limit": 8, "par": 5, "level": "club", "text": "Several captures look possible. Find the one that really wins, then hold on to it.", "from": "x68" }, { "id": "pr-captures-1", "title": "Take the Biggest", "after": "l-captures", "practice": true, "side": "b", "fen": "r1r3k1/ppp3p1/3qP2p/b3B3/2n1PQ2/8/P3KPPP/1R3B1R b - - 0 21", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Several captures look possible. Find the one that really wins, then hold on to it.", "from": "y002" }, { "id": "pr-threats-0", "title": "Survive the Queen", "after": "l-threats", "practice": true, "side": "b", "fen": "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3", "goal": "survive", "strict": true, "limit": 10, "par": 10, "level": "club", "text": "My queen and bishop are aiming at f7, a mate threat. Defend it, then play 10 moves without losing any material." }, { "id": "pr-cct-0", "title": "Ten Clean Moves", "after": "l-cct", "practice": true, "side": "w", "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", "goal": "survive", "strict": true, "limit": 12, "par": 12, "level": "club", "text": "A normal game. Before every move ask: checks, captures, threats? Play 12 moves without giving anything away." }, { "id": "pr-principles-0", "title": "Develop and Survive", "after": "l-principles", "practice": true, "side": "w", "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "goal": "survive", "strict": true, "limit": 12, "par": 12, "level": "club", "text": "From the very start: develop, castle, and play 12 moves without losing a single piece or pawn." }, { "id": "pr-traps-0", "title": "Spot the Trap", "after": "l-traps", "practice": true, "side": "b", "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4", "goal": "survive", "strict": false, "limit": 10, "par": 10, "level": "club", "text": "My knight jumps at f7: this is the Fried Liver trap. Defend well and play 10 moves without losing more than a pawn." }, { "id": "pr-forks-0", "title": "Fork It", "after": "l-forks", "practice": true, "side": "w", "fen": "3N4/6k1/2P5/8/3q4/8/8/4K3 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "One move attacks two things at once. Find the fork, collect the piece, and keep it.", "from": "g003" }, { "id": "pr-forks-1", "title": "Double Trouble", "after": "l-forks", "practice": true, "side": "w", "fen": "8/8/8/q3k3/1N6/4p3/2K5/5r2 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "One move attacks two things at once. Find the fork, collect the piece, and keep it.", "from": "g005" }, { "id": "pr-pins-0", "title": "Pin and Win", "after": "l-pins", "practice": true, "side": "w", "fen": "4k3/3q4/8/8/P7/8/8/4KB2 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "A piece is stuck in front of something bigger. Pin it, attack it again, and win material.", "from": "p20" }, { "id": "pr-pins-1", "title": "Frozen Piece", "after": "l-pins", "practice": true, "side": "w", "fen": "8/8/8/8/2K5/k3b3/6R1/8 w - - 0 1", "goal": "gain", "need": 3, "limit": 5, "par": 2, "level": "club", "text": "A piece is stuck in front of something bigger. Pin it, attack it again, and win material.", "from": "g026" }, { "id": "pr-skewers-0", "title": "Skewer Strike", "after": "l-skewers", "practice": true, "side": "w", "fen": "1Q6/8/8/4K3/8/8/8/3k3q w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Attack the big piece so that when it moves, the one behind it falls. Win material and keep it.", "from": "g053" }, { "id": "pr-skewers-1", "title": "Through the King", "after": "l-skewers", "practice": true, "side": "w", "fen": "8/8/8/q3k3/8/8/8/1K5R w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Attack the big piece so that when it moves, the one behind it falls. Win material and keep it.", "from": "p15" }, { "id": "pr-backrank-0", "title": "Back-Rank Raid", "after": "l-backrank", "practice": true, "side": "w", "fen": "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is stuck behind its own pawns. Find the mate. I defend as well as I can.", "from": "p05" }, { "id": "pr-backrank-1", "title": "No Way Out", "after": "l-backrank", "practice": true, "side": "w", "fen": "4k3/8/4K3/8/8/8/8/7R w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is stuck behind its own pawns. Find the mate. I defend as well as I can.", "from": "p06" }, { "id": "pr-loose-0", "title": "Loose Pieces Drop", "after": "l-loose", "practice": true, "side": "b", "fen": "k7/8/2p2B2/2P1P2p/7P/3Q1K2/2P5/4r1q1 b - - 6 61", "goal": "gain", "need": 5, "limit": 7, "par": 4, "level": "strong", "text": "An unprotected piece is a target. Hit it with a double attack and win material, against a stronger me.", "from": "y296" }, { "id": "pr-loose-1", "title": "Hunt the Loose One", "after": "l-loose", "practice": true, "side": "b", "fen": "3K4/2N2kr1/7p/8/R3n3/8/8/8 b - - 19 60", "goal": "gain", "need": 3, "limit": 5, "par": 2, "level": "strong", "text": "An unprotected piece is a target. Hit it with a double attack and win material, against a stronger me.", "from": "y376" }, { "id": "pr-twomove-0", "title": "Two-Move Combo", "after": "l-twomove", "practice": true, "side": "w", "fen": "r1b4r/pp1nkp1p/3b1qp1/2p5/8/P2PB2P/1PPQN1P1/1R3BKR w - - 2 16", "goal": "gain", "need": 5, "limit": 8, "par": 5, "level": "strong", "text": "The win takes two moves: a forcing move first, then the capture. Find both and keep the material.", "from": "y231" }, { "id": "pr-twomove-1", "title": "Set It Up", "after": "l-twomove", "practice": true, "side": "b", "fen": "1rbqk2r/1pp2p2/2np1n1p/p1b1p3/2B1P1p1/2NPB1Q1/PPP1NPPP/R2R1K2 b k - 1 12", "goal": "gain", "need": 5, "limit": 6, "par": 3, "level": "strong", "text": "The win takes two moves: a forcing move first, then the capture. Find both and keep the material.", "from": "y314" }, { "id": "pr-kingsafety-0", "title": "Open the King", "after": "l-kingsafety", "practice": true, "side": "w", "fen": "4k1r1/3rbp2/4p1p1/P5B1/2P3PP/5PN1/2KR4/1R6 w - - 0 37", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "The enemy king has too few defenders. Break in and give mate.", "from": "x04" }, { "id": "pr-kingsafety-1", "title": "Attack!", "after": "l-kingsafety", "practice": true, "side": "b", "fen": "8/1p6/3k4/2pp3p/2b4P/5qr1/2K4R/8 b - - 1 45", "goal": "mate", "limit": 4, "par": 2, "level": "master", "text": "The enemy king has too few defenders. Break in and give mate.", "from": "x26" }, { "id": "pr-discovered-0", "title": "Unmask the Attack", "after": "l-discovered", "practice": true, "side": "b", "fen": "6r1/2pk1p2/p1b1p1p1/1q2P3/3rpB2/8/1PQ2PPP/1RK3R1 b - - 1 39", "goal": "gain", "need": 5, "limit": 9, "par": 6, "level": "strong", "text": "Move one piece out of the way and the piece behind it attacks. Win material that way and keep it.", "from": "x60" }, { "id": "pr-discovered-1", "title": "Hidden Battery", "after": "l-discovered", "practice": true, "side": "b", "fen": "rn2k2r/pp3ppp/2p2n2/q3p3/1b2pPB1/1PNP4/PBPQ2PP/R3K1NR b KQkq - 0 9", "goal": "gain", "need": 5, "limit": 7, "par": 4, "level": "strong", "text": "Move one piece out of the way and the piece behind it attacks. Win material that way and keep it.", "from": "y057" }, { "id": "pr-defender-0", "title": "Remove the Guard", "after": "l-defender", "practice": true, "side": "w", "fen": "r3k2r/p4ppp/bpP5/1B2n3/Nb3P2/8/P5PP/1R3KNR w kq - 1 18", "goal": "gain", "need": 5, "limit": 6, "par": 3, "level": "strong", "text": "One enemy piece is doing all the defending. Remove it, then take what it was guarding.", "from": "y086" }, { "id": "pr-defender-1", "title": "Defender Down", "after": "l-defender", "practice": true, "side": "b", "fen": "r1b1k2r/pp1ppp1p/2n3p1/q7/3p1N2/2P5/PP3KPP/RN1Q1BR1 b kq - 0 12", "goal": "gain", "need": 2, "limit": 5, "par": 2, "level": "strong", "text": "One enemy piece is doing all the defending. Remove it, then take what it was guarding.", "from": "y259" }, { "id": "pr-patterns-0", "title": "Mating Net", "after": "l-patterns", "practice": true, "side": "b", "fen": "1k2n3/2p1r3/b7/5p2/2P3pP/6P1/3p1PKR/8 b - - 1 42", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "You know this mating pattern. Find it over the board while I defend.", "from": "x35" }, { "id": "pr-patterns-1", "title": "Pattern Finish", "after": "l-patterns", "practice": true, "side": "w", "fen": "r2qk3/1p2n3/1pnpB1pQ/4pp2/2p1P3/2P2N2/PB1P1P2/1RK5 w - - 0 36", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "You know this mating pattern. Find it over the board while I defend.", "from": "x43" }, { "id": "pr-smothered-0", "title": "Smother It", "after": "l-smothered", "practice": true, "side": "w", "fen": "3qkb2/3p1p2/8/8/4N3/8/8/4R1K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is boxed in by its own pieces. A knight can finish it. Find the mate.", "from": "p23" }
+// Play-it-out practice games after every lesson from 400 up. Generated and verified by tests/practice-build.js.
+var PRACTICE = [ { "id": "pr-values-0", "title": "Count and Collect", "after": "l-values", "practice": true, "side": "b", "fen": "5n2/2r1k1b1/p2pp3/5p2/1p6/P2R4/1QP1NP2/4K3 b - - 0 45", "goal": "gain", "need": 5, "limit": 5, "par": 1, "level": "club", "text": "Somewhere on this board a piece is worth taking. Take it, and keep the extra material while I fight back.", "from": "x41" }, { "id": "pr-values-1", "title": "Free Material", "after": "l-values", "practice": true, "side": "b", "fen": "5R1r/3k2p1/p2p2p1/1q1Pp3/1P2p2P/6P1/3B2P1/4KR2 b - - 0 35", "goal": "gain", "need": 3, "limit": 8, "par": 5, "level": "club", "text": "Somewhere on this board a piece is worth taking. Take it, and keep the extra material while I fight back.", "from": "x42" }, { "id": "pr-captures-0", "title": "Pick the Right Capture", "after": "l-captures", "practice": true, "side": "b", "fen": "r1bq1rk1/p1pp2pp/1pn1p3/8/2PPB3/2P5/P4QPP/R1B1K1NR b KQ - 0 12", "goal": "gain", "need": 5, "limit": 8, "par": 5, "level": "club", "text": "Several captures look possible. Find the one that really wins, then hold on to it.", "from": "x68" }, { "id": "pr-captures-1", "title": "Take the Biggest", "after": "l-captures", "practice": true, "side": "b", "fen": "r1r3k1/ppp3p1/3qP2p/b3B3/2n1PQ2/8/P3KPPP/1R3B1R b - - 0 21", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Several captures look possible. Find the one that really wins, then hold on to it.", "from": "y002" }, { "id": "pr-threats-0", "title": "Survive the Queen", "after": "l-threats", "practice": true, "side": "b", "fen": "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3", "goal": "survive", "strict": true, "limit": 10, "par": 10, "level": "club", "text": "My queen and bishop are aiming at f7, a mate threat. Defend it, then play 10 moves without losing any material." }, { "id": "pr-principles-0", "title": "Develop and Survive", "after": "l-principles", "practice": true, "side": "w", "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "goal": "survive", "strict": true, "limit": 12, "par": 12, "level": "club", "text": "From the very start: develop, castle, and play 12 moves without losing a single piece or pawn." }, { "id": "pr-traps-0", "title": "Spot the Trap", "after": "l-traps", "practice": true, "side": "b", "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4", "goal": "survive", "strict": false, "limit": 10, "par": 10, "level": "club", "text": "My knight jumps at f7: this is the Fried Liver trap. Defend well and play 10 moves without losing more than a pawn." }, { "id": "pr-forks-0", "title": "Fork It", "after": "l-forks", "practice": true, "side": "w", "fen": "3N4/6k1/2P5/8/3q4/8/8/4K3 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "One move attacks two things at once. Find the fork, collect the piece, and keep it.", "from": "g003" }, { "id": "pr-forks-1", "title": "Double Trouble", "after": "l-forks", "practice": true, "side": "w", "fen": "8/8/8/q3k3/1N6/4p3/2K5/5r2 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "One move attacks two things at once. Find the fork, collect the piece, and keep it.", "from": "g005" }, { "id": "pr-pins-0", "title": "Pin and Win", "after": "l-pins", "practice": true, "side": "w", "fen": "4k3/3q4/8/8/P7/8/8/4KB2 w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "A piece is stuck in front of something bigger. Pin it, attack it again, and win material.", "from": "p20" }, { "id": "pr-pins-1", "title": "Frozen Piece", "after": "l-pins", "practice": true, "side": "w", "fen": "8/8/8/8/2K5/k3b3/6R1/8 w - - 0 1", "goal": "gain", "need": 3, "limit": 5, "par": 2, "level": "club", "text": "A piece is stuck in front of something bigger. Pin it, attack it again, and win material.", "from": "g026" }, { "id": "pr-skewers-0", "title": "Skewer Strike", "after": "l-skewers", "practice": true, "side": "w", "fen": "1Q6/8/8/4K3/8/8/8/3k3q w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Attack the big piece so that when it moves, the one behind it falls. Win material and keep it.", "from": "g053" }, { "id": "pr-skewers-1", "title": "Through the King", "after": "l-skewers", "practice": true, "side": "w", "fen": "8/8/8/q3k3/8/8/8/1K5R w - - 0 1", "goal": "gain", "need": 5, "limit": 5, "par": 2, "level": "club", "text": "Attack the big piece so that when it moves, the one behind it falls. Win material and keep it.", "from": "p15" }, { "id": "pr-backrank-0", "title": "Back-Rank Raid", "after": "l-backrank", "practice": true, "side": "w", "fen": "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is stuck behind its own pawns. Find the mate. I defend as well as I can.", "from": "p05" }, { "id": "pr-backrank-1", "title": "No Way Out", "after": "l-backrank", "practice": true, "side": "w", "fen": "4k3/8/4K3/8/8/8/8/7R w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is stuck behind its own pawns. Find the mate. I defend as well as I can.", "from": "p06" }, { "id": "pr-loose-0", "title": "Loose Pieces Drop", "after": "l-loose", "practice": true, "side": "b", "fen": "k7/8/2p2B2/2P1P2p/7P/3Q1K2/2P5/4r1q1 b - - 6 61", "goal": "gain", "need": 5, "limit": 7, "par": 4, "level": "strong", "text": "An unprotected piece is a target. Hit it with a double attack and win material, against a stronger me.", "from": "y296" }, { "id": "pr-loose-1", "title": "Hunt the Loose One", "after": "l-loose", "practice": true, "side": "b", "fen": "3K4/2N2kr1/7p/8/R3n3/8/8/8 b - - 19 60", "goal": "gain", "need": 3, "limit": 5, "par": 2, "level": "strong", "text": "An unprotected piece is a target. Hit it with a double attack and win material, against a stronger me.", "from": "y376" }, { "id": "pr-twomove-0", "title": "Two-Move Combo", "after": "l-twomove", "practice": true, "side": "w", "fen": "r1b4r/pp1nkp1p/3b1qp1/2p5/8/P2PB2P/1PPQN1P1/1R3BKR w - - 2 16", "goal": "gain", "need": 5, "limit": 8, "par": 5, "level": "strong", "text": "The win takes two moves: a forcing move first, then the capture. Find both and keep the material.", "from": "y231" }, { "id": "pr-twomove-1", "title": "Set It Up", "after": "l-twomove", "practice": true, "side": "b", "fen": "1rbqk2r/1pp2p2/2np1n1p/p1b1p3/2B1P1p1/2NPB1Q1/PPP1NPPP/R2R1K2 b k - 1 12", "goal": "gain", "need": 5, "limit": 6, "par": 3, "level": "strong", "text": "The win takes two moves: a forcing move first, then the capture. Find both and keep the material.", "from": "y314" }, { "id": "pr-kingsafety-0", "title": "Open the King", "after": "l-kingsafety", "practice": true, "side": "w", "fen": "4k1r1/3rbp2/4p1p1/P5B1/2P3PP/5PN1/2KR4/1R6 w - - 0 37", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "The enemy king has too few defenders. Break in and give mate.", "from": "x04" }, { "id": "pr-kingsafety-1", "title": "Attack!", "after": "l-kingsafety", "practice": true, "side": "b", "fen": "8/1p6/3k4/2pp3p/2b4P/5qr1/2K4R/8 b - - 1 45", "goal": "mate", "limit": 4, "par": 2, "level": "master", "text": "The enemy king has too few defenders. Break in and give mate.", "from": "x26" }, { "id": "pr-discovered-0", "title": "Unmask the Attack", "after": "l-discovered", "practice": true, "side": "b", "fen": "6r1/2pk1p2/p1b1p1p1/1q2P3/3rpB2/8/1PQ2PPP/1RK3R1 b - - 1 39", "goal": "gain", "need": 5, "limit": 9, "par": 6, "level": "strong", "text": "Move one piece out of the way and the piece behind it attacks. Win material that way and keep it.", "from": "x60" }, { "id": "pr-discovered-1", "title": "Hidden Battery", "after": "l-discovered", "practice": true, "side": "b", "fen": "rn2k2r/pp3ppp/2p2n2/q3p3/1b2pPB1/1PNP4/PBPQ2PP/R3K1NR b KQkq - 0 9", "goal": "gain", "need": 5, "limit": 7, "par": 4, "level": "strong", "text": "Move one piece out of the way and the piece behind it attacks. Win material that way and keep it.", "from": "y057" }, { "id": "pr-defender-0", "title": "Remove the Guard", "after": "l-defender", "practice": true, "side": "w", "fen": "r3k2r/p4ppp/bpP5/1B2n3/Nb3P2/8/P5PP/1R3KNR w kq - 1 18", "goal": "gain", "need": 5, "limit": 6, "par": 3, "level": "strong", "text": "One enemy piece is doing all the defending. Remove it, then take what it was guarding.", "from": "y086" }, { "id": "pr-defender-1", "title": "Defender Down", "after": "l-defender", "practice": true, "side": "b", "fen": "r1b1k2r/pp1ppp1p/2n3p1/q7/3p1N2/2P5/PP3KPP/RN1Q1BR1 b kq - 0 12", "goal": "gain", "need": 2, "limit": 5, "par": 2, "level": "strong", "text": "One enemy piece is doing all the defending. Remove it, then take what it was guarding.", "from": "y259" }, { "id": "pr-patterns-0", "title": "Mating Net", "after": "l-patterns", "practice": true, "side": "b", "fen": "1k2n3/2p1r3/b7/5p2/2P3pP/6P1/3p1PKR/8 b - - 1 42", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "You know this mating pattern. Find it over the board while I defend.", "from": "x35" }, { "id": "pr-patterns-1", "title": "Pattern Finish", "after": "l-patterns", "practice": true, "side": "w", "fen": "r2qk3/1p2n3/1pnpB1pQ/4pp2/2p1P3/2P2N2/PB1P1P2/1RK5 w - - 0 36", "goal": "mate", "limit": 5, "par": 3, "level": "master", "text": "You know this mating pattern. Find it over the board while I defend.", "from": "x43" }, { "id": "pr-smothered-0", "title": "Smother It", "after": "l-smothered", "practice": true, "side": "w", "fen": "3qkb2/3p1p2/8/8/4N3/8/8/4R1K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "The king is boxed in by its own pieces. A knight can finish it. Find the mate.", "from": "p23" }, { "id": "pr-candidates-0", "title": "List Your Candidates", "after": "l-candidates", "practice": true, "side": "w", "fen": "r3r1k1/5ppp/8/8/8/8/4QPPP/4R1K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 2, "level": "master", "text": "Before you move, list every check, capture and threat. One of them mates by force. I defend as well as I can.", "from": "p26" }, { "id": "pr-candidates-1", "title": "Checks First", "after": "l-candidates", "practice": true, "side": "b", "fen": "8/6Pb/8/2k4p/7P/4K3/5p2/8 b - - 0 53", "goal": "mate", "limit": 8, "par": 6, "level": "master", "text": "Before you move, list every check, capture and threat. One of them mates by force. I defend as well as I can.", "from": "y139" }, { "id": "pr-kp-0", "title": "King in Front", "after": "l-kp", "practice": true, "side": "w", "fen": "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1", "goal": "promote", "limit": 8, "par": 5, "level": "gm", "text": "Your king is in front of the pawn on the 6th rank: this is a win. Use the opposition and make a queen against my best defence." }, { "id": "pr-rook-end-0", "title": "Philidor Wall", "after": "l-rook-end", "practice": true, "side": "b", "fen": "4k3/8/r7/4PK2/8/8/R7/8 b - - 0 1", "goal": "survive", "strict": true, "limit": 12, "par": 12, "level": "gm", "text": "You are Black. Keep your rook on the 6th rank until my pawn steps up, then check me from behind. Hold for 12 moves without losing material." }, { "id": "pr-structure-0", "title": "Weak Pawn Hunt", "after": "l-structure", "practice": true, "side": "w", "fen": "8/5pk1/6p1/3p3p/3P3P/4K1P1/5P2/8 w - - 0 1", "goal": "survive", "strict": true, "limit": 12, "par": 12, "level": "expert", "text": "Equal pawns, but structure matters. Keep your pawns safe and do not let my king in. Play 12 moves without losing a pawn." }, { "id": "pr-calc-0", "title": "Calculate It Through", "after": "l-calc", "practice": true, "side": "b", "fen": "8/5pkp/4p1p1/p7/1rr2P1P/1n6/1K6/3R4 b - - 1 56", "goal": "mate", "limit": 6, "par": 6, "level": "master", "text": "This mate takes several moves. Calculate my best reply to each of your moves before you start.", "from": "y106" }, { "id": "pr-calc-1", "title": "See the End", "after": "l-calc", "practice": true, "side": "w", "fen": "r6k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1", "goal": "mate", "limit": 4, "par": 1, "level": "master", "text": "This mate takes several moves. Calculate my best reply to each of your moves before you start.", "from": "p30" }, { "id": "pr-deep-0", "title": "Deep Combination", "after": "l-deep", "practice": true, "side": "b", "fen": "4r3/p1p1pk1p/2Q1p3/8/1B1Pp3/PPP1br1q/8/R2K2R1 b - - 1 36", "goal": "mate", "limit": 8, "par": 6, "level": "gm", "text": "A long forcing line against full-strength me. Checks first, and see it to the end.", "from": "x55" }, { "id": "pr-deep-1", "title": "All the Way", "after": "l-deep", "practice": true, "side": "w", "fen": "2N1k2r/p5p1/7p/3Q2P1/P1P2P2/4P3/1q3nP1/R4RK1 w - - 3 28", "goal": "mate", "limit": 8, "par": 8, "level": "gm", "text": "A long forcing line against full-strength me. Checks first, and see it to the end.", "from": "y005" }, { "id": "pr-convert-0", "title": "Convert the Queen", "after": "l-convert", "practice": true, "side": "w", "fen": "6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w - - 0 1", "goal": "mate", "limit": 15, "par": 1, "level": "gm", "text": "You are a queen up. No tricks, no stalemate: use your queen and king together and give mate." }
 ];
 if (typeof module !== 'undefined') module.exports = { PRACTICE: PRACTICE };
 
@@ -6101,6 +6162,14 @@ var MISSIONS = {
       text: 'An x means takes. Play e4. When I answer d5, take it: exd5. I take back with my queen, so chase her away: Nc3!', tip: 'exd5 is the e-pawn taking on d5. Nc3 is the knight from b1 jumping to c3.' },
     { id: 'read-race', title: 'Lightning Reader', dare: 'Faster now. Can you keep up?', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'sequence', seq: ['d4', 'Nc3', 'Bf4', 'Qd2'], limit: 4, par: 4, coach: 'wander', replies: ['d5', 'Nf6', 'e6'],
       text: 'Four moves, no mistakes: d4, Nc3, Bf4, Qd2. Q is the queen.', tip: 'Bf4 is the bishop that starts on c1. It needs the d-pawn out of the way first.' }
+  ],
+  'l-capture': [
+    { id: 'cap-snack', title: 'Pawn Snack', dare: 'Hungry? I left some pawns out.', fen: '4k3/1p4p1/8/3p4/8/8/8/3QK3 w - - 0 1', goal: 'capture', count: 3, limit: 6, par: 4, coach: 'wander',
+      text: 'Eat three of my pawns with your queen in six moves.', tip: 'The queen moves like a rook and a bishop together. Look along the straight lines and the diagonals.' },
+    { id: 'cap-hop', title: 'Knight Hops', dare: 'Bet your knight can\'t catch these:', fen: '4k3/8/8/2p5/4p3/8/3N4/4K3 w - - 0 1', goal: 'capture', count: 2, limit: 4, par: 2, coach: 'wander',
+      text: 'Take both of my pawns with your knight in four moves.', tip: 'From d2 the knight can jump to e4. From e4, which squares can it reach?' },
+    { id: 'cap-sweep', title: 'Clean Sweep', dare: 'Two hunters, three pawns:', fen: '4k3/p6p/8/8/5p2/8/8/R1B1K3 w - - 0 1', goal: 'captureAll', limit: 7, par: 3, coach: 'wander',
+      text: 'Use your rook and your bishop to take every one of my pawns in seven moves.', tip: 'The rook takes along lines, the bishop along diagonals. Which pawn can each one reach right now?' }
   ],
   'l-firstmoves': [
     { id: 'fm-develop', title: 'Centre and Knights', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', goal: 'develop', minors: 2, limit: 3, par: 3, coach: 'wander', replies: ['e5', 'Nc6', 'Nf6'], sol: ['e2e4', 'g1f3', 'b1c3'],
@@ -8087,7 +8156,7 @@ function BOARD2D_FACTORY() {
       return;
     }
     if (mode === 'path' && S.career && window.THREE && !(arg && arg.list)) mode = 'career'; // the list itself stays reachable from the town
-    if (isLocked(mode) && !(arg && arg.spec)) { // rivals, battles and challenges are always open; only free games wait
+    if (isLocked(mode) && !(arg && (arg.spec || arg.guided))) { // rivals, battles and challenges are always open; only free games wait
       if (current && current.leave) current.leave();
       Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
       document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === ({ arena: 'play', path: 'home', career: 'home' }[mode] || mode)); });
@@ -8301,14 +8370,42 @@ function BOARD2D_FACTORY() {
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
                 '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) + ((S.lessonBest || {})[id] ? ' · ' + S.lessonBest[id] : '') : isNext ? 'Up next' : skipped ? 'Review' : lessonMins(L2) + ' min') + '</span></button>' +
-                (rec && rec.done && MISSIONS[id] ? (function () { var n = coachMissionsDone(id), all = MISSIONS[id].length; return '<button class="jmission' + (n >= all ? ' done' : '') + '" data-act="mission" data-l="' + id + '" data-i="' + Math.min(n, all - 1) + '"><span class="jm-ico" aria-hidden="true">' + (n >= all ? '✓' : '⚑') + '</span><span class="jm-t">Coach missions</span><span class="jm-pips">' + MISSIONS[id].map(function (m) { return '<i class="' + (S.missions && S.missions[m.id] ? 'on' : '') + '"></i>'; }).join('') + '</span></button>'; })() : '') + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
+                (rec && rec.done && MISSIONS[id] ? (function () { var n = coachMissionsDone(id), all = MISSIONS[id].length; return '<button class="jmission' + (n >= all ? ' done' : '') + '" data-act="mission" data-l="' + id + '" data-i="' + Math.min(n, all - 1) + '"><span class="jm-ico" aria-hidden="true">' + (n >= all ? '✓' : '⚑') + '</span><span class="jm-t">Coach missions</span><span class="jm-pips">' + MISSIONS[id].map(function (m) { return '<i class="' + (S.missions && S.missions[m.id] ? 'on' : '') + '"></i>'; }).join('') + '</span></button>'; })() : '') +
+                (rec && rec.done ? practiceFor(id).map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="jlesson jprac' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="jl-num pr" aria-hidden="true"><i>' + (st ? '✓' : '⚔') + '</i></span><span class="jl-title"><em class="op-kind prac">Play it out</em> ' + esc(c.title) + '</span><span class="jl-meta">' + (st ? '★'.repeat(st) : 'vs Leo') + '</span></button>'; }).join('') : '') + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
-      setPanel(html);
+      setPanel(html); drawMap();
     },
     leave: function () { B3.idle(false); }
   };
-  ACT.homeMore = function () { panel.classList.add('show-all'); panel.scrollTop = 0; var b = $('.home-more'); if (b) b.remove(); };
+  // The open stage is drawn as a winding course map: nodes swing left and right along a dotted road,
+  // and the road is painted up to where you are now.
+  function drawMap() {
+    [].forEach.call(document.querySelectorAll('.jlessons'), function (box) {
+      box.classList.add('cmap');
+      var kids = [].filter.call(box.children, function (el) { return el.tagName === 'BUTTON'; });
+      var amp = Math.max(24, Math.min(78, box.clientWidth * 0.17));
+      kids.forEach(function (el, i) { el.style.setProperty('--x', Math.round(amp * (0.5 - 0.5 * Math.cos(i * 1.05))) + 'px'); });
+      var old = box.querySelector('.cmap-road'); if (old) old.remove();
+      if (!box.offsetParent) return;
+      var br = box.getBoundingClientRect(), at = -1;
+      var pts = kids.map(function (el, i) {
+        var n = el.querySelector('.jl-num, .jm-ico, .boss-ava') || el, r = n.getBoundingClientRect();
+        if (el.classList.contains('next')) at = i; else if (at < 0 && el.classList.contains('done')) at = -2 - i;
+        return [r.left + r.width / 2 - br.left, r.top + r.height / 2 - br.top];
+      });
+      if (pts.length < 2) return;
+      var upto = at >= 0 ? at : at < -1 ? -2 - at : 0;
+      var d = function (a) { var out = 'M' + a[0][0].toFixed(1) + ' ' + a[0][1].toFixed(1); for (var k = 1; k < a.length; k++) { var p = a[k - 1], q = a[k], my = (p[1] + q[1]) / 2; out += ' C' + p[0].toFixed(1) + ' ' + my.toFixed(1) + ' ' + q[0].toFixed(1) + ' ' + my.toFixed(1) + ' ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); } return out; };
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'cmap-road'); svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('width', box.scrollWidth); svg.setAttribute('height', box.scrollHeight);
+      svg.innerHTML = '<path class="road-bed" d="' + d(pts) + '"/><path class="road-dash" d="' + d(pts) + '"/>' + (upto > 0 ? '<path class="road-done" d="' + d(pts.slice(0, upto + 1)) + '"/>' : '');
+      box.insertBefore(svg, box.firstChild);
+    });
+  }
+  window.addEventListener('resize', function () { if (current === MODES.path) drawMap(); });
+  ACT.homeMore = function () { panel.classList.add('show-all'); panel.scrollTop = 0; var b = $('.home-more'); if (b) b.remove(); drawMap(); };
   ACT.startNext = function () { var nl = nextLesson(); if (nl) { var pf = current === MODES.path && pendingFlow(nl); if (pf) { S.flowSkip = S.flowSkip || {}; S.flowSkip[pf.lid] = 1; save(); } go('lesson', nl); } else go('play'); };
   ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
   ACT.toggleStage = function (d) { var i = +d.i, nl0 = nextLesson(), cur = PATHUI.open == null ? (nl0 ? stageOf(nl0) : STAGES.length - 1) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
@@ -8861,6 +8958,7 @@ function BOARD2D_FACTORY() {
     }).join('') + '</div>' + (fl ? '</details>' : '');
   }
   ACT.wnPlay = function () { go('play'); };
+  ACT.guidedGame = function () { go('play', { guided: true }); };
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
@@ -8955,7 +9053,7 @@ function BOARD2D_FACTORY() {
   function stopHtml(id) {
     var o = lineById(id), done = drilled(id), m = mastery(id);
     return '<button class="jlesson jop' + (done ? ' done' : '') + '" data-act="openOp" data-id="' + id + '">' +
-      '<span class="jl-num op" aria-hidden="true">' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</span>' +
+      '<span class="jl-num op" aria-hidden="true"><i>' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</i></span>' +
       '<span class="jl-title"><em class="op-kind' + (o.def ? ' def' : '') + '">' + (o.def ? 'Defence' : 'Opening') + '</em> ' + esc(o.def ? o.name : o.name) + '</span>' +
       '<span class="jl-meta">' + (done ? 'Mastery ' + m + '/3' : o.moves.length + ' moves') + '</span></button>';
   }
@@ -9507,12 +9605,31 @@ function BOARD2D_FACTORY() {
     var u = c[Math.floor(Math.random() * c.length)], m = new Game(g.fen()).move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
     return m ? { from: m.from, to: m.to, promotion: m.promotion, piece: m.piece } : null;
   }
+  // A plain-words reason for a move, used by the guided game for your ideas and for the coach's own moves
+  function explainMove(fen, m, mine) {
+    var g = new Game(fen), me = g.side, opp = me ^ 8, from = Game.sqIdx(m.from), attacked = g.attacked(from, opp), piece = (g.get(m.from) || {}).type;
+    var mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined }); if (!mv) return '';
+    var I = mine ? 'I' : 'You', my = mine ? 'my' : 'your', their = mine ? 'your' : 'their', bits = [];
+    if (/#$/.test(mv.san)) return 'Checkmate!';
+    if (mv.flags === 'k' || mv.flags === 'q') bits.push(I + ' castle: the king is safe and a rook joins the game');
+    else if (mv.captured) bits.push(I + ' take ' + their + ' ' + PIECE_NAME[mv.captured] + (g.moves().some(function (x) { return x.to === mv.to; }) ? ', and it can be taken back' : ' for free'));
+    else if (attacked && VAL[piece] >= 3) bits.push(I + ' move ' + my + ' ' + PIECE_NAME[piece] + ' out of danger');
+    else if ((piece === 'n' || piece === 'b') && /[18]$/.test(m.from)) bits.push(I + ' bring out a new piece');
+    else if (piece === 'p' && /^[de][45]$/.test(m.to)) bits.push(I + ' take space in the centre');
+    if (/\+$/.test(mv.san)) bits.push('it is check');
+    var to = Game.sqIdx(mv.to), hit = null;
+    g.boardArray().forEach(function (row) { row.forEach(function (q) { if (!hit && q && q.color === (opp ? 'b' : 'w') && q.type !== 'k' && VAL[q.type] >= 3 && g.attackers(Game.sqIdx(q.square), me).indexOf(to) >= 0) hit = q; }); });
+    if (hit) bits.push((mine ? 'watch out: it attacks your ' : 'it attacks their ') + PIECE_NAME[hit.type] + ' on ' + hit.square);
+    if (!bits.length) bits.push(mine ? 'A quiet move that improves my position' : 'A safe, useful move');
+    var t = bits.join(', and '); return t.charAt(0).toUpperCase() + t.slice(1) + '.';
+  }
   function classify(loss) { return loss <= 15 ? CLASS.best : loss <= 50 ? CLASS.good : loss <= 120 ? CLASS.inacc : loss <= 280 ? CLASS.mistake : CLASS.blunder; }
   MODES.play = {
     label: 'Play the coach',
     enter: function (arg) {
       PL = { setup: true, arg: arg || null };
       if (arg && arg.spec) { setupBoard(specFen(arg.spec), { drop: true, orient: specColor(arg.spec) }); MODES.play.renderSpecIntro(); return; }
+      if (arg && arg.guided) { setupBoard(Game.START, { drop: true, orient: 'w' }); return MODES.play.start(); }
       if (arg && arg.color) { S.coach.color = arg.color; save(); }
       setupBoard(arg && arg.fen || Game.START, { drop: true, orient: arg && arg.color || S.coach.color });
       MODES.play.renderSetup();
@@ -9524,11 +9641,14 @@ function BOARD2D_FACTORY() {
         '<button class="test-out an-entry" data-act="goMode" data-m="arena"><span class="to-ico" aria-hidden="true">⚔️</span><span><b>Arena: rivals and quick games</b><span>Boss fights, 60-second games and win-this-position challenges.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="friend"><span class="to-ico" aria-hidden="true">👥</span><span><b>Play a friend on this device</b><span>Pass the phone after each move. I give tips to both of you.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="mychess"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
+        (S.puzzle.rating < 900 ? '<button class="test-out an-entry guided-entry" data-act="guidedGame"><span class="to-ico" aria-hidden="true">🧭</span><span><b>' + (S.guidedDone ? 'Guided game' : 'Your first full game, guided') + '</b><span>Leo shows two good moves every turn and explains each of his own.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
         '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">' + (S.puzzle.rating < 500 ? 'Start here' : 'Your level') + '</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your colour</h2></div>' +
         '<div class="seg">' + [['w', 'White'], ['b', 'Black'], ['r', 'Random']].map(function (x) { return '<button class="' + (c.color === x[0] ? 'on' : '') + '" data-act="setColor" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="sect-head"><h2>Clock</h2></div>' +
+        '<div class="seg clk-seg">' + CLOCKS.map(function (x) { return '<button class="' + ((c.clock || 'off') === x[0] ? 'on' : '') + '" data-act="setClock" data-k="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Coach style</h2></div>' +
         '<div class="styles">' + COACH_STYLES.map(function (s) { return '<button class="style-opt ' + (coachStyle() === s.id ? 'on' : '') + '" data-act="setStyle" data-s="' + s.id + '"><b>' + s.name + '</b><span>' + s.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="toggles">' +
@@ -9539,12 +9659,12 @@ function BOARD2D_FACTORY() {
       $('#opt-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); };
     },
     start: function () {
-      var c = S.coach, sp = PL.arg && PL.arg.spec, color = sp ? specColor(sp) : c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
+      var c = S.coach, sp = PL.arg && PL.arg.spec, guided = !!(PL.arg && PL.arg.guided), color = guided ? 'w' : sp ? specColor(sp) : c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
       var fen = sp ? specFen(sp) : PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
-      var lvl = sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
-      PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0 };
-      PL.book = sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
+      var lvl = guided ? levelById('novice') : sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
+      PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: guided ? 'teach' : sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0, guided: guided };
+      PL.book = guided ? null : sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
       if (sp && sp.kind === 'boss') { PL.bookPool = specBook(sp.b.book); if (sp.vs) vsFlash(sp.b, lvl); }
       if (sp && sp.kind === 'challenge') PL.chMat0 = material(g, color);
       if (sp && sp.kind === 'battle') { // the ply (coach to move) where the coach will slip
@@ -9554,7 +9674,11 @@ function BOARD2D_FACTORY() {
       }
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
+      var ck = !sp && !guided && clockOf(c.clock);
+      if (ck) { PL.clk = { w: ck.min * 60000, b: ck.min * 60000, inc: ck.inc * 1000, run: null, t0: 0 }; clkTick(); }
       if (!sp) Voice.say([V('gamestart')]);
+      if (ck) MODES.play.say('Clock game', 'You each have <strong>' + ck.min + ' minutes</strong>' + (ck.inc ? ' and get <strong>+' + ck.inc + ' seconds</strong> after every move' : '') + '. Your clock runs only on your turn. If it reaches 0:00 you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones.', 'tip');
+      if (guided) MODES.play.say('Coach Leo', 'Your first full game! You are White. On every move I show you two good ideas with arrows. Pick one, or play your own move, and I explain every move I make too.', 'tip');
       Voice.prefetch(['M-to_n', 'V-best-0', 'V-blunder-0', 'V-why_wins-0']);
       MODES.play.render();
       MODES.play.turn();
@@ -9576,7 +9700,7 @@ function BOARD2D_FACTORY() {
         return '<span class="mv-cell">' + esc(hist[k]) + (lg && lg.cls ? '<i class="cdot ' + lg.cls + '" title="' + esc(lg.label) + '"></i>' : '') + '</span>';
       }
       var turnTxt = PL.over ? PL.over : PL.thinking ? 'Coach is thinking…' : (g.turn() === PL.color ? 'Your move' : '');
-      setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
+      setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div>' + (PL.clk ? clkHtml() : '') + '</div>' +
         '<div class="play-btns"><button class="icon-btn" data-act="pHint" title="Hint" aria-label="Hint">?</button><button class="icon-btn" data-act="pUndo" title="Take back" aria-label="Take back">↶</button><button class="icon-btn" data-act="pResign" title="Resign" aria-label="Resign">⚑</button></div></div>' +
         '<div class="feed">' + (PL.feed.length ? PL.feed.slice(-6).reverse().map(function (f, k) {
           var lastBad = -1; for (var q = PL.feed.length - 1; q >= Math.max(0, PL.feed.length - 3); q--) if (/^(bad|warn)$/.test(PL.feed[q].cls) && /Retry/.test(PL.feed[q].html)) { lastBad = q; break; }
@@ -9609,7 +9733,9 @@ function BOARD2D_FACTORY() {
       if (MODES.play.checkOver()) return;
       if (g.turn() === PL.color) {
         IX.enabled = true; IX.canMove = function (c) { return c === PL.color && !PL.over; };
-        IX.onMove = MODES.play.userMove;
+        if (PL.guided) MODES.play.guideMove();
+        IX.onMove = PL.clk ? function (mv, uci) { if (!clkStop()) return; return MODES.play.userMove(mv, uci); } : MODES.play.userMove;
+        clkRun(PL.color);
         if (S.coach.threats && PL.style !== 'quiet') {
           Eng.call('threat', g.fen()).then(function (t) {
             if (!t || PL.g !== g || g.turn() !== PL.color) return;
@@ -9626,20 +9752,25 @@ function BOARD2D_FACTORY() {
       } else {
         if (PL.judging) return;
         if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.spec.c.goal !== 'gain' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
-        IX.enabled = false; PL.thinking = true; MODES.play.render();
+        IX.enabled = false; PL.thinking = true; clkRun(PL.color === 'w' ? 'b' : 'w'); MODES.play.render();
         var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
         var job = slip ? Eng.call('mistake', fen, g.history().length >= PL.devAt0 + 4).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
           : bm ? Promise.resolve({ move: bm, score: null, book: true }) : teachSlip(g) ? Promise.resolve({ move: teachSlip(g, true), score: null, teach: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
         job.then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
-          var wait = Math.max(0, 450 - (Date.now() - t0));
+          var think = 450;
+          if (PL.clk) { var left = PL.clk[PL.color === 'w' ? 'b' : 'w'], base = (PL.clk.inc + left / 40) * (0.3 + Math.random()); think = Math.min(base, left / 25, 9000); if (g.history().length < 8) think = Math.min(think, 1200); } // on the clock the coach takes human-like time
+          var wait = Math.max(0, think - (Date.now() - t0));
           setTimeout(function () {
             if (!PL || PL.g !== g || PL.over) return; // the player left this game while the coach was thinking
             PL.thinking = false;
             if (!r || !r.move) { MODES.play.checkOver(); return; }
+            if (!clkStop()) return;
+            var fenCoach = g.fen();
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
               PL.log.push({});
               if (r.slip) { PL.devDone = true; PL.devPly = g.history().length - 1; toast('⚡ The coach slipped. Find the punishment!'); Voice.say([V('battle_slip')], true); }
+              if (PL.guided && res) MODES.play.say('Leo played ' + res.san, esc(explainMove(fenCoach, res, true)), 'tip');
               if (r.book && !PL.spec) MODES.play.bookNote(g);
               if (!PL.spec && !r.book) MODES.play.onPurpose(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
@@ -9660,6 +9791,7 @@ function BOARD2D_FACTORY() {
       }
     },
     userMove: function (mv, uci) {
+      if (PL.guided && !PL.guardOk) { PL.gTok = (PL.gTok || 0) + 1; B3.arrows([]); }
       if (PL.style === 'teach' && !PL.spec && S.puzzle.rating < 1000 && !PL.guardOk) {
         var gfen = PL.g.fen(), g0 = PL.g;
         return Eng.call('analyzeMove', gfen, uci, 30, 800).then(function (a) {
@@ -9770,6 +9902,18 @@ function BOARD2D_FACTORY() {
       PL.minEval = Math.min(PL.minEval == null ? score : PL.minEval, score);
       if (!PL.toldComeback && PL.minEval < -250 && score > 120) { PL.toldComeback = true; var l = V('comeback'); if (l) { MODES.play.say('Coach', esc(l.text), 'good'); Voice.say([l], true); } }
     },
+    // guided game: two good ideas with arrows and a reason each, before every move you make
+    guideMove: function () {
+      var g = PL.g, fen = g.fen(), tok = PL.gTok = (PL.gTok || 0) + 1;
+      Eng.call('rootSearch', fen, 3, 700, 150).then(function (r) {
+        if (!PL || PL.g !== g || PL.gTok !== tok || g.fen() !== fen || PL.over || g.turn() !== PL.color) return;
+        var ms = (r && r.moves) || [], best = ms[0]; if (!best) return;
+        var pick = [best]; ms.slice(1).forEach(function (m) { if (pick.length < 2 && m.score >= best.score - 60 && m.piece !== 'k') pick.push(m); });
+        B3.arrows(pick.map(function (m, i) { return [m.from, m.to, i ? 'b' : 'g']; }));
+        var html = pick.map(function (m, i) { var san = (new Game(fen).move({ from: m.from, to: m.to, promotion: m.promotion || undefined }) || {}).san || m.from + m.to; return '<span class="gd-idea"><b class="gd-' + 'gb'[i] + '">' + (i ? 'Blue' : 'Green') + ': ' + esc(san) + '</b> ' + esc(explainMove(fen, m, false)) + '</span>'; }).join('') + '<span class="muted small">Pick one, or play your own move.</span>';
+        MODES.play.say('Leo suggests', html, 'tip', true); MODES.play.render();
+      });
+    },
     coachTip: function () {
       if (!PL || PL.over || PL.style !== 'teach') return;
       var lastMine = PL.log.filter(function (l) { return l && l.cls; }).pop();
@@ -9815,7 +9959,7 @@ function BOARD2D_FACTORY() {
       var mean = accs.reduce(function (s, x) { return s + x; }, 0) / (accs.length || 1), harm = accs.length / accs.reduce(function (s, x) { return s + 1 / Math.max(5, x); }, 0);
       var acc = mine.length ? Math.round((mean + harm) / 2) : null;
       var count = function (k) { return mine.filter(function (l) { return l.label === k; }).length; };
-      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length }); progMark('play');
+      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length }); progMark('play'); if (PL.guided) S.guidedDone = true;
       if (S.games.length > 200) S.games.shift();
       var plies = PL.g.history().length, real = plies >= 20 || result !== 'loss' || /Checkmate/.test(msg) || beginnerMode();
       if (real) today().game = true;
@@ -9838,10 +9982,46 @@ function BOARD2D_FACTORY() {
       MODES.play.say('Game over', esc(msg) + ' Coach-game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
-    leave: function () { PL = null; }
+    leave: function () { PL = null; clearInterval(CLK_T); }
   };
   // Novice coach in teaching mode: now and then leave a minor piece or rook loose on purpose, so a beginner
   // gets real chances to practise winning material (announced by onPurpose right after).
+  // Clock games: practise playing on time like on chess.com. Each side's clock runs only on its own turn.
+  var CLOCKS = [['off', 'No clock'], ['10+0', '10 min'], ['5+3', '5 | 3'], ['3+2', '3 | 2']], CLK_T = null;
+  function clockOf(k) { var m = /^(\d+)\+(\d+)$/.exec(k || ''); return m ? { min: +m[1], inc: +m[2] } : null; }
+  function clkLeft(c) { var k = PL.clk; return k[c] - (k.run === c ? Date.now() - k.t0 : 0); }
+  function clkFmt(ms) { ms = Math.max(0, ms); var s = Math.ceil(ms / 1000); return s < 20 ? (ms / 1000).toFixed(1) : Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+  function clkHtml() {
+    var me = PL.color, them = me === 'w' ? 'b' : 'w', one = function (c, who) { var l = clkLeft(c); return '<span class="clk clk-' + c + (PL.clk.run === c ? ' run' : '') + (l < 30000 ? ' low' : '') + '"><em>' + who + '</em><b>' + clkFmt(l) + '</b></span>'; };
+    return '<div class="clocks">' + one(me, 'You') + one(them, 'Leo') + '</div>';
+  }
+  function clkRun(c) { var k = PL && PL.clk; if (!k || PL.over || k.run === c) return; if (k.run) clkStop(); k.run = c; k.t0 = Date.now(); }
+  // stop the running clock and add the increment; false if that side had already flagged
+  function clkStop() {
+    var k = PL && PL.clk; if (!k || !k.run) return true;
+    var c = k.run; k[c] -= Date.now() - k.t0; k.run = null;
+    if (k[c] <= 0) { k[c] = 0; clkFlag(c); return false; }
+    k[c] += k.inc; return true;
+  }
+  function clkFlag(c) {
+    if (!PL || PL.over) return;
+    IX.enabled = false; B3.arrows([]);
+    if (c === PL.color) MODES.play.finish('loss', 'Your time ran out. On the clock, 0:00 loses the game.');
+    else MODES.play.finish('win', 'The coach ran out of time. You win on the clock!');
+  }
+  function clkTick() {
+    clearInterval(CLK_T);
+    CLK_T = setInterval(function () {
+      if (!PL || !PL.clk || PL.over) { clearInterval(CLK_T); return; }
+      var k = PL.clk;
+      ['w', 'b'].forEach(function (c) {
+        var el = $('.clk-' + c); if (!el) return; var l = clkLeft(c);
+        el.querySelector('b').textContent = clkFmt(l); el.classList.toggle('run', k.run === c); el.classList.toggle('low', l < 30000);
+      });
+      if (k.run && clkLeft(k.run) <= 0) { var c = k.run; k[c] = 0; k.run = null; clkFlag(c); return; }
+      if (k.run === PL.color && !PL.clkWarn && clkLeft(PL.color) < 30000) { PL.clkWarn = true; MODES.play.say('Clock', 'Under 30 seconds! Play safe, simple moves quickly. Losing on time is still losing.', 'warn', true); MODES.play.render(); }
+    }, 200);
+  }
   function freeTakes(g) {
     var foe = g.side ^ 8, VALS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
     return g.moves().filter(function (m) { return m.captured && m.captured !== 'p' && m.captured !== 'q' && (!g.attacked(Game.sqIdx(m.to), foe) || VALS[m.captured] > VALS[m.piece]); });
@@ -9890,6 +10070,7 @@ function BOARD2D_FACTORY() {
     go('review', { log: PL.log.slice(), startFen: PL.startFen, moves: PL.g.history(), color: PL.color, result: PL.result, acc: PL.acc, level: PL.level, over: PL.over });
   };
   ACT.feedOpen = function (d) { if (PL) { PL.feedOpen = +d.i; MODES.play.render(); } };
+  ACT.setClock = function (d) { S.coach.clock = d.k; save(); MODES.play.renderSetup(); };
   ACT.setLevel = function (d) { S.coach.level = d.id; save(); MODES.play.renderSetup(); };
   ACT.setColor = function (d) { S.coach.color = d.c; save(); if (d.c !== 'r') B3.setOrientation(d.c); MODES.play.renderSetup(); };
   ACT.startGame = function () { MODES.play.start(); };
@@ -9901,7 +10082,7 @@ function BOARD2D_FACTORY() {
     m.hidden = false;
     m.onclick = function (e) { var b = e.target.closest('[data-rs]'); if (!b && e.target !== m) return; m.hidden = true; m.onclick = null; if (b && b.dataset.rs === 'yes' && PL && !PL.over) MODES.play.finish('loss', 'You resigned.'); };
   };
-  ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; };
+  ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; clkRun(PL.color); };
   ACT.pGuardGo = function () { if (!PL || !PL.guard) return; var gd = PL.guard; PL.guard = null; PL.feed.pop(); PL.guardOk = true; IX.enabled = false; MODES.play.userMove(gd.mv, gd.uci); PL.guardOk = false; };
   ACT.pUndo = function () {
     if (!PL || !PL.g || PL.thinking || PL.over) return;
@@ -10292,6 +10473,7 @@ function BOARD2D_FACTORY() {
     'l-rook': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'r'; }, ask: 'Your rook can capture a piece that nobody protects. Find it.', hint: 'Look along the straight lines from your rook: up, down, left and right.' },
     'l-bishop-queen': { pick: function (p) { return starter(p) && p.theme === 'hanging' && /[bq]/.test(p.pieces[0]); }, ask: 'Your bishop or queen can capture a piece that nobody protects. Find it.', hint: 'Bishops look along the diagonals. The queen looks along diagonals and straight lines.' },
     'l-knight': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'n'; }, ask: 'Your knight can capture a piece that nobody protects. Find it.', hint: 'Count the L: two squares one way, then one to the side. Which landing square has a black piece?' },
+    'l-capture': { pick: function (p) { return starter(p) && p.theme === 'hanging'; }, ask: 'Take the free piece: the one nobody protects.', hint: 'Look at every black piece your pieces can reach. Which one has no defender?' },
     'l-king-pawn': { pick: function (p) { return (starter(p) && p.theme === 'hanging' && /[pk]/.test(p.pieces[0])) || p.theme === 'promotion' && /^g/.test(p.id); }, ask: 'Win something with your king or a pawn. Remember: pawns capture diagonally.', hint: 'Pawns take one square diagonally forward. A pawn on the 7th rank can become a queen.' },
     'l-check': { pick: function (p) { return (starter(p) && p.theme === 'mate') || p.backrank; }, ask: 'Find checkmate in one move: a check the king cannot escape.', hint: 'Try every check you have. For each one, ask: can the king step away, can something block, can something capture?' },
     'l-qmate': { pick: function (p) { return starter(p) && p.theme === 'mate' && p.pieces[0] === 'q'; }, ask: 'Checkmate in one with your queen. Watch out for stalemate!', hint: 'The king is near the edge. Find a queen check that also covers every square next to him.' },
@@ -10337,6 +10519,7 @@ function BOARD2D_FACTORY() {
   function practiceFor(lid) { return CHALLENGES.filter(function (c) { return c.practice && c.after === lid; }); }
   function flowNext(lid) {
     var ms = MISSIONS[lid];
+    if (lid === 'l-firstmoves' && !S.guidedDone && (!ms || coachMissionsDone(lid) >= ms.length)) return { k: 'guided', lid: lid, t: 'Your first full game', s: 'Leo shows you two good moves every turn' };
     if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Beat Leo\'s challenges', s: ms.length + ' quick dares, with stars to win' };
     if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
     var pg = practiceFor(lid).filter(function (c) { return !S.challenges[c.id]; })[0];
@@ -10349,7 +10532,7 @@ function BOARD2D_FACTORY() {
     if (!prev || !lessonDone(prev) || (S.flowSkip && S.flowSkip[prev])) return null;
     var f = flowNext(prev); return f && f.k !== 'lesson' ? f : null;
   }
-  function flowGo(f) { if (!f) return go('path'); if (f.k === 'practice') return ACT.challenge({ id: f.id }); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
+  function flowGo(f) { if (!f) return go('path'); if (f.k === 'guided') return go('play', { guided: true }); if (f.k === 'practice') return ACT.challenge({ id: f.id }); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
   ACT.flowGo = function (d) { flowGo(flowNext(d.l)); };
   // three chips that show where this lesson's loop stands: learn, missions, practice
   function flowChips(lid) {
@@ -14294,16 +14477,13 @@ function BOARD2D_FACTORY() {
       if (document.querySelector('.rc-wrap')) { setTimeout(next, 1500); return; } // wait until the result card is closed
       if (Date.now() < holdUntil) { setTimeout(next, holdUntil - Date.now() + 50); return; } // let the card reveal play first
       var c = queue.shift(); open = true;
-      var m = document.createElement('div'); m.className = 'celebrate';
-      m.innerHTML = '<div class="cel-card" role="dialog" aria-modal="true" aria-label="' + esc(c.title) + '"><div class="cel-ray" aria-hidden="true"></div>' +
-        '<div class="medal ' + c.kind + '">' + pieceSVG(c.icon || 'k', 'w', 64) + '</div>' +
-        '<div class="eyebrow">' + (c.kind === 'level' ? 'Level up' : 'Badge unlocked') + '</div><h2 class="cel-title">' + esc(c.title) + '</h2><p>' + esc(c.text) + '</p>' +
-        '<button class="btn primary big" data-cel="ok">Awesome!</button></div>';
+      // a ribbon that slides in at the top: it never covers buttons, results or the board
+      var m = document.createElement('div'); m.className = 'cel-rib ' + c.kind; m.setAttribute('role', 'status');
+      m.innerHTML = '<span class="cr-medal">' + pieceSVG(c.icon || 'k', 'w', 34) + '</span><span class="cr-t"><small>' + (c.kind === 'level' ? 'Level up!' : 'Badge unlocked') + '</small><b>' + esc(c.title) + '</b><span>' + esc(c.text) + '</span></span>';
       document.body.appendChild(m);
-      Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
-      var shut = function () { if (!m.parentNode) return; m.remove(); open = false; setTimeout(next, 250); };
-      m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]') || !e.target.closest('.cel-card')) shut(); }); // a tap anywhere closes it
-      setTimeout(shut, 5000); // and it never blocks the next button for long
+      Sound.play(c.kind === 'level' ? 'win' : 'chest'); confetti(); if (c.voice) Voice.say([c.voice], true);
+      var shut = function () { if (!m.parentNode) return; m.classList.add('out'); setTimeout(function () { m.remove(); open = false; setTimeout(next, 250); }, 350); };
+      m.addEventListener('click', shut); setTimeout(shut, 4200);
     }
     return { hold: function (ms) { holdUntil = Date.now() + ms; }, show: function (c) { queue.push(c); setTimeout(next, 500); }, flush: function () { setTimeout(next, 1200); }, pending: function () { return open || queue.length > 0; } };
   })();
@@ -14690,6 +14870,34 @@ body.speaking .brand-mark { animation: talk .5s ease-in-out infinite alternate; 
 .jl-title { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
 .jlesson.next .jl-title { color: var(--brass); font-weight: 800; }
 .jl-meta { font-size: 12px; color: var(--dim); white-space: nowrap; }
+/* course map: the open stage as a winding road */
+.jlessons.cmap { gap: 10px; padding: 8px 8px 18px 12px; }
+.jlessons.cmap::before { display: none; }
+.cmap-road { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.cmap-road path { fill: none; stroke-linecap: round; }
+.cmap-road .road-bed { stroke: rgba(255,255,255,.06); stroke-width: 16px; }
+.cmap-road .road-dash { stroke: rgba(255,255,255,.22); stroke-width: 3px; stroke-dasharray: 1 9; }
+.cmap-road .road-done { stroke: var(--good); stroke-width: 5px; opacity: .85; filter: drop-shadow(0 0 6px rgba(61,220,151,.55)); }
+.cmap > button { position: relative; z-index: 1; margin-left: var(--x, 0); width: calc(100% - var(--x, 0px)); }
+.cmap .jlesson { padding: 6px 8px; background: none; }
+.cmap .jlesson:hover { background: rgba(255,255,255,.04); }
+.cmap .jl-num { width: 44px; height: 44px; font-size: 15px; border-width: 3px; box-shadow: 0 4px 0 rgba(0,0,0,.35); transition: transform .15s; }
+.cmap .jlesson:active .jl-num { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.cmap .jlesson.done .jl-num { box-shadow: 0 4px 0 #1f8a5c, 0 0 14px rgba(61,220,151,.35); }
+.cmap .jlesson.next { background: none; }
+.cmap .jlesson.next .jl-num { width: 58px; height: 58px; font-size: 19px; margin-left: -7px; box-shadow: 0 5px 0 #8a6d12, 0 0 0 6px rgba(255,210,63,.18), 0 0 26px rgba(255,210,63,.45); animation: mapbob 1.8s ease-in-out infinite; }
+.cmap .jlesson.next::before { content: "START"; position: absolute; left: calc(var(--x, 0px) * 0 + 6px); top: -12px; z-index: 2; padding: 2px 8px; border-radius: 8px; background: var(--brass); color: var(--brass-ink); font: 800 10.5px var(--f-mono); letter-spacing: .08em; box-shadow: 0 3px 0 #8a6d12; animation: mapbob 1.8s ease-in-out infinite; }
+@keyframes mapbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.cmap .jlesson.jop .jl-num, .cmap .jlesson.jprac .jl-num { width: 34px; height: 34px; margin: 0 5px; border-radius: 11px; transform: rotate(45deg); }
+.jl-num > i { font-style: normal; display: grid; place-items: center; line-height: 1; }
+.cmap .jlesson.jop .jl-num > i, .cmap .jlesson.jprac .jl-num > i { transform: rotate(-45deg); }
+.cmap .jl-num.pr { border-color: rgba(255,120,73,.6); background: rgba(255,120,73,.14); color: #ff9a6b; font-size: 14px; }
+.cmap .jprac.done .jl-num.pr { background: var(--good); border-color: var(--good); color: #062b1c; }
+.op-kind.prac { background: rgba(255,120,73,.16); color: #ff9a6b; }
+.cmap .jmission { margin: 0 0 0 var(--x, 0); width: calc(100% - var(--x, 0px)); border: 0; background: none; padding: 4px 8px 4px 13px; }
+.cmap .jm-ico { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 3px solid rgba(255,210,63,.55); background: rgba(255,210,63,.12); box-shadow: 0 3px 0 rgba(0,0,0,.35); flex-shrink: 0; }
+.cmap .jmission.done .jm-ico { border-color: var(--good); background: var(--good); color: #062b1c; }
+.cmap .jboss .boss-ava { transform: scale(1.35); margin: 0 8px; }
 .jlesson.done .jl-meta { color: var(--brass); letter-spacing: 1px; }
 
 /* intro / onboarding */

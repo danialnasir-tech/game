@@ -1261,7 +1261,7 @@
       return;
     }
     if (mode === 'path' && S.career && window.THREE && !(arg && arg.list)) mode = 'career'; // the list itself stays reachable from the town
-    if (isLocked(mode) && !(arg && arg.spec)) { // rivals, battles and challenges are always open; only free games wait
+    if (isLocked(mode) && !(arg && (arg.spec || arg.guided))) { // rivals, battles and challenges are always open; only free games wait
       if (current && current.leave) current.leave();
       Voice.stop(); Replay.stop(); current = MODES.path; IX.enabled = false; IX.onMove = null; IX.collect = null; IX.tap = null;
       document.querySelectorAll('.rail button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === ({ arena: 'play', path: 'home', career: 'home' }[mode] || mode)); });
@@ -1475,14 +1475,42 @@
               return '<button class="jlesson ' + (rec && rec.done ? 'done' : '') + (isNext ? ' next' : '') + '" data-act="lesson" data-id="' + id + '">' +
                 '<span class="jl-num">' + (rec && rec.done ? '✓' : k + 1) + '</span><span class="jl-title">' + esc(L2.title) + '</span>' +
                 '<span class="jl-meta">' + (rec && rec.done ? '★'.repeat(rec.stars || 3) + ((S.lessonBest || {})[id] ? ' · ' + S.lessonBest[id] : '') : isNext ? 'Up next' : skipped ? 'Review' : lessonMins(L2) + ' min') + '</span></button>' +
-                (rec && rec.done && MISSIONS[id] ? (function () { var n = coachMissionsDone(id), all = MISSIONS[id].length; return '<button class="jmission' + (n >= all ? ' done' : '') + '" data-act="mission" data-l="' + id + '" data-i="' + Math.min(n, all - 1) + '"><span class="jm-ico" aria-hidden="true">' + (n >= all ? '✓' : '⚑') + '</span><span class="jm-t">Coach missions</span><span class="jm-pips">' + MISSIONS[id].map(function (m) { return '<i class="' + (S.missions && S.missions[m.id] ? 'on' : '') + '"></i>'; }).join('') + '</span></button>'; })() : '') + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
+                (rec && rec.done && MISSIONS[id] ? (function () { var n = coachMissionsDone(id), all = MISSIONS[id].length; return '<button class="jmission' + (n >= all ? ' done' : '') + '" data-act="mission" data-l="' + id + '" data-i="' + Math.min(n, all - 1) + '"><span class="jm-ico" aria-hidden="true">' + (n >= all ? '✓' : '⚑') + '</span><span class="jm-t">Coach missions</span><span class="jm-pips">' + MISSIONS[id].map(function (m) { return '<i class="' + (S.missions && S.missions[m.id] ? 'on' : '') + '"></i>'; }).join('') + '</span></button>'; })() : '') +
+                (rec && rec.done ? practiceFor(id).map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="jlesson jprac' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="jl-num pr" aria-hidden="true"><i>' + (st ? '✓' : '⚔') + '</i></span><span class="jl-title"><em class="op-kind prac">Play it out</em> ' + esc(c.title) + '</span><span class="jl-meta">' + (st ? '★'.repeat(st) : 'vs Leo') + '</span></button>'; }).join('') : '') + stop + (k === st.lessons.length - 1 ? bossNode(i) : '');
             }).join('') + '</div>' : '') + '</li>';
         }).join('') + '</ol>';
-      setPanel(html);
+      setPanel(html); drawMap();
     },
     leave: function () { B3.idle(false); }
   };
-  ACT.homeMore = function () { panel.classList.add('show-all'); panel.scrollTop = 0; var b = $('.home-more'); if (b) b.remove(); };
+  // The open stage is drawn as a winding course map: nodes swing left and right along a dotted road,
+  // and the road is painted up to where you are now.
+  function drawMap() {
+    [].forEach.call(document.querySelectorAll('.jlessons'), function (box) {
+      box.classList.add('cmap');
+      var kids = [].filter.call(box.children, function (el) { return el.tagName === 'BUTTON'; });
+      var amp = Math.max(24, Math.min(78, box.clientWidth * 0.17));
+      kids.forEach(function (el, i) { el.style.setProperty('--x', Math.round(amp * (0.5 - 0.5 * Math.cos(i * 1.05))) + 'px'); });
+      var old = box.querySelector('.cmap-road'); if (old) old.remove();
+      if (!box.offsetParent) return;
+      var br = box.getBoundingClientRect(), at = -1;
+      var pts = kids.map(function (el, i) {
+        var n = el.querySelector('.jl-num, .jm-ico, .boss-ava') || el, r = n.getBoundingClientRect();
+        if (el.classList.contains('next')) at = i; else if (at < 0 && el.classList.contains('done')) at = -2 - i;
+        return [r.left + r.width / 2 - br.left, r.top + r.height / 2 - br.top];
+      });
+      if (pts.length < 2) return;
+      var upto = at >= 0 ? at : at < -1 ? -2 - at : 0;
+      var d = function (a) { var out = 'M' + a[0][0].toFixed(1) + ' ' + a[0][1].toFixed(1); for (var k = 1; k < a.length; k++) { var p = a[k - 1], q = a[k], my = (p[1] + q[1]) / 2; out += ' C' + p[0].toFixed(1) + ' ' + my.toFixed(1) + ' ' + q[0].toFixed(1) + ' ' + my.toFixed(1) + ' ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); } return out; };
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'cmap-road'); svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('width', box.scrollWidth); svg.setAttribute('height', box.scrollHeight);
+      svg.innerHTML = '<path class="road-bed" d="' + d(pts) + '"/><path class="road-dash" d="' + d(pts) + '"/>' + (upto > 0 ? '<path class="road-done" d="' + d(pts.slice(0, upto + 1)) + '"/>' : '');
+      box.insertBefore(svg, box.firstChild);
+    });
+  }
+  window.addEventListener('resize', function () { if (current === MODES.path) drawMap(); });
+  ACT.homeMore = function () { panel.classList.add('show-all'); panel.scrollTop = 0; var b = $('.home-more'); if (b) b.remove(); drawMap(); };
   ACT.startNext = function () { var nl = nextLesson(); if (nl) { var pf = current === MODES.path && pendingFlow(nl); if (pf) { S.flowSkip = S.flowSkip || {}; S.flowSkip[pf.lid] = 1; save(); } go('lesson', nl); } else go('play'); };
   ACT.sayTip = function (d) { var i = +d.i; Voice.say([{ id: 'V-tip_day-' + i, text: MORE_POOLS.tip_day[i] }]); };
   ACT.toggleStage = function (d) { var i = +d.i, nl0 = nextLesson(), cur = PATHUI.open == null ? (nl0 ? stageOf(nl0) : STAGES.length - 1) : PATHUI.open; PATHUI.open = cur === i ? -1 : i; MODES.path.enter(true); };
@@ -2035,6 +2063,7 @@
     }).join('') + '</div>' + (fl ? '</details>' : '');
   }
   ACT.wnPlay = function () { go('play'); };
+  ACT.guidedGame = function () { go('play', { guided: true }); };
   ACT.wnPuzzles = function (d) { go('puzzles', { theme: d.t || 'all' }); };
   ACT.wnOpening = function () { go('openings'); };
   ACT.lessonPlay = function (d) { var fen = d.fen; go('play', { fen: fen, color: new Game(fen).turn(), from: 'lesson position' }); };
@@ -2129,7 +2158,7 @@
   function stopHtml(id) {
     var o = lineById(id), done = drilled(id), m = mastery(id);
     return '<button class="jlesson jop' + (done ? ' done' : '') + '" data-act="openOp" data-id="' + id + '">' +
-      '<span class="jl-num op" aria-hidden="true">' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</span>' +
+      '<span class="jl-num op" aria-hidden="true"><i>' + (done ? '✓' : pieceSVG('b', 'w', 16)) + '</i></span>' +
       '<span class="jl-title"><em class="op-kind' + (o.def ? ' def' : '') + '">' + (o.def ? 'Defence' : 'Opening') + '</em> ' + esc(o.def ? o.name : o.name) + '</span>' +
       '<span class="jl-meta">' + (done ? 'Mastery ' + m + '/3' : o.moves.length + ' moves') + '</span></button>';
   }
@@ -2681,12 +2710,31 @@
     var u = c[Math.floor(Math.random() * c.length)], m = new Game(g.fen()).move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
     return m ? { from: m.from, to: m.to, promotion: m.promotion, piece: m.piece } : null;
   }
+  // A plain-words reason for a move, used by the guided game for your ideas and for the coach's own moves
+  function explainMove(fen, m, mine) {
+    var g = new Game(fen), me = g.side, opp = me ^ 8, from = Game.sqIdx(m.from), attacked = g.attacked(from, opp), piece = (g.get(m.from) || {}).type;
+    var mv = g.move({ from: m.from, to: m.to, promotion: m.promotion || undefined }); if (!mv) return '';
+    var I = mine ? 'I' : 'You', my = mine ? 'my' : 'your', their = mine ? 'your' : 'their', bits = [];
+    if (/#$/.test(mv.san)) return 'Checkmate!';
+    if (mv.flags === 'k' || mv.flags === 'q') bits.push(I + ' castle: the king is safe and a rook joins the game');
+    else if (mv.captured) bits.push(I + ' take ' + their + ' ' + PIECE_NAME[mv.captured] + (g.moves().some(function (x) { return x.to === mv.to; }) ? ', and it can be taken back' : ' for free'));
+    else if (attacked && VAL[piece] >= 3) bits.push(I + ' move ' + my + ' ' + PIECE_NAME[piece] + ' out of danger');
+    else if ((piece === 'n' || piece === 'b') && /[18]$/.test(m.from)) bits.push(I + ' bring out a new piece');
+    else if (piece === 'p' && /^[de][45]$/.test(m.to)) bits.push(I + ' take space in the centre');
+    if (/\+$/.test(mv.san)) bits.push('it is check');
+    var to = Game.sqIdx(mv.to), hit = null;
+    g.boardArray().forEach(function (row) { row.forEach(function (q) { if (!hit && q && q.color === (opp ? 'b' : 'w') && q.type !== 'k' && VAL[q.type] >= 3 && g.attackers(Game.sqIdx(q.square), me).indexOf(to) >= 0) hit = q; }); });
+    if (hit) bits.push((mine ? 'watch out: it attacks your ' : 'it attacks their ') + PIECE_NAME[hit.type] + ' on ' + hit.square);
+    if (!bits.length) bits.push(mine ? 'A quiet move that improves my position' : 'A safe, useful move');
+    var t = bits.join(', and '); return t.charAt(0).toUpperCase() + t.slice(1) + '.';
+  }
   function classify(loss) { return loss <= 15 ? CLASS.best : loss <= 50 ? CLASS.good : loss <= 120 ? CLASS.inacc : loss <= 280 ? CLASS.mistake : CLASS.blunder; }
   MODES.play = {
     label: 'Play the coach',
     enter: function (arg) {
       PL = { setup: true, arg: arg || null };
       if (arg && arg.spec) { setupBoard(specFen(arg.spec), { drop: true, orient: specColor(arg.spec) }); MODES.play.renderSpecIntro(); return; }
+      if (arg && arg.guided) { setupBoard(Game.START, { drop: true, orient: 'w' }); return MODES.play.start(); }
       if (arg && arg.color) { S.coach.color = arg.color; save(); }
       setupBoard(arg && arg.fen || Game.START, { drop: true, orient: arg && arg.color || S.coach.color });
       MODES.play.renderSetup();
@@ -2698,11 +2746,14 @@
         '<button class="test-out an-entry" data-act="goMode" data-m="arena"><span class="to-ico" aria-hidden="true">⚔️</span><span><b>Arena: rivals and quick games</b><span>Boss fights, 60-second games and win-this-position challenges.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="friend"><span class="to-ico" aria-hidden="true">👥</span><span><b>Play a friend on this device</b><span>Pass the phone after each move. I give tips to both of you.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
         '<button class="test-out an-entry" data-act="mychess"><span class="to-ico" aria-hidden="true">🔍</span><span><b>Played on chess.com?</b><span>Bring the game here: I check every move and show you what to fix.</span></span><span class="to-go" aria-hidden="true">→</span></button>' +
+        (S.puzzle.rating < 900 ? '<button class="test-out an-entry guided-entry" data-act="guidedGame"><span class="to-ico" aria-hidden="true">🧭</span><span><b>' + (S.guidedDone ? 'Guided game' : 'Your first full game, guided') + '</b><span>Leo shows two good moves every turn and explains each of his own.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         (!lessonDone('l-firstmoves') && S.band < 800 ? '<button class="test-out an-entry" data-act="lesson" data-id="l-firstmoves"><span class="to-ico" aria-hidden="true">♟</span><span><b>New to full games?</b><span>Do "Your First Ten Moves" first: 4 minutes, and you will know how to start every game.</span></span><span class="to-go" aria-hidden="true">→</span></button>' : '') +
         '<div class="sect-head"><h2>Opponent</h2></div>' +
         '<div class="levels">' + COACH_LEVELS.map(function (l, n) { var mine = levelForRating(S.puzzle.rating), mi = COACH_LEVELS.indexOf(levelById(mine)); return '<button class="level ' + (c.level === l.id ? 'on' : '') + '" data-act="setLevel" data-id="' + l.id + '"><span class="lv-elo">~' + l.elo + (l.id === mine ? ' <em class="lv-tag">' + (S.puzzle.rating < 500 ? 'Start here' : 'Your level') + '</em>' : n === mi + 1 ? ' <em class="lv-tag up">Next challenge</em>' : n < mi ? ' <em class="lv-tag easy">Warm-up</em>' : '') + '</span><span class="lv-name">' + l.name + '</span><span class="lv-blurb">' + l.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Your colour</h2></div>' +
         '<div class="seg">' + [['w', 'White'], ['b', 'Black'], ['r', 'Random']].map(function (x) { return '<button class="' + (c.color === x[0] ? 'on' : '') + '" data-act="setColor" data-c="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="sect-head"><h2>Clock</h2></div>' +
+        '<div class="seg clk-seg">' + CLOCKS.map(function (x) { return '<button class="' + ((c.clock || 'off') === x[0] ? 'on' : '') + '" data-act="setClock" data-k="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
         '<div class="sect-head"><h2>Coach style</h2></div>' +
         '<div class="styles">' + COACH_STYLES.map(function (s) { return '<button class="style-opt ' + (coachStyle() === s.id ? 'on' : '') + '" data-act="setStyle" data-s="' + s.id + '"><b>' + s.name + '</b><span>' + s.blurb + '</span></button>'; }).join('') + '</div>' +
         '<div class="toggles">' +
@@ -2713,12 +2764,12 @@
       $('#opt-eval').onchange = function (e) { S.coach.evalbar = e.target.checked; save(); };
     },
     start: function () {
-      var c = S.coach, sp = PL.arg && PL.arg.spec, color = sp ? specColor(sp) : c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
+      var c = S.coach, sp = PL.arg && PL.arg.spec, guided = !!(PL.arg && PL.arg.guided), color = guided ? 'w' : sp ? specColor(sp) : c.color === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : c.color;
       var fen = sp ? specFen(sp) : PL.arg && PL.arg.fen || Game.START;
       var g = setupBoard(fen, { orient: color });
-      var lvl = sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
-      PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0 };
-      PL.book = sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
+      var lvl = guided ? levelById('novice') : sp ? levelById(sp.kind === 'boss' ? sp.b.level : sp.kind === 'challenge' ? sp.c.level : levelForRating(S.puzzle.rating)) : levelById(c.level);
+      PL = { g: g, color: color, level: lvl, log: [], feed: [], over: false, evalW: 0, startFen: fen, thinking: false, style: guided ? 'teach' : sp ? (sp.kind === 'boss' ? 'key' : 'quiet') : coachStyle(), from: PL.arg && PL.arg.from, arg: PL.arg, spec: sp || null, chN: 0, guided: guided };
+      PL.book = guided ? null : sp ? (sp.kind === 'battle' ? sp.line : null) : fen === Game.START ? pickBookLine(color === 'w' ? 'b' : 'w', PL.level.id) : null;
       if (sp && sp.kind === 'boss') { PL.bookPool = specBook(sp.b.book); if (sp.vs) vsFlash(sp.b, lvl); }
       if (sp && sp.kind === 'challenge') PL.chMat0 = material(g, color);
       if (sp && sp.kind === 'battle') { // the ply (coach to move) where the coach will slip
@@ -2728,7 +2779,11 @@
       }
       setEval(0); $('#evalbar').hidden = !showEvalBar();
       setLayout();
+      var ck = !sp && !guided && clockOf(c.clock);
+      if (ck) { PL.clk = { w: ck.min * 60000, b: ck.min * 60000, inc: ck.inc * 1000, run: null, t0: 0 }; clkTick(); }
       if (!sp) Voice.say([V('gamestart')]);
+      if (ck) MODES.play.say('Clock game', 'You each have <strong>' + ck.min + ' minutes</strong>' + (ck.inc ? ' and get <strong>+' + ck.inc + ' seconds</strong> after every move' : '') + '. Your clock runs only on your turn. If it reaches 0:00 you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones.', 'tip');
+      if (guided) MODES.play.say('Coach Leo', 'Your first full game! You are White. On every move I show you two good ideas with arrows. Pick one, or play your own move, and I explain every move I make too.', 'tip');
       Voice.prefetch(['M-to_n', 'V-best-0', 'V-blunder-0', 'V-why_wins-0']);
       MODES.play.render();
       MODES.play.turn();
@@ -2750,7 +2805,7 @@
         return '<span class="mv-cell">' + esc(hist[k]) + (lg && lg.cls ? '<i class="cdot ' + lg.cls + '" title="' + esc(lg.label) + '"></i>' : '') + '</span>';
       }
       var turnTxt = PL.over ? PL.over : PL.thinking ? 'Coach is thinking…' : (g.turn() === PL.color ? 'Your move' : '');
-      setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div></div>' +
+      setPanel('<div class="play-head"><div><div class="eyebrow">' + (PL.spec ? esc(PL.spec.kind === 'boss' ? PL.spec.b.name : PL.spec.kind === 'challenge' ? PL.spec.c.title : 'Opening battle') + ' · ' + esc(specProgress()) : 'vs ' + PL.level.name + ' · ~' + PL.level.elo) + '</div><div class="turn-ind ' + (PL.thinking ? 'busy' : '') + '">' + esc(turnTxt) + '</div>' + (PL.clk ? clkHtml() : '') + '</div>' +
         '<div class="play-btns"><button class="icon-btn" data-act="pHint" title="Hint" aria-label="Hint">?</button><button class="icon-btn" data-act="pUndo" title="Take back" aria-label="Take back">↶</button><button class="icon-btn" data-act="pResign" title="Resign" aria-label="Resign">⚑</button></div></div>' +
         '<div class="feed">' + (PL.feed.length ? PL.feed.slice(-6).reverse().map(function (f, k) {
           var lastBad = -1; for (var q = PL.feed.length - 1; q >= Math.max(0, PL.feed.length - 3); q--) if (/^(bad|warn)$/.test(PL.feed[q].cls) && /Retry/.test(PL.feed[q].html)) { lastBad = q; break; }
@@ -2783,7 +2838,9 @@
       if (MODES.play.checkOver()) return;
       if (g.turn() === PL.color) {
         IX.enabled = true; IX.canMove = function (c) { return c === PL.color && !PL.over; };
-        IX.onMove = MODES.play.userMove;
+        if (PL.guided) MODES.play.guideMove();
+        IX.onMove = PL.clk ? function (mv, uci) { if (!clkStop()) return; return MODES.play.userMove(mv, uci); } : MODES.play.userMove;
+        clkRun(PL.color);
         if (S.coach.threats && PL.style !== 'quiet') {
           Eng.call('threat', g.fen()).then(function (t) {
             if (!t || PL.g !== g || g.turn() !== PL.color) return;
@@ -2800,20 +2857,25 @@
       } else {
         if (PL.judging) return;
         if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.spec.c.goal !== 'gain' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
-        IX.enabled = false; PL.thinking = true; MODES.play.render();
+        IX.enabled = false; PL.thinking = true; clkRun(PL.color === 'w' ? 'b' : 'w'); MODES.play.render();
         var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
         var job = slip ? Eng.call('mistake', fen, g.history().length >= PL.devAt0 + 4).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
           : bm ? Promise.resolve({ move: bm, score: null, book: true }) : teachSlip(g) ? Promise.resolve({ move: teachSlip(g, true), score: null, teach: true }) : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history()));
         job.then(function (r) {
           if (!PL || PL.g !== g || PL.over) return;
-          var wait = Math.max(0, 450 - (Date.now() - t0));
+          var think = 450;
+          if (PL.clk) { var left = PL.clk[PL.color === 'w' ? 'b' : 'w'], base = (PL.clk.inc + left / 40) * (0.3 + Math.random()); think = Math.min(base, left / 25, 9000); if (g.history().length < 8) think = Math.min(think, 1200); } // on the clock the coach takes human-like time
+          var wait = Math.max(0, think - (Date.now() - t0));
           setTimeout(function () {
             if (!PL || PL.g !== g || PL.over) return; // the player left this game while the coach was thinking
             PL.thinking = false;
             if (!r || !r.move) { MODES.play.checkOver(); return; }
+            if (!clkStop()) return;
+            var fenCoach = g.fen();
             applyMove(g, { from: r.move.from, to: r.move.to, promotion: r.move.promotion || undefined }).then(function (res) {
               PL.log.push({});
               if (r.slip) { PL.devDone = true; PL.devPly = g.history().length - 1; toast('⚡ The coach slipped. Find the punishment!'); Voice.say([V('battle_slip')], true); }
+              if (PL.guided && res) MODES.play.say('Leo played ' + res.san, esc(explainMove(fenCoach, res, true)), 'tip');
               if (r.book && !PL.spec) MODES.play.bookNote(g);
               if (!PL.spec && !r.book) MODES.play.onPurpose(g);
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
@@ -2834,6 +2896,7 @@
       }
     },
     userMove: function (mv, uci) {
+      if (PL.guided && !PL.guardOk) { PL.gTok = (PL.gTok || 0) + 1; B3.arrows([]); }
       if (PL.style === 'teach' && !PL.spec && S.puzzle.rating < 1000 && !PL.guardOk) {
         var gfen = PL.g.fen(), g0 = PL.g;
         return Eng.call('analyzeMove', gfen, uci, 30, 800).then(function (a) {
@@ -2944,6 +3007,18 @@
       PL.minEval = Math.min(PL.minEval == null ? score : PL.minEval, score);
       if (!PL.toldComeback && PL.minEval < -250 && score > 120) { PL.toldComeback = true; var l = V('comeback'); if (l) { MODES.play.say('Coach', esc(l.text), 'good'); Voice.say([l], true); } }
     },
+    // guided game: two good ideas with arrows and a reason each, before every move you make
+    guideMove: function () {
+      var g = PL.g, fen = g.fen(), tok = PL.gTok = (PL.gTok || 0) + 1;
+      Eng.call('rootSearch', fen, 3, 700, 150).then(function (r) {
+        if (!PL || PL.g !== g || PL.gTok !== tok || g.fen() !== fen || PL.over || g.turn() !== PL.color) return;
+        var ms = (r && r.moves) || [], best = ms[0]; if (!best) return;
+        var pick = [best]; ms.slice(1).forEach(function (m) { if (pick.length < 2 && m.score >= best.score - 60 && m.piece !== 'k') pick.push(m); });
+        B3.arrows(pick.map(function (m, i) { return [m.from, m.to, i ? 'b' : 'g']; }));
+        var html = pick.map(function (m, i) { var san = (new Game(fen).move({ from: m.from, to: m.to, promotion: m.promotion || undefined }) || {}).san || m.from + m.to; return '<span class="gd-idea"><b class="gd-' + 'gb'[i] + '">' + (i ? 'Blue' : 'Green') + ': ' + esc(san) + '</b> ' + esc(explainMove(fen, m, false)) + '</span>'; }).join('') + '<span class="muted small">Pick one, or play your own move.</span>';
+        MODES.play.say('Leo suggests', html, 'tip', true); MODES.play.render();
+      });
+    },
     coachTip: function () {
       if (!PL || PL.over || PL.style !== 'teach') return;
       var lastMine = PL.log.filter(function (l) { return l && l.cls; }).pop();
@@ -2989,7 +3064,7 @@
       var mean = accs.reduce(function (s, x) { return s + x; }, 0) / (accs.length || 1), harm = accs.length / accs.reduce(function (s, x) { return s + 1 / Math.max(5, x); }, 0);
       var acc = mine.length ? Math.round((mean + harm) / 2) : null;
       var count = function (k) { return mine.filter(function (l) { return l.label === k; }).length; };
-      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length }); progMark('play');
+      S.games.push({ d: dayKey(), level: PL.level.id, result: result, acc: acc, moves: PL.g.history().length }); progMark('play'); if (PL.guided) S.guidedDone = true;
       if (S.games.length > 200) S.games.shift();
       var plies = PL.g.history().length, real = plies >= 20 || result !== 'loss' || /Checkmate/.test(msg) || beginnerMode();
       if (real) today().game = true;
@@ -3012,10 +3087,46 @@
       MODES.play.say('Game over', esc(msg) + ' Coach-game rating <strong>' + S.grating + '</strong> (' + (PL.gdelta >= 0 ? '+' : '') + PL.gdelta + ').' + (!real ? ' Games shorter than 10 moves do not count for the daily mission.' : '') + (acc != null ? ' Accuracy <strong>' + acc + '%</strong>.<span class="summary-row">' + [['Brilliant', 'brill'], ['Great move', 'great'], ['Best', 'good'], ['Excellent', 'good'], ['Good', 'good'], ['Book move', 'book'], ['Could be better', 'warn'], ['Mistake', 'warn'], ['Blunder', 'bad']].filter(function (x) { return count(x[0]); }).map(function (x) { return '<span class="sum-chip ' + x[1] + '">' + count(x[0]) + ' ' + x[0] + '</span>'; }).join('') + '</span>' : '') + (count('Blunder') ? ' Review the red moves: most games under 1500 are decided by them.' : ''), result === 'win' ? 'good' : result === 'loss' ? 'bad' : '');
       MODES.play.render();
     },
-    leave: function () { PL = null; }
+    leave: function () { PL = null; clearInterval(CLK_T); }
   };
   // Novice coach in teaching mode: now and then leave a minor piece or rook loose on purpose, so a beginner
   // gets real chances to practise winning material (announced by onPurpose right after).
+  // Clock games: practise playing on time like on chess.com. Each side's clock runs only on its own turn.
+  var CLOCKS = [['off', 'No clock'], ['10+0', '10 min'], ['5+3', '5 | 3'], ['3+2', '3 | 2']], CLK_T = null;
+  function clockOf(k) { var m = /^(\d+)\+(\d+)$/.exec(k || ''); return m ? { min: +m[1], inc: +m[2] } : null; }
+  function clkLeft(c) { var k = PL.clk; return k[c] - (k.run === c ? Date.now() - k.t0 : 0); }
+  function clkFmt(ms) { ms = Math.max(0, ms); var s = Math.ceil(ms / 1000); return s < 20 ? (ms / 1000).toFixed(1) : Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+  function clkHtml() {
+    var me = PL.color, them = me === 'w' ? 'b' : 'w', one = function (c, who) { var l = clkLeft(c); return '<span class="clk clk-' + c + (PL.clk.run === c ? ' run' : '') + (l < 30000 ? ' low' : '') + '"><em>' + who + '</em><b>' + clkFmt(l) + '</b></span>'; };
+    return '<div class="clocks">' + one(me, 'You') + one(them, 'Leo') + '</div>';
+  }
+  function clkRun(c) { var k = PL && PL.clk; if (!k || PL.over || k.run === c) return; if (k.run) clkStop(); k.run = c; k.t0 = Date.now(); }
+  // stop the running clock and add the increment; false if that side had already flagged
+  function clkStop() {
+    var k = PL && PL.clk; if (!k || !k.run) return true;
+    var c = k.run; k[c] -= Date.now() - k.t0; k.run = null;
+    if (k[c] <= 0) { k[c] = 0; clkFlag(c); return false; }
+    k[c] += k.inc; return true;
+  }
+  function clkFlag(c) {
+    if (!PL || PL.over) return;
+    IX.enabled = false; B3.arrows([]);
+    if (c === PL.color) MODES.play.finish('loss', 'Your time ran out. On the clock, 0:00 loses the game.');
+    else MODES.play.finish('win', 'The coach ran out of time. You win on the clock!');
+  }
+  function clkTick() {
+    clearInterval(CLK_T);
+    CLK_T = setInterval(function () {
+      if (!PL || !PL.clk || PL.over) { clearInterval(CLK_T); return; }
+      var k = PL.clk;
+      ['w', 'b'].forEach(function (c) {
+        var el = $('.clk-' + c); if (!el) return; var l = clkLeft(c);
+        el.querySelector('b').textContent = clkFmt(l); el.classList.toggle('run', k.run === c); el.classList.toggle('low', l < 30000);
+      });
+      if (k.run && clkLeft(k.run) <= 0) { var c = k.run; k[c] = 0; k.run = null; clkFlag(c); return; }
+      if (k.run === PL.color && !PL.clkWarn && clkLeft(PL.color) < 30000) { PL.clkWarn = true; MODES.play.say('Clock', 'Under 30 seconds! Play safe, simple moves quickly. Losing on time is still losing.', 'warn', true); MODES.play.render(); }
+    }, 200);
+  }
   function freeTakes(g) {
     var foe = g.side ^ 8, VALS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
     return g.moves().filter(function (m) { return m.captured && m.captured !== 'p' && m.captured !== 'q' && (!g.attacked(Game.sqIdx(m.to), foe) || VALS[m.captured] > VALS[m.piece]); });
@@ -3064,6 +3175,7 @@
     go('review', { log: PL.log.slice(), startFen: PL.startFen, moves: PL.g.history(), color: PL.color, result: PL.result, acc: PL.acc, level: PL.level, over: PL.over });
   };
   ACT.feedOpen = function (d) { if (PL) { PL.feedOpen = +d.i; MODES.play.render(); } };
+  ACT.setClock = function (d) { S.coach.clock = d.k; save(); MODES.play.renderSetup(); };
   ACT.setLevel = function (d) { S.coach.level = d.id; save(); MODES.play.renderSetup(); };
   ACT.setColor = function (d) { S.coach.color = d.c; save(); if (d.c !== 'r') B3.setOrientation(d.c); MODES.play.renderSetup(); };
   ACT.startGame = function () { MODES.play.start(); };
@@ -3075,7 +3187,7 @@
     m.hidden = false;
     m.onclick = function (e) { var b = e.target.closest('[data-rs]'); if (!b && e.target !== m) return; m.hidden = true; m.onclick = null; if (b && b.dataset.rs === 'yes' && PL && !PL.over) MODES.play.finish('loss', 'You resigned.'); };
   };
-  ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; };
+  ACT.pGuardBack = function () { if (!PL || !PL.guard) return; PL.guard = null; PL.feed.pop(); MODES.play.render(); IX.enabled = true; clkRun(PL.color); };
   ACT.pGuardGo = function () { if (!PL || !PL.guard) return; var gd = PL.guard; PL.guard = null; PL.feed.pop(); PL.guardOk = true; IX.enabled = false; MODES.play.userMove(gd.mv, gd.uci); PL.guardOk = false; };
   ACT.pUndo = function () {
     if (!PL || !PL.g || PL.thinking || PL.over) return;
@@ -3466,6 +3578,7 @@
     'l-rook': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'r'; }, ask: 'Your rook can capture a piece that nobody protects. Find it.', hint: 'Look along the straight lines from your rook: up, down, left and right.' },
     'l-bishop-queen': { pick: function (p) { return starter(p) && p.theme === 'hanging' && /[bq]/.test(p.pieces[0]); }, ask: 'Your bishop or queen can capture a piece that nobody protects. Find it.', hint: 'Bishops look along the diagonals. The queen looks along diagonals and straight lines.' },
     'l-knight': { pick: function (p) { return starter(p) && p.theme === 'hanging' && p.pieces[0] === 'n'; }, ask: 'Your knight can capture a piece that nobody protects. Find it.', hint: 'Count the L: two squares one way, then one to the side. Which landing square has a black piece?' },
+    'l-capture': { pick: function (p) { return starter(p) && p.theme === 'hanging'; }, ask: 'Take the free piece: the one nobody protects.', hint: 'Look at every black piece your pieces can reach. Which one has no defender?' },
     'l-king-pawn': { pick: function (p) { return (starter(p) && p.theme === 'hanging' && /[pk]/.test(p.pieces[0])) || p.theme === 'promotion' && /^g/.test(p.id); }, ask: 'Win something with your king or a pawn. Remember: pawns capture diagonally.', hint: 'Pawns take one square diagonally forward. A pawn on the 7th rank can become a queen.' },
     'l-check': { pick: function (p) { return (starter(p) && p.theme === 'mate') || p.backrank; }, ask: 'Find checkmate in one move: a check the king cannot escape.', hint: 'Try every check you have. For each one, ask: can the king step away, can something block, can something capture?' },
     'l-qmate': { pick: function (p) { return starter(p) && p.theme === 'mate' && p.pieces[0] === 'q'; }, ask: 'Checkmate in one with your queen. Watch out for stalemate!', hint: 'The king is near the edge. Find a queen check that also covers every square next to him.' },
@@ -3511,6 +3624,7 @@
   function practiceFor(lid) { return CHALLENGES.filter(function (c) { return c.practice && c.after === lid; }); }
   function flowNext(lid) {
     var ms = MISSIONS[lid];
+    if (lid === 'l-firstmoves' && !S.guidedDone && (!ms || coachMissionsDone(lid) >= ms.length)) return { k: 'guided', lid: lid, t: 'Your first full game', s: 'Leo shows you two good moves every turn' };
     if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Beat Leo\'s challenges', s: ms.length + ' quick dares, with stars to win' };
     if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
     var pg = practiceFor(lid).filter(function (c) { return !S.challenges[c.id]; })[0];
@@ -3523,7 +3637,7 @@
     if (!prev || !lessonDone(prev) || (S.flowSkip && S.flowSkip[prev])) return null;
     var f = flowNext(prev); return f && f.k !== 'lesson' ? f : null;
   }
-  function flowGo(f) { if (!f) return go('path'); if (f.k === 'practice') return ACT.challenge({ id: f.id }); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
+  function flowGo(f) { if (!f) return go('path'); if (f.k === 'guided') return go('play', { guided: true }); if (f.k === 'practice') return ACT.challenge({ id: f.id }); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
   ACT.flowGo = function (d) { flowGo(flowNext(d.l)); };
   // three chips that show where this lesson's loop stands: learn, missions, practice
   function flowChips(lid) {
@@ -5659,16 +5773,13 @@
       if (document.querySelector('.rc-wrap')) { setTimeout(next, 1500); return; } // wait until the result card is closed
       if (Date.now() < holdUntil) { setTimeout(next, holdUntil - Date.now() + 50); return; } // let the card reveal play first
       var c = queue.shift(); open = true;
-      var m = document.createElement('div'); m.className = 'celebrate';
-      m.innerHTML = '<div class="cel-card" role="dialog" aria-modal="true" aria-label="' + esc(c.title) + '"><div class="cel-ray" aria-hidden="true"></div>' +
-        '<div class="medal ' + c.kind + '">' + pieceSVG(c.icon || 'k', 'w', 64) + '</div>' +
-        '<div class="eyebrow">' + (c.kind === 'level' ? 'Level up' : 'Badge unlocked') + '</div><h2 class="cel-title">' + esc(c.title) + '</h2><p>' + esc(c.text) + '</p>' +
-        '<button class="btn primary big" data-cel="ok">Awesome!</button></div>';
+      // a ribbon that slides in at the top: it never covers buttons, results or the board
+      var m = document.createElement('div'); m.className = 'cel-rib ' + c.kind; m.setAttribute('role', 'status');
+      m.innerHTML = '<span class="cr-medal">' + pieceSVG(c.icon || 'k', 'w', 34) + '</span><span class="cr-t"><small>' + (c.kind === 'level' ? 'Level up!' : 'Badge unlocked') + '</small><b>' + esc(c.title) + '</b><span>' + esc(c.text) + '</span></span>';
       document.body.appendChild(m);
-      Sound.play('win'); confetti(); if (c.voice) Voice.say([c.voice]);
-      var shut = function () { if (!m.parentNode) return; m.remove(); open = false; setTimeout(next, 250); };
-      m.addEventListener('click', function (e) { if (e.target.closest('[data-cel]') || !e.target.closest('.cel-card')) shut(); }); // a tap anywhere closes it
-      setTimeout(shut, 5000); // and it never blocks the next button for long
+      Sound.play(c.kind === 'level' ? 'win' : 'chest'); confetti(); if (c.voice) Voice.say([c.voice], true);
+      var shut = function () { if (!m.parentNode) return; m.classList.add('out'); setTimeout(function () { m.remove(); open = false; setTimeout(next, 250); }, 350); };
+      m.addEventListener('click', shut); setTimeout(shut, 4200);
     }
     return { hold: function (ms) { holdUntil = Date.now() + ms; }, show: function (c) { queue.push(c); setTimeout(next, 500); }, flush: function () { setTimeout(next, 1200); }, pending: function () { return open || queue.length > 0; } };
   })();
