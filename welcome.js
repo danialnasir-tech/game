@@ -456,6 +456,7 @@
       S.xp = Math.max(S.xp || 0, { 800: 300, 1200: 800, 1600: 1600 }[v] || 0) + (st.tried ? 10 : 0);
       S.coach.level = levelForRating(v); PATHUI.open = null;
       S.puzzle.hist = [[dayKey(), S.puzzle.rating]]; touchActivity();
+      S.prog = { start: S.startDate, mins: 20, days: {}, base: null, baseTrain: v }; // day 1 of the 30-day plan starts now
       save(); renderTop();
     }
     function step4() {
@@ -514,7 +515,7 @@
       var F = FEATURES[mode]; if (!F || el) return;
       el = document.createElement('div'); el.className = 'fi-wrap';
       el.innerHTML = '<div class="fi-card" role="dialog" aria-modal="true"><div class="fi-head"><span class="fi-ico">' + F.icon + '</span><b>' + esc(F.title) + '</b></div>' +
-        (F.chart ? '<svg class="fi-chart" viewBox="0 0 300 120" aria-hidden="true"><path class="fi-line" d="M10 104 C 50 98, 70 92, 100 84 S 150 70, 180 60 S 240 30, 290 14" fill="none"/><circle cx="290" cy="14" r="6"/><text x="286" y="40" text-anchor="end">+180 in 30 days</text></svg>' : '<div class="fi-board" id="fi-board"></div>') +
+        (F.chart ? '<svg class="fi-chart" viewBox="0 0 300 120" aria-hidden="true"><path class="fi-line" d="M10 104 C 50 98, 70 92, 100 84 S 150 70, 180 60 S 240 30, 290 14" fill="none"/><circle cx="290" cy="14" r="6"/><text x="286" y="40" text-anchor="end">your rating, day by day</text></svg>' : '<div class="fi-board" id="fi-board"></div>') +
         '<p class="fi-text">' + esc(CAREER_TEXT[F.line]) + '</p><div class="wl-acts"><button class="btn primary big" data-fi="try">' + (F.guide ? 'Try it now ▶' : 'Got it') + '</button><button class="link small" data-fi="notips">Skip all tips</button></div></div>';
       document.body.appendChild(el);
       if (!F.chart) { var mb = MiniBoard($('#fi-board')); demo = mbPlay(mb, F.fen, F.seq, { loop: true, gap: 1200, hold: 2600, lead: 500 }); }

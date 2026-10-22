@@ -1,7 +1,7 @@
 // ===== Curriculum, openings and puzzles =====
 var STAGES = [
   { id: 's1', name: 'Foundations', band: '100 – 400', min: 100, blurb: 'The board and how moves are written, how every piece moves, check, checkmate, and the special rules people forget.', lessons: ['l-board', 'l-pieces', 'l-rook', 'l-bishop-queen', 'l-knight', 'l-king-pawn', 'l-check', 'l-special', 'l-qmate', 'l-firstmoves'] },
-  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, spotting your opponent\'s threats, good and bad captures, opening principles and the first tactics.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
+  { id: 's2', name: 'Stop Losing Pieces', band: '400 – 800', min: 400, blurb: 'Piece values, spotting your opponent\'s threats, good and bad captures, opening principles, the first tactics and the rook checkmate.', lessons: ['l-values', 'l-cct', 'l-principles', 'l-forks', 'l-pins', 'l-skewers', 'l-backrank'] },
   { id: 's3', name: 'Tactical Weapons', band: '800 – 1200', min: 800, blurb: 'Loose pieces, two-move combinations, attacking the king, discovered attacks and the mating patterns that end games.', lessons: ['l-discovered', 'l-defender', 'l-patterns'] },
   { id: 's4', name: 'Endgames & Structure', band: '1200 – 1600', min: 1200, blurb: 'Candidate moves, defending against the opponent\'s ideas, winning endgames, the Lucena and Philidor, pawn structure.', lessons: ['l-kp', 'l-rook-end', 'l-structure'] },
   { id: 's5', name: 'Mastery', band: '1600 – 2000', min: 1600, blurb: 'Deep calculation, outposts, prophylaxis and converting a winning position.', lessons: ['l-calc', 'l-outposts', 'l-convert'] }
@@ -406,8 +406,7 @@ LESSONS['l-rookmate'] = {
   function addAfter(stageIdx, afterId, id) { var L = STAGES[stageIdx].lessons, i = L.indexOf(afterId); L.splice(i < 0 ? L.length : i + 1, 0, id); }
   addAfter(1, 'l-principles', 'l-traps');
   addAfter(2, 'l-patterns', 'l-smothered');
-  addAfter(3, null, 'l-rookmate');
-  var e = STAGES[3].lessons; e.splice(e.indexOf('l-rookmate'), 1); e.unshift('l-rookmate');
+  addAfter(1, 'l-backrank', 'l-rookmate'); // a 600-800 player needs the rook mate to finish won games
 })();
 
 // What costs points at each level, and the lesson that fixes it. Used by the "Your level" plan.

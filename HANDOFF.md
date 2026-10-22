@@ -354,3 +354,17 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   chess card flips over (`funCard`: 40 fun facts in `CARDS`; common, rare at 3 stars, gold at 3 stars with no slips).
   Badges wait until the card has been revealed (`Celebrate.hold`). The album is on the Progress tab (`cardAlbum`);
   the course list shows each lesson's best score.
+
+## Curriculum review: one plan, right placement, real practice
+- One daily plan. The top bar "x/4 today", the home card, the 30-day page and the town all show the same list
+  (`missionList`). The 30-day plan starts on your first day for everyone (`progEnsure`, also set in the welcome);
+  the 30-day page is that list plus the calendar (filled from `S.daily`) and a bonus item when reviews are due.
+  "Career mode" is now called "Ascent Town (3D)": the same course as a 3D world.
+- Placement: "I know the rules" (400) starts at Stop Losing Pieces, not at "The Board" (`placementStage`).
+- The rook checkmate lesson moved to the end of Stop Losing Pieces (400-800). l-check gained a step on the other draws
+  (repetition, 50 moves, insufficient material, agreement). `lessonFinal` prefers the last board task.
+- Play-it-out practice games (practice.js, built and verified by tests/practice-build.js): 29 games for every lesson from
+  400 to 1200. New challenge goals: `gain` (win N points of material and still have it after the coach answers) and
+  `survive` with `strict` (play N moves without losing any material). Coach ~1000 for 400-800, ~1400 for 800-1200,
+  full strength when defending against mate. Each lesson's flow is now Learn → Practice puzzles → Play it out.
+- Removed the invented "+180 in 30 days" from the Progress intro chart.

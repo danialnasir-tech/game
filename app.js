@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  if (typeof PRACTICE !== 'undefined' && typeof CHALLENGES !== 'undefined') CHALLENGES = CHALLENGES.concat(PRACTICE); // play-it-out games after lessons
   var Game = CHESS_LIB();
   var LOCAL_ENGINE = ENGINE_FACTORY(Game);
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1327,7 +1328,7 @@
   // ================= Path (home) =================
   // Placement: the stage that matches the level picked at the start. Stages below it count as cleared,
   // and so does any stage the player tested out of.
-  function placementStage(band) { var k = 0, b = band == null ? S.band : band; STAGES.forEach(function (st, i) { if (b > st.min) k = i; }); return Math.min(k, 3); } // endgames are never skipped by placement
+  function placementStage(band) { var k = 0, b = band == null ? S.band : band; STAGES.forEach(function (st, i) { if (b > st.min || (i === 1 && b >= st.min)) k = i; }); return Math.min(k, 3); } // "I know the rules" (400) skips the how-pieces-move chapter // endgames are never skipped by placement
   function lessonDone(id) { return !!(S.lessons[id] && S.lessons[id].done); }
   function placedOut(i) { return i < placementStage() || !!(S.cleared && S.cleared[STAGES[i].id]); }
   function stageComplete(i) { return STAGES[i].lessons.every(lessonDone); }
@@ -1431,17 +1432,17 @@
         (allClear ? '<h1 class="h1">Every stage cleared</h1><p class="lede">The whole course is behind you. Keep sharpening with puzzles at your rating, master openings, and beat the strongest coach.</p>' +
           '<button class="btn primary big" data-act="goPlay">▶&nbsp; Play the ' + esc(levelById(levelForRating(S.puzzle.rating)).name) + ' coach</button>'
         : pend ? '<h1 class="h1">Next up: ' + esc(pend.t) + '</h1>' +
-          '<p class="lede">' + (pend.k === 'mission' ? 'Use what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b> against me, in a few quick challenges.' : 'Five puzzles that use exactly what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b>.') + '</p>' + flowChips(pend.lid) +
-          '<button class="btn primary big" data-act="flowGo" data-l="' + pend.lid + '">▶&nbsp; ' + (pend.k === 'mission' ? 'Start the missions' : 'Start practice') + '</button>' +
+          '<p class="lede">' + (pend.k === 'mission' ? 'Use what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b> against me, in a few quick challenges.' : pend.k === 'practice' ? 'Now use <b>' + esc(LESSONS[pend.lid].title) + '</b> in a real position against me. I defend: you have to actually win it.' : 'Five puzzles that use exactly what you learned in <b>' + esc(LESSONS[pend.lid].title) + '</b>.') + '</p>' + flowChips(pend.lid) +
+          '<button class="btn primary big" data-act="flowGo" data-l="' + pend.lid + '">▶&nbsp; ' + (pend.k === 'mission' ? 'Start the challenges' : pend.k === 'practice' ? 'Play it out: ' + esc(pend.s) : 'Start practice') + '</button>' +
           '<button class="btn ghost small hero-skip" data-act="startNext">Skip to the next lesson: ' + esc(L.title) + '</button>'
         : '<h1 class="h1">Next up: ' + esc(L.title) + '</h1>' +
           '<p class="lede">' + esc(L.goal) + '</p>' +
           '<button class="btn primary big" data-act="startNext">▶&nbsp; Start lesson · ' + lessonMins(L) + ' min</button>') +
         '</section>' +
-        (window.THREE ? '<button class="career-card" data-act="career"><span class="cc-ico" aria-hidden="true">🏰</span><span class="cc-t"><b>Career mode</b><span>Walk Ascent Town, meet Coach Leo and beat the rivals</span></span><span class="cc-go" aria-hidden="true">→</span></button>' : '') +
+        (window.THREE ? '<button class="career-card" data-act="career"><span class="cc-ico" aria-hidden="true">🏰</span><span class="cc-t"><b>Ascent Town (3D)</b><span>The same course as a 3D world: walk to each lesson, meet Coach Leo and beat the rivals</span></span><span class="cc-go" aria-hidden="true">→</span></button>' : '') +
         progCard() + socialRow() + installCard() +
         warmupCard() +
-        (S.prog ? '' : discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
+        (discAllDone() ? (analyzeReady() ? '<button class="an-home" data-act="goAnalyze"><span class="an-home-ico" aria-hidden="true">🔍</span><span class="an-home-t"><b>Analyze your chess.com game</b><span>Paste a link or your username. I find your mistakes and how to fix them.</span></span><span class="an-go" aria-hidden="true">→</span></button>' : '') : discoverCard()) +
         (placed > 0 ? '<div class="placed-note"><span class="pn-ico" aria-hidden="true">✓</span><span><b>Placed at ' + S.band + '.</b> ' + esc(STAGES.slice(0, placed).map(function (st) { return st.name; }).join(', ')) + (placed > 1 ? ' are' : ' is') + ' marked cleared, so your course starts at ' + esc(STAGES[placed].name) + '. Open a cleared stage any time to review it.</span></div>' : '') +
         (fresh ? '' : '<div class="ladder" aria-label="Your rating on the 100 to 2000 ladder">' +
         '<div class="ladder-track"><i style="width:' + pct + '%"></i><span class="ladder-me" style="left:' + pct + '%"><b>' + Math.round(R) + '</b></span></div>' +
@@ -1689,8 +1690,9 @@
     ['Castle early', 'Castling hides your king and wakes up a rook in one move.']
   ];
   var FACE = { happy: '😄', wow: '🤩', fire: '🔥', oops: '😬', think: '🤔', proud: '🥳' };
-  function lessonFinal(L) { // the last step that asks something of you
-    for (var i = L.steps.length - 1; i >= 0; i--) { var s = L.steps[i]; if (s.t === 'move' || s.t === 'threat' || s.t === 'choice' || s.ask || s.tap) return i; }
+  function lessonFinal(L) { // the last real board task (a move, a threat to spot, a choice); a question if there is none
+    for (var i = L.steps.length - 1; i >= 0; i--) { var s = L.steps[i]; if (s.t === 'move' || s.t === 'threat' || s.t === 'choice') return i; }
+    for (var j = L.steps.length - 1; j >= 0; j--) if (L.steps[j].ask || L.steps[j].tap) return j;
     return -1;
   }
   function funHud() {
@@ -2009,7 +2011,7 @@
     if (ms) cards.push({ k: 'mission', ico: 'k', t: msDone >= ms.length ? 'Leo\'s challenges (replay)' : 'Beat Leo\'s 3 challenges', s: msDone ? msDone + ' of ' + ms.length + ' done. Beat the coach in quick scenarios that use what you just learned.' : 'Three quick scenarios with me, easy to hard. Use what you just learned to beat them.', act: 'data-act="mission" data-l="' + id + '" data-i="' + Math.min(msDone, ms.length - 1) + '"' });
     if (!ms && !isLocked('play')) cards.push({ k: 'play', ico: 'k', t: st ? 'Play it out vs the coach' : 'Play a game vs the coach', s: st ? 'Same position, real opponent. Use what you just learned.' : 'A relaxed game at your level, with tips on every move.', act: st ? 'data-act="lessonPlay" data-fen="' + esc(st.fen) + '"' : 'data-act="wnPlay"', isNew: playNew });
     cards.push({ k: 'puzzle', ico: 'n', t: theme === 'all' ? 'Solve a few puzzles' : 'Puzzles: ' + theme, s: 'Spot the idea in real positions. Quick wins, rating points.', act: 'data-act="wnPuzzles" data-t="' + theme + '"' });
-    var chal = CHALLENGES.filter(function (c) { return c.after === id && !S.challenges[c.id]; })[0];
+    var chal = CHALLENGES.filter(function (c) { return !c.practice && c.after === id && !S.challenges[c.id]; })[0];
     if (chal) cards.push({ k: 'challenge', ico: 'q', t: 'Challenge: ' + chal.title, s: chal.text.split('. ')[0].replace(/\.$/, '') + '. Play it against the engine.', act: 'data-act="challenge" data-id="' + chal.id + '"' });
     var stB = bossFor(stageOf(id));
     if (stB && stageComplete(stageOf(id)) && !S.bosses[stB.id]) cards.push({ k: 'boss', ico: stB.icon, t: 'Boss battle: ' + stB.name, s: 'Stage done. Now beat its boss in a real game.', act: 'data-act="boss" data-id="' + stB.id + '"' });
@@ -2797,7 +2799,7 @@
         }
       } else {
         if (PL.judging) return;
-        if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
+        if (PL.spec && PL.spec.kind === 'challenge' && PL.spec.c.goal !== 'survive' && PL.spec.c.goal !== 'gain' && PL.chN >= PL.spec.c.limit) { MODES.play.finish('loss', 'Out of moves.'); return; }
         IX.enabled = false; PL.thinking = true; MODES.play.render();
         var t0 = Date.now(), fen = g.fen(), bm = bookMove(g), slip = PL.spec && PL.spec.kind === 'battle' && !PL.devDone && g.history().length >= PL.devAt;
         var job = slip ? Eng.call('mistake', fen, g.history().length >= PL.devAt0 + 4).then(function (m) { if (m) return { move: m, score: null, slip: true }; PL.devAt += 2; return bm ? { move: bm, score: null, book: true } : Eng.call('pickMove', fen, PL.level, prevFens(PL.startFen, g.history())); })
@@ -2817,6 +2819,12 @@
               if (res && /\+$/.test(res.san)) Voice.say([V('check_received')], true);
               else if (res && res.captured && /[nbrq]/.test(res.captured) && chance(0.6)) Voice.say([V('coach_captures')], true);
               if (r.score != null) setEval(PL.color === 'w' ? -r.score : r.score, true);
+              var cs = PL.spec && PL.spec.kind === 'challenge' && PL.spec.c;
+              if (cs && cs.goal === 'gain') { // you must win the material and still have it after the coach's answer
+                var up = material(g, PL.color) - PL.chMat0;
+                if (up >= cs.need) { MODES.play.render(); return MODES.play.finish('win', 'You won ' + up + ' points of material and kept it, in ' + PL.chN + ' moves.'); }
+                if (PL.chN >= cs.limit || g.gameOver()) { MODES.play.render(); return MODES.play.finish('loss', up > 0 ? 'You are ' + up + ' up, but the goal was ' + cs.need + '. Look for the bigger win.' : 'The material is not won yet. Watch the replay idea and try again.'); }
+              }
               MODES.play.render();
               MODES.play.turn();
               setTimeout(function () { if (PL && PL.g === g && g.turn() === PL.color) MODES.play.coachTip(); }, 2600);
@@ -2849,7 +2857,8 @@
         if (sp && sp.kind === 'challenge') {
           PL.chN++;
           if (sp.c.goal === 'promote' && r.promotion) { MODES.play.render(); return MODES.play.finish('win', 'Promoted in ' + PL.chN + ' moves!'); }
-          if (sp.c.goal === 'survive' && PL.chN >= sp.c.limit && !g.inCheckmate()) { MODES.play.render(); return MODES.play.finish(material(g, PL.color) >= PL.chMat0 - 1 ? 'win' : 'loss', material(g, PL.color) >= PL.chMat0 - 1 ? 'You held the position for ' + sp.c.limit + ' moves.' : 'You survived, but lost material.'); }
+          if (sp.c.goal === 'survive' && PL.chN >= sp.c.limit && !g.inCheckmate()) { var keep = material(g, PL.color) >= PL.chMat0 - (sp.c.strict ? 0 : 1); MODES.play.render(); return MODES.play.finish(keep ? 'win' : 'loss', keep ? (sp.c.strict ? 'Not a single piece lost in ' + sp.c.limit + ' moves. That is how games are won.' : 'You held the position for ' + sp.c.limit + ' moves.') : 'You survived, but lost material. Check what each enemy move attacks.'); }
+          if (sp.c.goal === 'gain' && material(g, PL.color) - PL.chMat0 >= sp.c.need && g.inCheckmate()) { MODES.play.render(); return MODES.play.finish('win', 'Checkmate! Even better than winning material.'); }
         }
         if (sp && sp.kind === 'battle' && !PL.devDone && !PL.leftBook) {
           var hh = g.history(), cl = function (x) { return x.replace(/[+#!?]/g, ''); };
@@ -3499,10 +3508,13 @@
   function hasDrill(lid) { var D = LESSON_DRILL[lid]; return !!(D && PUZZLES.filter(D.pick).length >= 3); }
   function drillDone(lid) { return !!(S.drills && S.drills[lid]); }
   // what comes after a lesson: its missions, then its practice, then the next lesson
+  function practiceFor(lid) { return CHALLENGES.filter(function (c) { return c.practice && c.after === lid; }); }
   function flowNext(lid) {
     var ms = MISSIONS[lid];
     if (ms && coachMissionsDone(lid) < ms.length) return { k: 'mission', lid: lid, i: coachMissionsDone(lid), t: 'Beat Leo\'s challenges', s: ms.length + ' quick dares, with stars to win' };
     if (hasDrill(lid) && !drillDone(lid)) return { k: 'drill', lid: lid, t: 'Practice puzzles', s: '5 puzzles on ' + LESSONS[lid].title };
+    var pg = practiceFor(lid).filter(function (c) { return !S.challenges[c.id]; })[0];
+    if (pg) return { k: 'practice', lid: lid, id: pg.id, t: 'Play it out vs Leo', s: pg.title };
     var nl = nextLesson(); return nl ? { k: 'lesson', lid: nl, t: 'Next lesson', s: LESSONS[nl].title } : null;
   }
   function pendingFlow(nl) {
@@ -3511,13 +3523,14 @@
     if (!prev || !lessonDone(prev) || (S.flowSkip && S.flowSkip[prev])) return null;
     var f = flowNext(prev); return f && f.k !== 'lesson' ? f : null;
   }
-  function flowGo(f) { if (!f) return go('path'); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
+  function flowGo(f) { if (!f) return go('path'); if (f.k === 'practice') return ACT.challenge({ id: f.id }); if (f.k === 'mission') return go('mission', { lesson: f.lid, i: f.i }); if (f.k === 'drill') return go('drill', f.lid); go('lesson', f.lid); }
   ACT.flowGo = function (d) { flowGo(flowNext(d.l)); };
   // three chips that show where this lesson's loop stands: learn, missions, practice
   function flowChips(lid) {
     var ms = MISSIONS[lid], items = [{ t: 'Learn', done: lessonDone(lid) }];
     if (ms) items.push({ t: 'Missions', done: coachMissionsDone(lid) >= ms.length });
     if (hasDrill(lid)) items.push({ t: 'Practice', done: drillDone(lid) });
+    var pgs = practiceFor(lid); if (pgs.length) items.push({ t: 'Play it out', done: pgs.every(function (c) { return S.challenges[c.id]; }) });
     var cur = items.filter(function (x) { return !x.done; })[0];
     return '<div class="flow-chips">' + items.map(function (x) { return '<span class="fc' + (x.done ? ' done' : x === cur ? ' now' : '') + '">' + (x.done ? '✓ ' : '') + x.t + '</span>'; }).join('<i></i>') + '</div>';
   }
@@ -4325,7 +4338,8 @@
   };
 
   // ================= 30-Day Ascent: 20 minutes a day =================
-  function progDay() { var p = S.prog; if (!p) return 0; var s = new Date(p.start + 'T00:00:00'), n = Math.floor((new Date(dayKey() + 'T00:00:00') - s) / 864e5) + 1; return Math.max(1, n); }
+  function progEnsure() { if (S.onboarded && !S.prog) { S.prog = { start: S.startDate || dayKey(), mins: 20, days: {}, base: S.ccTrack ? S.ccTrack.last : null, baseTrain: Math.round(S.puzzle.rating) }; save(); } return S.prog; }
+  function progDay() { var p = progEnsure(); if (!p) return 0; var s = new Date(p.start + 'T00:00:00'), n = Math.floor((new Date(dayKey() + 'T00:00:00') - s) / 864e5) + 1; return Math.max(1, n); }
   function progToday() { var p = S.prog, k = dayKey(); p.days = p.days || {}; return p.days[k] = p.days[k] || {}; }
   function progMark(task, n) { if (!S.prog) return; var t = progToday(); t[task] = (t[task] || 0) + (n || 1); save(); }
   function progFocus() {
@@ -4334,7 +4348,20 @@
     var undone = g.mistakes.filter(function (m) { return LESSONS[m.lesson] && !lessonDone(m.lesson); })[0];
     return top && !lessonDone(top.lesson) ? top : undone ? { lesson: undone.lesson, t: undone.t } : top || { lesson: nextLesson(), t: 'Next lesson' };
   }
+  // today's plan IS the list of today's goals (the same one the top bar counts), with a bonus or two when due
+  var TASK_ICO = { lesson: '📘', puzzles: '🧩', opening: '📖', game: '🤖' };
   function progTasks() {
+    var nl = nextLesson(), list = missionList().map(function (m) {
+      var t = m.k === 'lesson' ? (nl ? (m.done ? 'Lesson done: ' : 'Learn: ') + LESSONS[nl].title : 'Lesson') : m.k === 'game' ? 'Play the coach' : m.k === 'opening' ? 'Opening drill' : m.label;
+      var sub = m.k === 'lesson' ? (nl ? LESSONS[nl].goal : 'Your next lesson') : m.k === 'game' ? 'One game with tips on every move' : m.sub;
+      return { k: m.k, ico: TASK_ICO[m.k] || '⭐', t: t, s: sub, m: { lesson: 6, puzzles: 5, opening: 4, game: 8 }[m.k] || 5, done: m.done, act: m.act };
+    });
+    var due = srsDue().length, mine = duePz().length;
+    if (mine) list.push({ k: 'mine', bonus: true, ico: '🎯', t: 'Bonus: fix your mistakes', s: mine + ' from your own games', m: 4, done: false, act: 'progMine' });
+    else if (due) list.push({ k: 'warm', bonus: true, ico: '🧠', t: 'Bonus: warm-up', s: due + ' quick questions from your lessons', m: 3, done: !!progToday().warm, act: 'progWarm' });
+    return list;
+  }
+  function progTasksOld() {
     var t = progToday(), day = progDay(), f = progFocus(), mineDue = duePz().length, mins = S.prog.mins || 20, rl = day % 3 === 0 && S.cc;
     var learnL = f.lesson && LESSONS[f.lesson], learnDone = !!t.learn;
     return [
@@ -4348,7 +4375,7 @@
     label: '30-Day Ascent',
     enter: function () {
       setupBoard(Game.START, { orient: 'w' }); document.body.dataset.layout = 'browse';
-      var p = S.prog;
+      var p = progEnsure();
       if (!p) {
         setPanel('<div class="eyebrow">The program</div><h1 class="h1">30-Day Ascent</h1>' +
           '<p class="lede">Twenty minutes a day for 30 days, built around the mistakes that cost points at your level' + (S.dna ? ' and in your own games' : '') + '.</p>' +
@@ -4360,9 +4387,10 @@
       }
       var day = progDay();
       if (day > 30) return MODES.program.finish();
-      var tasks = progTasks(), done = tasks.filter(function (x) { return x.done; }).length, check = [7, 14, 21, 28].indexOf(day) >= 0;
-      var cells = ''; for (var i = 1; i <= 30; i++) { var dk = new Date(new Date(p.start + 'T00:00:00').getTime() + (i - 1) * 864e5), rec = p.days && p.days[dayKey(dk)], n = rec ? ['warm', 'learn', 'mine', 'play'].filter(function (k) { return rec[k]; }).length : 0; cells += '<span class="pg-cell l' + n + (i === day ? ' today' : '') + '">' + i + '</span>'; }
-      setPanel('<div class="eyebrow">30-Day Ascent · day ' + day + ' of 30</div><h1 class="h1">' + (done === tasks.length ? 'Today is done! 🎉' : 'Today\'s 20 minutes') + '</h1>' +
+      var tasks = progTasks(), core = tasks.filter(function (x) { return !x.bonus; }), done = core.filter(function (x) { return x.done; }).length, check = [7, 14, 21, 28].indexOf(day) >= 0;
+      var cells = ''; for (var i = 1; i <= 30; i++) { var dk = new Date(new Date(p.start + 'T00:00:00').getTime() + (i - 1) * 864e5), rec = S.daily[dayKey(dk)], n = rec ? Math.min(4, missionsDone(rec)) : 0; cells += '<span class="pg-cell l' + n + (i === day ? ' today' : '') + '">' + i + '</span>'; }
+      setPanel('<button class="back" data-act="goPath">← Home</button><div class="eyebrow">Your 30-day plan · day ' + day + ' of 30</div><h1 class="h1">' + (done === core.length ? 'Today is done! 🎉' : 'Today: ' + done + ' of ' + core.length + ' done') + '</h1>' +
+        '<p class="muted small">This is the same list as "' + done + '/' + core.length + ' today" in the top bar. Do it every day: each square below fills in as you go.</p>' +
         '<div class="pg-cells">' + cells + '</div>' +
         '<div class="pg-tasks">' + tasks.map(function (x) { return '<button class="pg-task' + (x.done ? ' done' : '') + '" data-act="' + x.act + '"><span class="pg-ico">' + (x.done ? '✓' : x.ico) + '</span><span class="pg-t"><b>' + esc(x.t) + '</b><span>' + esc(x.s) + '</span></span><span class="pg-m">' + x.m + ' min</span></button>'; }).join('') + '</div>' +
         (check ? '<div class="mc-ins"><div class="eyebrow">Weekly check-in</div><p>Week ' + (day / 7) + ' done. ' + (S.cc ? '<button class="link" data-act="mychess">See your chess.com rating and re-check your latest games →</button>' : 'Connect chess.com to see your real rating change.') + '</p></div>' : '') +
@@ -4388,10 +4416,10 @@
     return '<p class="muted small pg-track">chess.com ' + k[2].toLowerCase() + ': ' + a + ' when you started → <b>' + b + '</b> ' + (d ? '(' + (d > 0 ? '+' : '') + d + ')' : '') + '</p>';
   }
   function progCard() {
-    if (!S.prog) return lessonsDone() >= 2 ? '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>Start the 30-Day Ascent</b><span>20 minutes a day, built on your weak spots</span></span><span class="an-go">→</span></button>' : '';
+    if (!progEnsure()) return '';
     var day = progDay(); if (day > 30) return '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>30-Day Ascent complete!</b><span>Get your certificate</span></span><span class="an-go">→</span></button>';
-    var tasks = progTasks(), done = tasks.filter(function (x) { return x.done; }).length;
-    return '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>Day ' + day + ' of 30 · ' + done + ' of ' + tasks.length + ' done</b><span>' + (done === tasks.length ? 'All done today. See you tomorrow!' : 'Next: ' + esc(tasks.filter(function (x) { return !x.done; })[0].t)) + '</span></span><span class="an-go">→</span></button>';
+    var tasks = progTasks().filter(function (x) { return !x.bonus; }), done = tasks.filter(function (x) { return x.done; }).length;
+    return '<button class="prog-card" data-act="program"><span class="pc-ico">🏔</span><span class="pc-t"><b>Your plan · day ' + day + ' of 30 · ' + done + ' of ' + tasks.length + ' done</b><span>' + (done === tasks.length ? 'All done today. See you tomorrow!' : 'Next: ' + esc(tasks.filter(function (x) { return !x.done; })[0].t)) + '</span></span><span class="an-go">→</span></button>';
   }
   ACT.program = function () { go('program'); };
   ACT.progMins = function (d) { MODES.program.mins = +d.m; document.querySelectorAll('[data-act="progMins"]').forEach(function (b) { b.classList.toggle('on', b.dataset.m === d.m); }); };
@@ -5001,7 +5029,7 @@
     },
     render: function () {
       var vis = VISION_GAMES.map(function (v) { var best = S.arena[v.id] || 0; return '<button class="ar-tile" data-act="vision" data-id="' + v.id + '"><span class="ar-ico">' + pieceSVG(v.icon, 'w', 24) + '</span><b>' + esc(v.name) + '</b><span class="ar-sub">' + esc(v.blurb) + '</span><span class="ar-best">' + (best ? 'Best ' + best : v.secs + ' sec') + '</span></button>'; }).join('');
-      var ch = CHALLENGES.map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="ch-card' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="ch-top"><b>' + esc(c.title) + '</b>' + stars(st) + '</span><span class="ar-sub">' + esc(c.text) + '</span><span class="ch-goal">' + (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit : 'Survive ' + c.limit + ' moves') + '</span></button>'; }).join('');
+      var ch = CHALLENGES.filter(function (c) { return !c.practice; }).map(function (c) { var st = S.challenges[c.id] || 0; return '<button class="ch-card' + (st ? ' done' : '') + '" data-act="challenge" data-id="' + c.id + '"><span class="ch-top"><b>' + esc(c.title) + '</b>' + stars(st) + '</span><span class="ar-sub">' + esc(c.text) + '</span><span class="ch-goal">' + (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit : 'Survive ' + c.limit + ' moves') + '</span></button>'; }).join('');
       var bosses = BOSSES.map(function (b) { var open = bossOpen(b.stage), beat = S.bosses[b.id], need = bossNeed(b.stage); return '<button class="boss-row' + (beat ? ' beat' : '') + '" data-act="boss" data-id="' + b.id + '" ' + (open ? '' : 'disabled') + '>' + bossAvatar(b, 40) + '<span class="br-txt"><b>' + esc(b.name) + '</b><span>' + esc(STAGES[b.stage].name) + ' · ~' + levelById(b.level).elo + (!open && stageUnlocked(b.stage) && need ? ' · after ' + need + ' more lesson' + (need > 1 ? 's' : '') : '') + '</span></span><span class="br-state">' + (beat ? '✓ Beaten' : open ? 'Fight →' : '🔒') + '</span></button>'; }).join('');
       setPanel('<div class="eyebrow">Practice Arena</div><h1 class="h1">Play it, don\'t read it</h1>' +
         '<p class="lede">Quick board-vision games, endgames to win against the engine, opening battles and the five bosses.</p>' +
@@ -5181,7 +5209,7 @@
   // ================= Special coach games: bosses, challenges, opening battles =================
   function specIntro(spec) {
     if (spec.kind === 'boss') { var b = spec.b; return { eyebrow: 'Boss battle · ' + STAGES[b.stage].name, title: b.name, text: b.intro, ava: bossAvatar(b, 64), meta: b.title + ' · ~' + levelById(b.level).elo, cta: 'Fight ' + b.name.split(' ')[1] }; }
-    if (spec.kind === 'challenge') { var c = spec.c; return { eyebrow: 'Win this position', title: c.title, text: c.text, meta: (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit + ' moves' : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit + ' moves' : 'Survive ' + c.limit + ' moves') + ' · 3 stars in ≤ ' + c.par, cta: 'Start the challenge' }; }
+    if (spec.kind === 'challenge') { var c = spec.c; return { eyebrow: c.practice ? 'Practice game vs Coach Leo · ~' + (levelById(c.level) || {}).elo : 'Win this position', title: c.title, text: c.text, meta: (c.goal === 'mate' ? 'Mate in ≤ ' + c.limit + ' moves' : c.goal === 'promote' ? 'Promote in ≤ ' + c.limit + ' moves' : c.goal === 'gain' ? 'Win ' + c.need + '+ points of material in ≤ ' + c.limit + ' moves, and keep it' : c.strict ? 'Play ' + c.limit + ' moves without losing any material' : 'Survive ' + c.limit + ' moves') + (c.goal === 'survive' ? '' : ' · 3 stars in ≤ ' + c.par), cta: c.practice ? 'Play it out' : 'Start the challenge' }; }
     var L = spec.line; return { eyebrow: 'Opening battle', title: L.def ? L.name : L.name, text: 'You play ' + (L.side === 'w' ? 'White' : 'Black') + '. The coach follows the ' + (L.base ? L.base.name : L.name) + ' and makes one mistake somewhere in the opening. Find the move that punishes it. Play the moves of the line; if you leave it, the coach still slips.', meta: (S.battleStreak ? 'Streak ' + S.battleStreak + ' · ' : '') + 'Best streak ' + (S.battleBest || 0), cta: 'Start the battle' };
   }
   MODES.play.renderSpecIntro = function () {
@@ -5198,7 +5226,7 @@
   function specBook(ids) { return ids.map(lineById).filter(Boolean); }
   function specProgress() {
     var sp = PL.spec; if (!sp) return '';
-    if (sp.kind === 'challenge') return sp.c.goal === 'survive' ? 'Move ' + PL.chN + ' of ' + sp.c.limit : 'Moves used ' + PL.chN + ' / ' + sp.c.limit;
+    if (sp.kind === 'challenge') return sp.c.goal === 'survive' ? 'Move ' + PL.chN + ' of ' + sp.c.limit : sp.c.goal === 'gain' ? 'Material ' + (function (d) { return (d > 0 ? '+' : '') + d; })(material(PL.g, PL.color) - PL.chMat0) + ' of +' + sp.c.need + ' · move ' + PL.chN + ' / ' + sp.c.limit : 'Moves used ' + PL.chN + ' / ' + sp.c.limit;
     if (sp.kind === 'battle') return PL.devDone ? 'The coach slipped. Punish it!' : 'Waiting for the slip…';
     return sp.b.title;
   }
@@ -5237,8 +5265,10 @@
       if (st === 3) Badges.award('challenge_3');
       Sound.play('win'); confetti(); Voice.say([V('challenge_done')]);
     } else { Sound.play('bad'); Voice.say([V('challenge_fail')]); }
-    PL.specActions = '<button class="btn primary" data-act="challenge" data-id="' + c.id + '">↻ ' + (win && st < 3 ? 'Go for 3 stars' : win ? 'Play again' : 'Try again') + '</button><button class="btn" data-act="chWatch">▶ Watch the technique</button><button class="btn ghost" data-act="arena">Arena</button>';
-    endPanel(win ? 'Challenge complete' : 'Challenge failed', esc(msg) + (win ? ' ' + stars(st) + ' in ' + PL.chN + ' moves (3 stars in ≤ ' + c.par + ').' : c.goal === 'mate' && /Stalemate/.test(msg) ? ' Stalemate counts as a draw. Leave the king a square.' : ''), win ? 'good' : 'bad');
+    var fl = c.practice && win ? flowNext(c.after) : null;
+    PL.specActions = (fl ? '<button class="btn primary" data-act="flowGo" data-l="' + c.after + '">▶ ' + (fl.k === 'lesson' ? 'Next lesson: ' + esc(fl.s) : esc(fl.t) + ': ' + esc(fl.s)) + '</button>' : '') +
+      '<button class="btn' + (fl ? '' : ' primary') + '" data-act="challenge" data-id="' + c.id + '">↻ ' + (win && st < 3 ? 'Go for 3 stars' : win ? 'Play again' : 'Try again') + '</button><button class="btn" data-act="chWatch">▶ Watch the technique</button><button class="btn ghost" data-act="' + (c.practice ? 'goPath' : 'arena') + '">' + (c.practice ? 'Home' : 'Arena') + '</button>';
+    endPanel(c.practice ? (win ? 'You did it for real! 🎉' : 'Not yet') : win ? 'Challenge complete' : 'Challenge failed', esc(msg) + (win ? ' ' + stars(st) + (c.goal === 'survive' ? '' : ' in ' + PL.chN + ' moves (3 stars in ≤ ' + c.par + ').') : c.goal === 'mate' && /Stalemate/.test(msg) ? ' Stalemate counts as a draw. Leave the king a square.' : ''), win ? 'good' : 'bad');
   };
   ACT.chWatch = function () {
     var c = PL && PL.spec && PL.spec.c; if (!c) return;

@@ -1,5 +1,5 @@
 const fs=require('fs');
-let js=['chesscore.js','engine.js','data.js','lessons2.js','interactive.js','career-data.js','puzzles2.js','puzzles-starter.js','puzzles-themed.js','defences.js','arena.js','missions.js','voicelines.js','icons.js','board2d.js','app.js'].filter(f=>fs.existsSync(f)).map(f=>{const t=fs.readFileSync(f,'utf8');return f==='app.js'?t.replace('/*__CAREER__*/',()=>fs.readFileSync('career.js','utf8')).replace('/*__WELCOME__*/',()=>fs.readFileSync('welcome.js','utf8')):t;}).join('\n;\n');
+let js=['chesscore.js','engine.js','data.js','lessons2.js','interactive.js','career-data.js','puzzles2.js','puzzles-starter.js','puzzles-themed.js','defences.js','arena.js','practice.js','missions.js','voicelines.js','icons.js','board2d.js','app.js'].filter(f=>fs.existsSync(f)).map(f=>{const t=fs.readFileSync(f,'utf8');return f==='app.js'?t.replace('/*__CAREER__*/',()=>fs.readFileSync('career.js','utf8')).replace('/*__WELCOME__*/',()=>fs.readFileSync('welcome.js','utf8')):t;}).join('\n;\n');
 const t=fs.readFileSync('template.html','utf8');
 const vf=fs.existsSync('dist/voice-index.json')?JSON.parse(fs.readFileSync('dist/voice-index.json','utf8')):{};
 // A clip whose line text has changed since it was recorded stays silent (text only) until it is re-recorded.

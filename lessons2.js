@@ -2015,6 +2015,30 @@ var LESSONS2_EXT = {
    "hint": "Check the king along the back rank.",
    "done": "Checkmate! The queen covers the whole eighth rank and your king covers the rest.",
    "ext": 1
+  },
+  {
+   "t": "read",
+   "fen": "4k3/8/8/8/8/8/8/2B1K3 w - - 0 1",
+   "tags": {
+    "c1": "Alone"
+   },
+   "text": "Stalemate is not the only draw. A game is also drawn when the same position comes up three times, when 50 moves pass with no capture and no pawn move, when nobody has enough pieces left to mate, or when both players agree.",
+   "ask": {
+    "q": "King and one bishop against a lone king. What happens?",
+    "options": [
+     "White wins",
+     "It is a draw",
+     "Black wins"
+    ],
+    "a": 1,
+    "why": "A king and a single bishop (or a single knight) can never force mate, so the game is drawn at once.",
+    "wrong": [
+     "One bishop is not enough to mate. Try to keep more pieces when you are ahead.",
+     "",
+     "Black has only a king: Black cannot win either."
+    ]
+   },
+   "ext": 1
   }
  ],
  "l-special": [
