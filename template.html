@@ -252,6 +252,24 @@ button:disabled { cursor: not-allowed; }
 .play-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .turn-ind { font-family: var(--f-display); font-weight: 700; font-size: 20px; }
 .tw-off { opacity: 0; }
+.oops { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%); z-index: 9999; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px; border-radius: 14px; background: #2a1420; border: 1px solid rgba(255,107,107,.5); color: #fff; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.oops { flex-wrap: wrap; width: min(380px, calc(100vw - 24px)); }
+.oops span { flex: 1 1 100%; line-height: 1.35; }
+.oops .oops-x { position: absolute; right: 8px; top: 6px; }
+.oops span { padding-right: 22px; }
+@media (max-width: 880px) and (orientation: portrait) {
+  .top-stats .ts > span, .top-stats .ts > b { white-space: nowrap; }
+  .top-stats:has(.stage-top) .ts-day .small { display: none; }
+  .top-stats:has(.stage-top) { gap: 8px; }
+}
+/* short phones: the puzzle rating becomes one compact line so the puzzle screen fits without scrolling */
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 720px) {
+  body[data-mode="puzzles"] #spark { display: none; }
+  body[data-mode="puzzles"] .rating-row > div { display: flex; align-items: baseline; gap: 10px; }
+  body[data-mode="puzzles"] .rating-row .rating { font-size: 34px; line-height: 1.1; }
+  body[data-mode="puzzles"] .rating-row .eyebrow { display: none; }
+}
+.oops-x { background: none; border: 0; color: inherit; font-size: 20px; line-height: 1; padding: 0 4px; }
 .typing { cursor: pointer; }
 .clocks { display: flex; gap: 6px; margin-top: 6px; }
 .clk { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--card2, rgba(127,127,127,.12)); border: 1px solid var(--line, rgba(127,127,127,.25)); font-variant-numeric: tabular-nums; opacity: .6; transition: opacity .2s, background .2s; }

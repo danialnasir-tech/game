@@ -6059,6 +6059,17 @@
     new MutationObserver(function (ms) { if (!twOnly(ms)) fitBoard(); }).observe(panel, { childList: true, subtree: true, characterData: true });
     new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }
+  // Safety net: if anything breaks, progress is already saved; offer a way back instead of a stuck screen.
+  var oopsAt = 0;
+  function oops(err) {
+    try { save(); } catch (e) { }
+    try { console.error(err); } catch (e) { }
+    if (Date.now() - oopsAt < 20000 || document.getElementById('oops')) return; oopsAt = Date.now();
+    var d = document.createElement('div'); d.id = 'oops'; d.className = 'oops'; d.setAttribute('role', 'alert');
+    d.innerHTML = '<span>Oops, something went wrong. Your progress is saved.</span><button class="mini-btn" data-o="home">Home</button><button class="mini-btn" data-o="reload">Reload</button><button class="oops-x" data-o="x" aria-label="Close">×</button>';
+    d.onclick = function (e) { var b = e.target.closest('[data-o]'); if (!b) return; d.remove(); if (b.dataset.o === 'reload') location.reload(); else if (b.dataset.o === 'home') { try { $('#modal').hidden = true; go('path'); } catch (x) { location.reload(); } } };
+    document.body.appendChild(d); setTimeout(function () { if (d.isConnected) d.remove(); }, 15000);
+  }
   function boot() {
     panel = $('#panel');
     phoneFit();
@@ -6067,8 +6078,10 @@
       var a = e.target.closest('[data-act]');
       if (!a || a.disabled) return;
       var fn = ACT[a.dataset.act];
-      if (fn) { e.preventDefault(); fn(a.dataset); }
+      if (fn) { e.preventDefault(); try { fn(a.dataset); } catch (err) { oops(err); } }
     });
+    window.addEventListener('error', function (e) { if (!e.filename || e.filename.split('#')[0] === location.href.split('#')[0]) oops(e.error || e.message); });
+    window.addEventListener('unhandledrejection', function (e) { var m = String((e.reason && e.reason.message) || e.reason || ''); if (!/play\(\)|abort|NotAllowed|Failed to fetch|NetworkError|Load failed/i.test(m)) oops(e.reason); });
     document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { var m = b.dataset.go; if (m === 'home') m = S.career && window.THREE ? 'career' : 'path'; if (m === 'play' && isLocked('play')) m = 'arena'; go(m); }); });
     $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
     $('#replay-btn').onclick = function () { Voice.replay(); };

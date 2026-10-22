@@ -252,6 +252,24 @@ button:disabled { cursor: not-allowed; }
 .play-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .turn-ind { font-family: var(--f-display); font-weight: 700; font-size: 20px; }
 .tw-off { opacity: 0; }
+.oops { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%); z-index: 9999; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px; border-radius: 14px; background: #2a1420; border: 1px solid rgba(255,107,107,.5); color: #fff; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.oops { flex-wrap: wrap; width: min(380px, calc(100vw - 24px)); }
+.oops span { flex: 1 1 100%; line-height: 1.35; }
+.oops .oops-x { position: absolute; right: 8px; top: 6px; }
+.oops span { padding-right: 22px; }
+@media (max-width: 880px) and (orientation: portrait) {
+  .top-stats .ts > span, .top-stats .ts > b { white-space: nowrap; }
+  .top-stats:has(.stage-top) .ts-day .small { display: none; }
+  .top-stats:has(.stage-top) { gap: 8px; }
+}
+/* short phones: the puzzle rating becomes one compact line so the puzzle screen fits without scrolling */
+@media (max-width: 880px) and (orientation: portrait) and (max-height: 720px) {
+  body[data-mode="puzzles"] #spark { display: none; }
+  body[data-mode="puzzles"] .rating-row > div { display: flex; align-items: baseline; gap: 10px; }
+  body[data-mode="puzzles"] .rating-row .rating { font-size: 34px; line-height: 1.1; }
+  body[data-mode="puzzles"] .rating-row .eyebrow { display: none; }
+}
+.oops-x { background: none; border: 0; color: inherit; font-size: 20px; line-height: 1; padding: 0 4px; }
 .typing { cursor: pointer; }
 .clocks { display: flex; gap: 6px; margin-top: 6px; }
 .clk { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--card2, rgba(127,127,127,.12)); border: 1px solid var(--line, rgba(127,127,127,.25)); font-variant-numeric: tabular-nums; opacity: .6; transition: opacity .2s, background .2s; }
@@ -12196,6 +12214,9 @@ function BOARD2D_FACTORY() {
   }
   function careerTalk(n) {
     var q = careerQuest(), btn = '', text, line, small = '';
+    // stand beside the person you talk to (seen from the camera), never in front of their face
+    var pp = CW.P.g.position, np = n.g.position, cx = np.x - CW.cam.position.x, cz = np.z - CW.cam.position.z, cl = Math.hypot(cx, cz) || 1;
+    if (Math.hypot(pp.x - np.x, pp.z - np.z) < 5) { var side = ((pp.x - np.x) * -cz + (pp.z - np.z) * cx) >= 0 ? 1 : -1; pp.x = np.x + (-cz / cl) * 1.7 * side - cx / cl * 0.4; pp.z = np.z + (cx / cl) * 1.7 * side - cz / cl * 0.4; }
     careerFace(n); n.act = 'talk'; CW.talking = n.id; CW.goal = null; CW.pend = null; Guide.hide();
     if (n.id === 'leo') {
       if (!S.careerSt.met) { S.careerSt.met = true; S.careerSt.ch = careerChapter(); save(); line = 'welcome'; }
@@ -12374,6 +12395,8 @@ function BOARD2D_FACTORY() {
     W.drops.forEach(function (u) { var t = (W.t * 0.9 + u.userData.t) % 1, a = u.userData.a; u.position.set(W.fountain.x + Math.sin(a) * t * 0.9, 2.1 + Math.sin(t * Math.PI) * 0.9 - t * 1.3, W.fountain.z + Math.cos(a) * t * 0.9); });
     W.birds.forEach(function (b) { var u = b.userData, a = W.t * u.s + u.a; b.position.set(Math.sin(a) * u.r, u.h + Math.sin(W.t + u.a) * 1.5, Math.cos(a) * u.r); b.rotation.y = a + Math.PI / 2; var fl = Math.sin(W.t * 9 + u.a) * 0.7; u.wl.rotation.z = fl; u.wr.rotation.z = -fl; });
     if (W.signs) { var cp = W.cam.position, wp = W.v3s || (W.v3s = new THREE.Vector3()); W.signs.forEach(function (sg) { sg.getWorldPosition(wp); var d = wp.distanceTo(cp); sg.material.opacity = Math.max(0, Math.min(1, (d - 5) / 4)); sg.visible = d > 5; }); } // signs fade out when the camera is right next to them
+    // townsfolk right next to the camera would fill the screen as a giant head: hide them until the camera moves away
+    var cpp = W.cam.position; [W.npcs, W.walkers, W.crowd].forEach(function (list) { (list || []).forEach(function (n) { var g = n.g || n; if (!g || !g.position) return; var dx = g.position.x - cpp.x, dz = g.position.z - cpp.z; g.visible = W.talking === n.id || dx * dx + dz * dz > 12; }); });
     if (W.pollen) { var pa = W.pollen.geometry.attributes.position.array; for (var pi2 = 0; pi2 < pa.length; pi2 += 3) { pa[pi2] += Math.sin(W.t * 0.7 + pi2) * dt * 0.3; pa[pi2 + 1] += dt * 0.18; if (pa[pi2 + 1] > 5.5) pa[pi2 + 1] = 0.3; } W.pollen.geometry.attributes.position.needsUpdate = true; W.pollen.position.set(Math.round(p.x / 30) * 30, 0, Math.round(p.z / 30) * 30); }
     W.flies.forEach(function (f) { var u = f.userData, t = W.t * 0.8 + u.a; f.position.set(u.cx + Math.sin(t * 1.3) * 1.2, 0.9 + Math.sin(t * 2.1) * 0.3, u.cz + Math.cos(t) * 1.2); f.rotation.y = t; var fl = Math.sin(W.t * 18 + u.a) * 1.1; u.w1.rotation.y = fl; u.w2.rotation.y = -fl; });
     // golden pawns
@@ -14773,6 +14796,17 @@ function BOARD2D_FACTORY() {
     new MutationObserver(function (ms) { if (!twOnly(ms)) fitBoard(); }).observe(panel, { childList: true, subtree: true, characterData: true });
     new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }
+  // Safety net: if anything breaks, progress is already saved; offer a way back instead of a stuck screen.
+  var oopsAt = 0;
+  function oops(err) {
+    try { save(); } catch (e) { }
+    try { console.error(err); } catch (e) { }
+    if (Date.now() - oopsAt < 20000 || document.getElementById('oops')) return; oopsAt = Date.now();
+    var d = document.createElement('div'); d.id = 'oops'; d.className = 'oops'; d.setAttribute('role', 'alert');
+    d.innerHTML = '<span>Oops, something went wrong. Your progress is saved.</span><button class="mini-btn" data-o="home">Home</button><button class="mini-btn" data-o="reload">Reload</button><button class="oops-x" data-o="x" aria-label="Close">×</button>';
+    d.onclick = function (e) { var b = e.target.closest('[data-o]'); if (!b) return; d.remove(); if (b.dataset.o === 'reload') location.reload(); else if (b.dataset.o === 'home') { try { $('#modal').hidden = true; go('path'); } catch (x) { location.reload(); } } };
+    document.body.appendChild(d); setTimeout(function () { if (d.isConnected) d.remove(); }, 15000);
+  }
   function boot() {
     panel = $('#panel');
     phoneFit();
@@ -14781,8 +14815,10 @@ function BOARD2D_FACTORY() {
       var a = e.target.closest('[data-act]');
       if (!a || a.disabled) return;
       var fn = ACT[a.dataset.act];
-      if (fn) { e.preventDefault(); fn(a.dataset); }
+      if (fn) { e.preventDefault(); try { fn(a.dataset); } catch (err) { oops(err); } }
     });
+    window.addEventListener('error', function (e) { if (!e.filename || e.filename.split('#')[0] === location.href.split('#')[0]) oops(e.error || e.message); });
+    window.addEventListener('unhandledrejection', function (e) { var m = String((e.reason && e.reason.message) || e.reason || ''); if (!/play\(\)|abort|NotAllowed|Failed to fetch|NetworkError|Load failed/i.test(m)) oops(e.reason); });
     document.querySelectorAll('.rail button').forEach(function (b) { b.addEventListener('click', function () { var m = b.dataset.go; if (m === 'home') m = S.career && window.THREE ? 'career' : 'path'; if (m === 'play' && isLocked('play')) m = 'arena'; go(m); }); });
     $('#voice-btn').onclick = function () { S.voice = !S.voice; save(); renderTop(); if (!S.voice) Voice.stop(); else Voice.say([C('yourmove')]); };
     $('#replay-btn').onclick = function () { Voice.replay(); };

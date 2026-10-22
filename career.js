@@ -690,6 +690,9 @@
   }
   function careerTalk(n) {
     var q = careerQuest(), btn = '', text, line, small = '';
+    // stand beside the person you talk to (seen from the camera), never in front of their face
+    var pp = CW.P.g.position, np = n.g.position, cx = np.x - CW.cam.position.x, cz = np.z - CW.cam.position.z, cl = Math.hypot(cx, cz) || 1;
+    if (Math.hypot(pp.x - np.x, pp.z - np.z) < 5) { var side = ((pp.x - np.x) * -cz + (pp.z - np.z) * cx) >= 0 ? 1 : -1; pp.x = np.x + (-cz / cl) * 1.7 * side - cx / cl * 0.4; pp.z = np.z + (cx / cl) * 1.7 * side - cz / cl * 0.4; }
     careerFace(n); n.act = 'talk'; CW.talking = n.id; CW.goal = null; CW.pend = null; Guide.hide();
     if (n.id === 'leo') {
       if (!S.careerSt.met) { S.careerSt.met = true; S.careerSt.ch = careerChapter(); save(); line = 'welcome'; }
@@ -868,6 +871,8 @@
     W.drops.forEach(function (u) { var t = (W.t * 0.9 + u.userData.t) % 1, a = u.userData.a; u.position.set(W.fountain.x + Math.sin(a) * t * 0.9, 2.1 + Math.sin(t * Math.PI) * 0.9 - t * 1.3, W.fountain.z + Math.cos(a) * t * 0.9); });
     W.birds.forEach(function (b) { var u = b.userData, a = W.t * u.s + u.a; b.position.set(Math.sin(a) * u.r, u.h + Math.sin(W.t + u.a) * 1.5, Math.cos(a) * u.r); b.rotation.y = a + Math.PI / 2; var fl = Math.sin(W.t * 9 + u.a) * 0.7; u.wl.rotation.z = fl; u.wr.rotation.z = -fl; });
     if (W.signs) { var cp = W.cam.position, wp = W.v3s || (W.v3s = new THREE.Vector3()); W.signs.forEach(function (sg) { sg.getWorldPosition(wp); var d = wp.distanceTo(cp); sg.material.opacity = Math.max(0, Math.min(1, (d - 5) / 4)); sg.visible = d > 5; }); } // signs fade out when the camera is right next to them
+    // townsfolk right next to the camera would fill the screen as a giant head: hide them until the camera moves away
+    var cpp = W.cam.position; [W.npcs, W.walkers, W.crowd].forEach(function (list) { (list || []).forEach(function (n) { var g = n.g || n; if (!g || !g.position) return; var dx = g.position.x - cpp.x, dz = g.position.z - cpp.z; g.visible = W.talking === n.id || dx * dx + dz * dz > 12; }); });
     if (W.pollen) { var pa = W.pollen.geometry.attributes.position.array; for (var pi2 = 0; pi2 < pa.length; pi2 += 3) { pa[pi2] += Math.sin(W.t * 0.7 + pi2) * dt * 0.3; pa[pi2 + 1] += dt * 0.18; if (pa[pi2 + 1] > 5.5) pa[pi2 + 1] = 0.3; } W.pollen.geometry.attributes.position.needsUpdate = true; W.pollen.position.set(Math.round(p.x / 30) * 30, 0, Math.round(p.z / 30) * 30); }
     W.flies.forEach(function (f) { var u = f.userData, t = W.t * 0.8 + u.a; f.position.set(u.cx + Math.sin(t * 1.3) * 1.2, 0.9 + Math.sin(t * 2.1) * 0.3, u.cz + Math.cos(t) * 1.2); f.rotation.y = t; var fl = Math.sin(W.t * 18 + u.a) * 1.1; u.w1.rotation.y = fl; u.w2.rotation.y = -fl; });
     // golden pawns

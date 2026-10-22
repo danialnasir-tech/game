@@ -401,3 +401,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   of every challenge and practice game (`G-<id>`, spoken on its intro screen).
 - build-kit.js now puts only the missing clips in voice-kit-v4/generate-v4-voices.js, so running it from a fresh
   folder never pays again for clips the app already has. ingest.sh merges the new clips with the packed ones.
+
+## Release polish pass
+- Safety net (`oops` in app.js): any error in a button action, a script error or a failed promise saves progress and
+  shows a small banner "Oops, something went wrong. Your progress is saved." with Home / Reload, at most once per 20 s.
+- Town: townsfolk standing right next to the camera are hidden (no giant head in the corner); when you talk to
+  someone you step to their side so their face is never covered.
+- Phones: the top bar no longer wraps "Day / 0/4 / today" onto three lines on board screens; on short phones the
+  puzzle screen shows the rating on one line so the screen fits without scrolling.
