@@ -391,3 +391,13 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Course map: the open stage on Home is a winding road (`drawMap`, `.cmap`): big round lesson nodes, diamond nodes for
   openings and play-it-out games (now listed under each finished lesson), a pulsing START node, and the road painted
   green up to where you are. Redrawn on resize and when the full home list opens.
+
+## Typewriter text and the missing-voice kit
+- `Typer` (app.js): when Leo says a line, the matching text on screen (lesson text, game feed, intro text, subtitle
+  bubble…) types itself out at speaking pace (about 58 ms a letter when a clip plays, 22 ms when there is no clip).
+  Unrevealed letters are invisible but still laid out, so nothing moves; tap the text to show it all; off with
+  reduced motion. The phone board fitter ignores the typing updates (`twOnly`), or it would never get to run.
+- New voiced lines: guided-game intro, clock intros (10 / 5|3 / 3|2), clock warning and flag lines, and the intro text
+  of every challenge and practice game (`G-<id>`, spoken on its intro screen).
+- build-kit.js now puts only the missing clips in voice-kit-v4/generate-v4-voices.js, so running it from a fresh
+  folder never pays again for clips the app already has. ingest.sh merges the new clips with the packed ones.

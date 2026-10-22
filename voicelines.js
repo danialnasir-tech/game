@@ -215,7 +215,15 @@ var MORE_POOLS = {
     "Did you know? The queen used to be the weakest piece, moving only one square diagonally.",
     "Did you know? There are more possible chess games than atoms in the observable universe.",
     "Did you know? Castling was introduced to make games faster and more exciting."
-  ]
+  ],
+  // guided first game and clock games
+  guided_intro: ["Your first full game! You are White. On every move I show you two good ideas with arrows. Pick one, or play your own move, and I explain every move I make too."],
+  clock_10: ["Clock game. You each have 10 minutes. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_5: ["Clock game. You each have 5 minutes, and you get 3 extra seconds after every move. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_3: ["Clock game. You each have 3 minutes, and you get 2 extra seconds after every move. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_low: ["Under 30 seconds! Play safe, simple moves quickly. Losing on time is still losing."],
+  clock_flag_me: ["Your time ran out. On the clock, zero loses the game."],
+  clock_flag_leo: ["I ran out of time. You win on the clock!"]
 };
 function MORE_LINES(data) {
   var out = [];

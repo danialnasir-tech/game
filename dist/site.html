@@ -268,6 +268,8 @@ button:disabled { cursor: not-allowed; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--brass); }
 .play-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
 .turn-ind { font-family: var(--f-display); font-weight: 700; font-size: 20px; }
+.tw-off { opacity: 0; }
+.typing { cursor: pointer; }
 .clocks { display: flex; gap: 6px; margin-top: 6px; }
 .clk { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 10px; background: var(--card2, rgba(127,127,127,.12)); border: 1px solid var(--line, rgba(127,127,127,.25)); font-variant-numeric: tabular-nums; opacity: .6; transition: opacity .2s, background .2s; }
 .clk em { font-style: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
@@ -6527,7 +6529,15 @@ var MORE_POOLS = {
     "Did you know? The queen used to be the weakest piece, moving only one square diagonally.",
     "Did you know? There are more possible chess games than atoms in the observable universe.",
     "Did you know? Castling was introduced to make games faster and more exciting."
-  ]
+  ],
+  // guided first game and clock games
+  guided_intro: ["Your first full game! You are White. On every move I show you two good ideas with arrows. Pick one, or play your own move, and I explain every move I make too."],
+  clock_10: ["Clock game. You each have 10 minutes. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_5: ["Clock game. You each have 5 minutes, and you get 3 extra seconds after every move. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_3: ["Clock game. You each have 3 minutes, and you get 2 extra seconds after every move. Your clock runs only on your turn. If it reaches zero you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones."],
+  clock_low: ["Under 30 seconds! Play safe, simple moves quickly. Losing on time is still losing."],
+  clock_flag_me: ["Your time ran out. On the clock, zero loses the game."],
+  clock_flag_leo: ["I ran out of time. You win on the clock!"]
 };
 function MORE_LINES(data) {
   var out = [];
@@ -7085,7 +7095,7 @@ function BOARD2D_FACTORY() {
         var b = el(); if (!b || !text) return;
         if (S.settings && S.settings.subtitles === false && S.voice) return;
         b.querySelector('.cb-name').textContent = (S.settings && S.settings.coachName) || 'Coach';
-        b.querySelector('.cb-text').textContent = text;
+        var ct = b.querySelector('.cb-text'); if (typeof ct._tw === 'function') ct._tw(); ct._tw = null; ct.textContent = text;
         b.hidden = false; b.classList.remove('out'); shownAt = Date.now();
         clearTimeout(t); if (ms) t = setTimeout(function () { Bubble.hide(); }, ms);
       },
@@ -7093,6 +7103,58 @@ function BOARD2D_FACTORY() {
       hide: function () { var b = el(); if (!b) return; b.classList.add('out'); setTimeout(function () { if (b.classList.contains('out')) b.hidden = true; }, 300); },
       busy: function () { var b = el(); return b && !b.hidden && Date.now() - shownAt < 1200; }
     };
+  })();
+
+  // ================= Typewriter =================
+  // When Leo speaks, the matching text on screen types itself out as he talks. The full text is laid out from the start
+  // (unrevealed letters are just invisible), so nothing on the page moves while it types. Tap the text to show it all.
+  var Typer = (function () {
+    var SEL = '.coach-text, .feed-item p, .lede, .cb-text, .ms-text, .wl-card p, .gd-idea, .ct-say, .ch-text, .result-text, .mission-text';
+    var norm = function (t) { return (t || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); };
+    function typeIn(el, ms) {
+      if (!el || el._tw) return;
+      var parts = [], total = 0, walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, list = [];
+      while ((n = walk.nextNode())) if (n.nodeValue.trim()) list.push(n);
+      list.forEach(function (tn) {
+        var on = document.createElement('span'), off = document.createElement('span');
+        off.className = 'tw-off'; off.textContent = tn.nodeValue; on.className = 'tw-on';
+        tn.parentNode.insertBefore(on, tn); tn.parentNode.replaceChild(off, tn);
+        parts.push({ on: on, off: off, text: off.textContent }); total += off.textContent.length;
+      });
+      if (!total) return;
+      el.classList.add('typing');
+      var t0 = performance.now(), done = 0, raf;
+      var finish = function () { cancelAnimationFrame(raf); parts.forEach(function (p) { p.on.textContent = p.text; p.off.textContent = ''; }); el.classList.remove('typing'); el.removeEventListener('click', finish); el._tw = 'done'; };
+      el._tw = finish; el.addEventListener('click', finish);
+      (function step() {
+        if (!el.isConnected) return;
+        var want = Math.min(total, Math.round(total * (performance.now() - t0) / ms));
+        if (want > done) {
+          var left = want;
+          parts.forEach(function (p) { var k = Math.max(0, Math.min(p.text.length, left)); left -= p.text.length; p.on.textContent = p.text.slice(0, k); p.off.textContent = p.text.slice(k); });
+          done = want;
+        }
+        if (done >= total) return finish();
+        raf = requestAnimationFrame(step);
+      })();
+    }
+    // Find the text Leo is saying on screen and type it out at speaking pace.
+    function follow(words, voiced) {
+      if (!words || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+      var key = norm(words).slice(0, 36), ms = Math.max(600, Math.min(voiced ? 9000 : 4000, words.length * (voiced ? 58 / (S.settings.rate || 1) : 22)));
+      if (key.length < 6) return;
+      var look = function () {
+        var hit = false;
+        [].forEach.call(document.querySelectorAll(SEL), function (el) {
+          if (el._tw || !el.offsetParent) return;
+          var t = norm(el.textContent);
+          if (t.length >= 6 && (t.indexOf(key) === 0 || key.indexOf(t.slice(0, 36)) === 0)) { typeIn(el, ms * Math.min(1, t.length / Math.max(1, norm(words).length) + 0.15)); hit = true; }
+        });
+        return hit;
+      };
+      requestAnimationFrame(function () { if (!look()) setTimeout(look, 160); });
+    }
+    return { follow: follow, typeIn: typeIn };
   })();
 
   // ================= Voice coach =================
@@ -7180,6 +7242,7 @@ function BOARD2D_FACTORY() {
       var words = spoken.map(function (p) { return typeof p === 'string' ? p : p.text; }).join(' ').replace(/\s+([.,!?])(?!\.)/g, '$1')
         .replace(/\.\s+(with check|and that is checkmate|promoting)/g, ' $1').replace(/\b([A-H])([1-8])\b/g, function (m, f, r) { return f.toLowerCase() + r; });
       Bubble.show(words, S.voice ? null : 3200 + words.length * 45);
+      parts.forEach(function (p) { var t = typeof p === 'string' ? p : p.text; if (t && t.length > 24) Typer.follow(t, S.voice && spoken.indexOf(p) >= 0); });
       if (!S.voice) return;
       stop(); last = parts; busy = true; document.body.classList.add('speaking'); var my = tok, seq = Promise.resolve();
       parts.forEach(function (p) {
@@ -9697,8 +9760,8 @@ function BOARD2D_FACTORY() {
       var ck = !sp && !guided && clockOf(c.clock);
       if (ck) { PL.clk = { w: ck.min * 60000, b: ck.min * 60000, inc: ck.inc * 1000, run: null, t0: 0 }; clkTick(); }
       if (!sp) Voice.say([V('gamestart')]);
-      if (ck) MODES.play.say('Clock game', 'You each have <strong>' + ck.min + ' minutes</strong>' + (ck.inc ? ' and get <strong>+' + ck.inc + ' seconds</strong> after every move' : '') + '. Your clock runs only on your turn. If it reaches 0:00 you lose, even with more pieces. Play the easy moves fast and save time for the tricky ones.', 'tip');
-      if (guided) MODES.play.say('Coach Leo', 'Your first full game! You are White. On every move I show you two good ideas with arrows. Pick one, or play your own move, and I explain every move I make too.', 'tip');
+      if (ck) { var ckp = 'clock_' + ck.min; MODES.play.say('Clock game', esc(MORE_POOLS[ckp][0].replace(/^Clock game\. /, '')), 'tip'); setTimeout(function () { Voice.say([V(ckp)]); }, 300); }
+      if (guided) { MODES.play.say('Coach Leo', esc(MORE_POOLS.guided_intro[0]), 'tip'); setTimeout(function () { Voice.say([V('guided_intro')]); }, 300); }
       Voice.prefetch(['M-to_n', 'V-best-0', 'V-blunder-0', 'V-why_wins-0']);
       MODES.play.render();
       MODES.play.turn();
@@ -10028,6 +10091,7 @@ function BOARD2D_FACTORY() {
     IX.enabled = false; B3.arrows([]);
     if (c === PL.color) MODES.play.finish('loss', 'Your time ran out. On the clock, 0:00 loses the game.');
     else MODES.play.finish('win', 'The coach ran out of time. You win on the clock!');
+    Voice.say([V(c === PL.color ? 'clock_flag_me' : 'clock_flag_leo')]);
   }
   function clkTick() {
     clearInterval(CLK_T);
@@ -10039,7 +10103,7 @@ function BOARD2D_FACTORY() {
         el.querySelector('b').textContent = clkFmt(l); el.classList.toggle('run', k.run === c); el.classList.toggle('low', l < 30000);
       });
       if (k.run && clkLeft(k.run) <= 0) { var c = k.run; k[c] = 0; k.run = null; clkFlag(c); return; }
-      if (k.run === PL.color && !PL.clkWarn && clkLeft(PL.color) < 30000) { PL.clkWarn = true; MODES.play.say('Clock', 'Under 30 seconds! Play safe, simple moves quickly. Losing on time is still losing.', 'warn', true); MODES.play.render(); }
+      if (k.run === PL.color && !PL.clkWarn && clkLeft(PL.color) < 30000) { PL.clkWarn = true; MODES.play.say('Clock', esc(MORE_POOLS.clock_low[0]), 'warn', true); MODES.play.render(); Voice.say([V('clock_low')]); }
     }, 200);
   }
   function freeTakes(g) {
@@ -13491,7 +13555,7 @@ function BOARD2D_FACTORY() {
       (spec.kind === 'boss' && S.bosses[spec.b.id] ? '<p class="placed-note"><span class="pn-ico">✓</span><span>You already beat ' + esc(spec.b.name) + '. A rematch is just for fun.</span></p>' : '') +
       '<div class="actions"><button class="btn primary big" data-act="startGame">▶&nbsp; ' + esc(I.cta) + '</button></div>');
     if (spec.kind === 'boss') Voice.say([V('boss_' + spec.b.id)]);
-    else if (spec.kind === 'challenge') Voice.say([V('challenge_start')], true);
+    else if (spec.kind === 'challenge') Voice.say([spec.c.practice ? null : V('challenge_start'), { id: 'G-' + spec.c.id, text: spec.c.text }]);
     else Voice.say([V('battle_start')], true);
   };
   function specBook(ids) { return ids.map(lineById).filter(Boolean); }
@@ -14724,7 +14788,9 @@ function BOARD2D_FACTORY() {
       LS.i = keepI; LS.quizI = -1; LS.quiz = null; LS.ak = null; document.body.dataset.layout = prevLayout;
       fitBoard.key = LS.id + '|' + h + '|' + innerWidth; fitBoard.cap = Math.max(minB, Math.min(maxB, maxB - need - 20)); // a little room for a feedback line
     };
-    new MutationObserver(fitBoard).observe(panel, { childList: true, subtree: true, characterData: true });
+    // typing text never changes the layout, so its letter-by-letter updates do not refit the board
+    var twOnly = function (ms) { return ms.every(function (m) { var t = m.target.nodeType === 3 ? m.target.parentNode : m.target; return t && t.classList && (t.classList.contains('tw-on') || t.classList.contains('tw-off')); }); };
+    new MutationObserver(function (ms) { if (!twOnly(ms)) fitBoard(); }).observe(panel, { childList: true, subtree: true, characterData: true });
     new MutationObserver(fitBoard).observe(document.body, { attributes: true, attributeFilter: ['data-layout', 'data-mode', 'data-passive'] });
   }
   function boot() {
