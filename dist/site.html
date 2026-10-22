@@ -9029,7 +9029,7 @@ function BOARD2D_FACTORY() {
     var nl = nextLesson();
     // the run: score, personal best, bonus XP and a chess card
     S.lessonBest = S.lessonBest || {}; var sc = LS.score || 0, oldBest = S.lessonBest[LS.id] || 0, newBest = sc > oldBest;
-    if (newBest) S.lessonBest[LS.id] = sc; Celebrate.hold(3600); var bonus = Math.round(sc / 10); if (bonus) addXP(bonus); var card = funCard(stars); save();
+    if (newBest) S.lessonBest[LS.id] = sc; Celebrate.hold(1900); var bonus = Math.round(sc / 10); if (bonus) addXP(bonus); var card = funCard(stars); save();
     var runHtml = '<div class="ls-run"><div><span class="muted small">Score</span><b class="ls-run-n" data-to="' + sc + '">0</b>' + (newBest && oldBest ? '<em class="ls-pb">New best!</em>' : oldBest && !newBest ? '<span class="muted small">Best ' + oldBest + '</span>' : '') + '</div>' +
       '<div><span class="muted small">First try</span><b>' + (LS.clean || 0) + '</b></div><div><span class="muted small">Bonus</span><b>+' + bonus + ' XP</b></div></div>' +
       (card ? '<div class="cc-reveal"><div class="eyebrow">New chess card · ' + card.n + ' / ' + CARDS.length + '</div>' + cardHtml(card.i, card.tier, true) + '</div>' : '');
