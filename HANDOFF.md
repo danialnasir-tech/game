@@ -460,3 +460,7 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Voice packs are loaded as voice-pack-N.mp3?v=<content hash> (dist/voice-packs.json now holds the hashes), and the
   service worker drops older copies. Before, a browser or the offline cache could keep an old pack with new offsets,
   so a line played a different clip (the user heard the knight line in the board lesson).
+- Voice audit (Oct 23): every recorded clip was transcribed offline (pocketsphinx, scratchpad) and compared with its
+  text. Of the 1000 clips with 8+ words, 927 match clearly; the rest are recogniser noise on chess words, and the two
+  out-of-date puzzle clips (P-y020, P-y105) already play the identical lesson sentence instead. No id points at the
+  wrong recording; the user's "knight line in the board lesson" was a stale cached voice pack (fixed by fingerprints).
