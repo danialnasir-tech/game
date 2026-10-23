@@ -234,7 +234,8 @@
 
   // ================= Voice coach =================
   var VOICE_FILES = /*__VOICEFILES__*/{};
-  var VOICE_PACKS = /*__VOICEPACKS__*/2;
+  var VOICE_PACKS = /*__VOICEPACKS__*/2; // content fingerprints of the packs (older builds: just the count)
+  function packUrl(i) { var h = Array.isArray(VOICE_PACKS) && VOICE_PACKS[i]; return 'voice-pack-' + (i + 1) + '.mp3' + (h ? '?v=' + h : ''); }
   var Voice = (function () {
     var audio = null, synthVoice = null, last = null, tok = 0;
     function pickSynth() {
@@ -261,7 +262,7 @@
     // Voice packs load on demand: only the pack holding the line being spoken is downloaded.
     var packCache = {};
     function loadPack(i) {
-      if (!packCache[i]) packCache[i] = fetch('voice-pack-' + (i + 1) + '.mp3').then(function (r) { if (!r.ok) throw new Error('pack'); return r.arrayBuffer(); }).catch(function () { delete packCache[i]; return null; });
+      if (!packCache[i]) packCache[i] = fetch(packUrl(i)).then(function (r) { if (!r.ok) throw new Error('pack'); return r.arrayBuffer(); }).catch(function () { delete packCache[i]; return null; });
       return packCache[i];
     }
     // First launch: download the start packs (lines the first session needs) with byte-level progress.
@@ -273,7 +274,7 @@
       var report = function () { var g = 0; list.forEach(function (i) { g += got[i] || 0; }); onProgress(total ? g / total : 1, g, total); };
       return Promise.all(list.map(function (i) {
         if (packCache[i]) { got[i] = size[i]; report(); return packCache[i]; }
-        packCache[i] = fetch('voice-pack-' + (i + 1) + '.mp3').then(function (r) {
+        packCache[i] = fetch(packUrl(i)).then(function (r) {
           if (!r.ok) throw new Error('pack');
           if (!r.body || !r.body.getReader) return r.arrayBuffer().then(function (b) { got[i] = size[i]; report(); return b; });
           var rd = r.body.getReader(), chunks = [], n = 0;

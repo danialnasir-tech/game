@@ -451,3 +451,12 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Intro try-it board: dragging a piece works as well as tapping (pointerdown square + pointerup square).
 - Voice: on the same screen a new line waits for the current one to finish (only the newest waits, max 9 s); a new
   screen still stops the old line at once.
+
+## Town tour on day one, voice pack fingerprints
+- First visit to Ascent Town: a guided camera tour (`careerTour`) with a caption and Leo's line at every stop: the
+  town, Academy, Puzzle Tower, Opening Library, Arena, Park, Home, Gia, Tia, "talk to everyone", golden pawns, then
+  Leo. Replay any time with the 🧭 button. Lines are CAREER_TEXT.tour_* (voice ids W-tour_*).
+- Until you have met Leo, only Leo can be talked to (a passer-by in front of him used to take the "Talk" chip).
+- Voice packs are loaded as voice-pack-N.mp3?v=<content hash> (dist/voice-packs.json now holds the hashes), and the
+  service worker drops older copies. Before, a browser or the offline cache could keep an old pack with new offsets,
+  so a line played a different clip (the user heard the knight line in the board lesson).

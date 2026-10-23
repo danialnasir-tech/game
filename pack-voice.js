@@ -14,5 +14,7 @@ for(const id of ids){ const b=fs.readFileSync(`${SRC}/${id}.mp3`); const g=group
   const p=packs.length-1; index[id]=[p,sizes[p],b.length]; packs[p].push(b); sizes[p]+=b.length; }
 packs.forEach((b,i)=>fs.writeFileSync(`dist/voice-pack-${i+1}.mp3`,Buffer.concat(b)));
 fs.writeFileSync('dist/voice-index.json',JSON.stringify(index));
-fs.writeFileSync('dist/voice-packs.json',JSON.stringify(packs.length));
+// each pack's content fingerprint goes in the URL, so a browser or the offline cache can never mix an old pack with new offsets
+const crypto=require('crypto');
+fs.writeFileSync('dist/voice-packs.json',JSON.stringify(packs.map(b=>crypto.createHash('sha1').update(Buffer.concat(b)).digest('hex').slice(0,10))));
 console.log('packs',packs.length,'total MB',(sizes.reduce((a,b)=>a+b,0)/1048576).toFixed(1),'sizes KB',sizes.map(s=>Math.round(s/1024)).join(' '));

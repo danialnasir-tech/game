@@ -614,7 +614,7 @@
   function careerHud(host) {
     host.insertAdjacentHTML('beforeend',
       '<div class="w-top"><div class="w-quest" id="w-quest"><span class="w-ch" id="w-ch"></span><div class="w-qrow"><i class="w-arrow" id="w-arrow" aria-hidden="true">➤</i><b id="w-qt"></b></div><div class="w-qrow2"><span class="w-qp" id="w-qp"></span><button class="w-go" data-wact="go" id="w-go">Go ▶</button></div></div>' +
-      '<div class="w-side"><div class="w-btns"><span class="w-pawns" id="w-pawns" title="Golden pawns found today"></span><button class="w-btn" data-wact="look" aria-label="Change your look">👕</button><button class="w-btn" data-wact="list" aria-label="List view">☰</button></div><canvas class="w-map" id="w-map" width="200" height="200" aria-label="Town map"></canvas></div></div>' +
+      '<div class="w-side"><div class="w-btns"><span class="w-pawns" id="w-pawns" title="Golden pawns found today"></span><button class="w-btn" data-wact="tour" aria-label="Town tour" title="Town tour">🧭</button><button class="w-btn" data-wact="look" aria-label="Change your look">👕</button><button class="w-btn" data-wact="list" aria-label="List view">☰</button></div><canvas class="w-map" id="w-map" width="200" height="200" aria-label="Town map"></canvas></div></div>' +
       '<div class="w-ptr" id="w-ptr" hidden><b id="w-ptr-t"></b><span>▼</span></div><div class="w-edge" id="w-edge" hidden>➤</div>' +
       '<div class="w-bubs" id="w-bubs"></div><div class="w-tut" id="w-tut" hidden></div>' +
       '<div class="w-card" id="w-card" hidden></div><div class="w-dlg" id="w-dlg" hidden></div><button class="w-near" id="w-near" hidden></button><div class="w-note" id="w-note" hidden></div>' +
@@ -810,8 +810,8 @@
   }
   // the nearest person you could talk to (for the E key and the "Talk" chip)
   function careerNearest() {
-    var p = CW.P.g.position, best = null, bd = 4.6;
-    CW.npcs.concat(CW.walkers).forEach(function (n) { if (!n.id) return; var d = Math.hypot(n.g.position.x - p.x, n.g.position.z - p.z); if (d < bd) { bd = d; best = n; } });
+    var p = CW.P.g.position, best = null, bd = S.careerSt.met ? 4.6 : 9, quest = CW.q && CW.q.target;
+    CW.npcs.concat(CW.walkers).forEach(function (n) { if (!n.id || (!S.careerSt.met && n.id !== 'leo')) return; var d = Math.hypot(n.g.position.x - p.x, n.g.position.z - p.z) - (n.id === quest ? 2.5 : 0) - (n.folk ? 0 : 0.8); if (d < bd) { bd = d; best = n; } }); // whoever your quest points at, and the town's named characters, win over a passer-by
     return best;
   }
   function careerFace(n) { var p = CW.P.g.position, q = n.g.position; n.g.rotation.y = Math.atan2(p.x - q.x, p.z - q.z); CW.P.g.rotation.y = Math.atan2(q.x - p.x, q.z - p.z); }
@@ -908,6 +908,7 @@
       if (a === 'lookset') careerLookSet(b.dataset.k, b.dataset.v);
       if (a === 'lookdone') careerWardrobe(false);
       if (a === 'list') { S.career = false; save(); go('path'); }
+      if (a === 'tour' && !W.cine && !W.mg && !W.ward) { if (W.talking) careerCloseTalk(); careerTour(); }
       if (a === 'vclose') careerVictoryDone();
     });
   }
@@ -1107,7 +1108,7 @@
       step: function (dt) {
         var s = shots[i]; if (!s) return; t += dt; var u = Math.min(1, t / s.dur), e = ease(u);
         this.cam.pos.copy(V(s.from)).lerp(V(s.to), e); this.cam.look.copy(V(s.lookFrom || s.look)).lerp(V(s.look), e);
-        if (s.title != null && this.ti !== i) { this.ti = i; var tt = $('#w-title'); tt.innerHTML = s.title; tt.classList.remove('in'); void tt.offsetWidth; tt.classList.add('in'); }
+        if (s.title != null && this.ti !== i) { this.ti = i; var tt = $('#w-title'); tt.innerHTML = s.title; tt.classList.remove('in'); void tt.offsetWidth; tt.classList.add('in'); if (s.say) Voice.say([WL(s.say)]); }
         if (s.each) s.each(u, dt);
         if (u >= 1) { if (s.end) s.end(); i++; t = 0; if (i >= shots.length) this.done(); }
       },
@@ -1115,7 +1116,29 @@
       skip: function () { this.done(); }
     };
   }
-  function careerIntro() {
+  // the first visit: a guided tour of everything the town offers, each stop with a caption and Leo's voice
+  function careerTour(first) {
+    var W = CW, leo = W.npcs[0], P0 = W.P.g.position, shots = [], V3 = function (x, y, z) { return [x, y, z]; };
+    var cap = function (key, small, big) { var t = CAREER_TEXT['tour_' + key]; return { title: '<small>' + small + '</small>' + big + '<span class="w-cap">' + esc(t) + '</span>', say: 'tour_' + key, dur: Math.max(3.6, t.length / 14) }; };
+    var at = function (x, z, o) { // look at a spot from the side it faces (a building's door side, or from the plaza for people)
+      o = o || {}; var dx = o.fx != null ? o.fx : -x, dz = o.fz != null ? o.fz : -z, l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; var d = o.d || 11, h = o.h || 6.5, sx = -dz, sz = dx, sw = o.sw || 3;
+      return { from: V3(x + dx * d - sx * sw, h + 1.5, z + dz * d - sz * sw), to: V3(x + dx * d + sx * sw, h, z + dz * d + sz * sw), look: V3(x, o.ly || 2.5, z) };
+    };
+    var add = function (pos, c) { shots.push(Object.assign(pos, c)); };
+    add({ from: [60, 40, 60], to: [-30, 30, 50], look: [0, 0, -6] }, cap('town', 'Welcome to', 'ASCENT TOWN'));
+    var locKey = { academy: 'LEO\'S ACADEMY', tower: 'PUZZLE TOWER', library: 'OPENING LIBRARY', arena: 'THE ARENA', park: 'THE PARK', home: 'YOUR HOME' };
+    CAREER_LOCS.forEach(function (L) { add(at(L.x, L.z, { fx: L.door[0] - L.x, fz: L.door[1] - L.z, d: L.r + 10, h: 7.5, ly: 3 }), cap(L.id, L.icon + ' ' + L.sub, locKey[L.id] || L.name.toUpperCase())); });
+    var gia = W.npcs.filter(function (n) { return n.id === 'gia'; })[0], tia = W.npcs.filter(function (n) { return n.id === 'tia'; })[0];
+    if (gia) add(at(gia.g.position.x, gia.g.position.z, { d: 9, h: 6, ly: 1.2, sw: 1 }), cap('gia', '🎲 Plaza games', 'GIA'));
+    if (tia) add(at(tia.g.position.x, tia.g.position.z, { d: 7, h: 4.6, ly: 1.4, sw: 1.5 }), cap('tia', '✂️ Style Shop', 'TIA'));
+    var wk = W.walkers[0]; if (wk) { wk.wait = Math.max(wk.wait, 20); add(at(wk.g.position.x, wk.g.position.z, { d: 6.5, h: 5, ly: 1.2, sw: 1.2 }), cap('people', '💬 ' + (W.mob ? 'Tap anyone' : 'Press E'), 'TALK TO EVERYONE')); }
+    var pw = W.pawns.filter(function (g) { return !g.got; })[0]; if (pw) { var pp = pw.m.getWorldPosition(new THREE.Vector3()); add(at(pp.x, pp.z, { d: 5, h: 2.6, ly: 0.6 }), cap('pawns', '♟ Daily hunt', 'GOLDEN PAWNS')); }
+    add({ from: [9, 4, -11], to: [6.6, 2.6, -13.4], lookFrom: [2, 2, -18], look: [3.6, 1.8, -17.4], each: function () { leo.act = 'wave'; leo.g.rotation.y = 0.9; } }, cap('end', 'Your coach', 'COACH LEO'));
+    shots.push({ from: [P0.x, 9, P0.z + 14], to: [P0.x, W.camH, P0.z + W.camDist], look: [P0.x, 1.5, P0.z - 4], dur: 1.6, title: '' });
+    careerCine(shots, { done: function () { leo.act = null; leo.g.rotation.y = leo.home; if (first) { S.careerSt.intro = 1; save(); } careerRefresh(); if (first) careerAfterIntro(); } });
+  }
+  function careerIntro() { careerTour(true); }
+  function careerIntroOld() {
     var W = CW, leo = W.npcs[0], P0 = W.P.g.position;
     careerCine([
       { from: [60, 40, 60], to: [-30, 30, 50], look: [0, 0, -6], dur: 3, title: '<small>Welcome to</small>ASCENT TOWN' },

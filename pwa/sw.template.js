@@ -18,10 +18,16 @@ self.addEventListener('fetch', function (e) {
       .catch(function () { return caches.match('index.html', { ignoreSearch: true }); }));
     return;
   }
-  // voice packs and the 3D engine never change: keep them once downloaded
+  // voice packs are fetched with a content fingerprint, and the 3D engine never changes: keep them once downloaded
   if (/voice-pack-\d+\.mp3$/.test(url.pathname) || /cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.(googleapis|gstatic)\.com/.test(url.host)) {
     e.respondWith(caches.open('ca-media').then(function (c) {
-      return c.match(req).then(function (hit) { return hit || fetch(req).then(function (r) { if (r.ok || r.type === 'opaque') c.put(req, r.clone()); return r; }); });
+      return c.match(req).then(function (hit) { return hit || fetch(req).then(function (r) {
+        if (r.ok || r.type === 'opaque') {
+          c.put(req, r.clone());
+          // a pack is fetched with its content fingerprint (?v=...): drop older copies of the same pack
+          if (/voice-pack-\d+\.mp3$/.test(url.pathname)) c.keys().then(function (ks) { ks.forEach(function (k) { var u = new URL(k.url); if (u.pathname === url.pathname && u.search !== url.search) c.delete(k); }); });
+        }
+        return r; }); });
     }));
     return;
   }

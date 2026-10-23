@@ -1,6 +1,18 @@
 // Career mode: what Coach Leo and the townsfolk say in Ascent Town. Shared with the voice kit (ids W-...).
 var CAREER_TEXT = {
   welcome: 'Welcome to Ascent Town! I am Coach Leo. Every building here trains one part of your game. Learn at my Academy, then prove it against the rivals at the Arena. Beat them all, and the town is yours.',
+  tour_town: 'Welcome to Ascent Town! Every building here trains one part of your chess. Let me show you around.',
+  tour_academy: 'My Academy. Lessons from your very first move to master tricks, with challenges after each one. Your journey starts here.',
+  tour_tower: 'The Puzzle Tower. Puzzles at your level, and a brand new daily puzzle every day.',
+  tour_library: 'The Opening Library. Learn real openings move by move, then drill them until you know them by heart.',
+  tour_arena: 'The Arena. A rival waits here at the end of every chapter. Beat them to clear the chapter.',
+  tour_park: 'The Park. Play full games against me, with a clock if you like, or with a friend on the same phone.',
+  tour_home: 'Your Home. Your progress, your rating chart and your 30-day plan live here.',
+  tour_gia: 'Gia runs quick board games on the plaza. They train your eyes for the board.',
+  tour_tia: 'Tia runs the Style Shop. She changes your look whenever you want.',
+  tour_people: 'Everyone in town is happy to talk. Walk up to anyone and tap them, or press E on a computer, and chat.',
+  tour_pawns: 'Five golden pawns are hidden around town every day. Find them for bonus points.',
+  tour_end: 'That is the town! Now come and see me. Your first step is waiting.',
   welcome_back: 'Good to see you back in town. Your next step is marked with the gold star. Follow it.',
   lesson_go: 'Your next lesson is ready at the Academy. Step inside when you are.',
   boss_ready: 'You have learned enough for this chapter. Your rival is waiting at the Arena. Go and beat them.',
