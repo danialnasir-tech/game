@@ -434,3 +434,6 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   diagonally). Then the notation steps as before. INTERACT['l-pieces'] re-indexed (0, 7, 8).
 - Phones: `shortText` keeps the last sentence of a board task on screen (highlighted) so "what to do" is never behind
   "More". The typewriter leaves buttons whole. The first-time "Tap a piece…" hint now goes away after 5 s or on Next.
+- Voice round (Oct 23): the user's recordings added 798 clips (3064 in the app now). 430 lines are still missing
+  (about 31,000 characters: mostly puzzle explanations, feedback pools, town lines, practice-game intros, the guided
+  and clock lines); the kit in out/chess-voice-kit-v4.zip holds exactly those. Website folder is now ~56 MB.
