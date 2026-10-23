@@ -245,7 +245,7 @@
       return vs[0] || null;
     }
     try { if (window.speechSynthesis) { synthVoice = pickSynth(); speechSynthesis.onvoiceschanged = function () { synthVoice = pickSynth(); }; } } catch (e) { }
-    function stop() { tok++; busy = false; document.body.classList.remove('speaking'); if (audio) { audio.pause(); audio = null; } try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } }
+    function stop() { tok++; busy = false; pend = null; document.body.classList.remove('speaking'); if (audio) { audio.pause(); audio = null; } try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } }
     function synth(text) {
       if (!window.speechSynthesis || !text) return Promise.resolve();
       return new Promise(function (res) {
@@ -307,11 +307,14 @@
       var seen = {};
       ids.forEach(function (id) { var e = VOICE_FILES[id]; if (e && !seen[e[0]]) { seen[e[0]] = 1; loadPack(e[0]); } });
     }
-    var busy = false;
+    var busy = false, pend = null, spokeIn = null;
     function say(parts, soft) {
       parts = (parts || []).filter(Boolean);
       if (!parts.length) return;
       if (soft && (busy || Bubble.busy())) return;
+      // Leo never talks over himself: on the same screen a new line waits until the current one ends (only the newest
+      // waits, and only for a few seconds). A new screen stops the old line at once.
+      if (busy && S.voice && spokeIn === current) { pend = { parts: parts, at: Date.now(), mode: current }; return; }
       var hasClips = Object.keys(VOICE_FILES).length > 0;
       var spoken = parts.filter(function (p) { return typeof p === 'string' || !p.id || VOICE_FILES[p.id] || !hasClips; });
       var words = spoken.map(function (p) { return typeof p === 'string' ? p : p.text; }).join(' ').replace(/\s+([.,!?])(?!\.)/g, '$1')
@@ -319,7 +322,7 @@
       Bubble.show(words, S.voice ? null : 3200 + words.length * 45);
       parts.forEach(function (p) { var t = typeof p === 'string' ? p : p.text; if (t && t.length > 24) Typer.follow(t, S.voice && spoken.indexOf(p) >= 0); });
       if (!S.voice) return;
-      stop(); last = parts; busy = true; document.body.classList.add('speaking'); var my = tok, seq = Promise.resolve();
+      stop(); last = parts; busy = true; spokeIn = current; document.body.classList.add('speaking'); var my = tok, seq = Promise.resolve();
       parts.forEach(function (p) {
         seq = seq.then(function () {
           if (my !== tok || !p) return;
@@ -329,7 +332,7 @@
           return synth(p.text);
         });
       });
-      seq.then(function () { if (my === tok) { busy = false; document.body.classList.remove('speaking'); Bubble.hideSoon(); } });
+      seq.then(function () { if (my === tok) { busy = false; document.body.classList.remove('speaking'); var p = pend; pend = null; if (p && p.mode === current && Date.now() - p.at < 9000) setTimeout(function () { if (!busy) say(p.parts); }, 250); else Bubble.hideSoon(); } });
     }
     return { say: say, stop: stop, prefetch: prefetch, preloadStart: preloadStart, replay: function () { if (last) say(last); }, hasClips: function () { return Object.keys(VOICE_FILES).length > 0; } };
   })();
@@ -1203,7 +1206,7 @@
     var g = new Game(step.fen), i = 0;
     (function next() {
       if (!isLive()) return;
-      if (i >= step.demo.length) { setTimeout(function () { if (!isLive()) return; B3.setPosition(step.fen); B3.arrows(step.arrows || []); showVisuals(step); }, 1600); return; }
+      if (i >= step.demo.length) { if (step.keep) return; setTimeout(function () { if (!isLive()) return; B3.setPosition(step.fen); B3.arrows(step.arrows || []); showVisuals(step); }, 1600); return; }
       var u = step.demo[i++], m = g.move(uciObj(u)); if (!m) return;
       B3.arrows([[m.from, m.to, 'y']]); B3.markers('moves', []);
       B3.animateMove(m, g.fen()).then(function () { setTimeout(next, 900); });
@@ -1864,12 +1867,31 @@
     enter: function (id) {
       document.body.classList.remove('ls-done');
       LS = { id: id, L: LESSONS[id], i: 0, mistakes: 0, stepDone: false, combo: 0, score: 0, mood: 'think' }; LS.final = lessonFinal(LS.L);
-      Voice.prefetch(['L-' + id + '-0', 'V-correct-0']);
-      if (phoneFit.pre) phoneFit.pre(); // phones: one board size for every step, chosen up front
+      LS.brief = typeof BRIEFS !== 'undefined' && BRIEFS[id] ? 0 : null; // Leo's briefing comes before the puzzles
+      Voice.prefetch(['L-' + id + '-0', 'V-correct-0', 'B-' + id + '-0']);
+      if (phoneFit.pre) { LS.preFit = true; try { phoneFit.pre(); } finally { LS.preFit = false; } } // phones: one board size for every step, chosen up front
+      if (LS.brief != null) { MODES.lesson.renderBrief(); MODES.lesson.loadBrief(); return; }
       MODES.lesson.render();
       MODES.lesson.loadStep();
     },
+    // Leo's briefing: how players at this level lose to the idea (a real position plays out), then Leo's trick
+    renderBrief: function () {
+      var L = LS.L, st = STAGES[stageOf(LS.id)], bs = BRIEFS[LS.id], k = LS.brief, sl = bs[k], last = k === bs.length - 1;
+      document.body.dataset.passive = '1';
+      setPanel('<button class="back" data-act="goPath">← Path</button>' +
+        '<div class="eyebrow">' + esc(st.name) + ' · ' + st.band + '</div><h1 class="h1">' + esc(L.title) + '</h1>' +
+        '<div class="coach-card brief"><div class="coach-tag">🎓 Leo\'s briefing · ' + (k + 1) + '/' + bs.length + '</div><p class="brief-t">' + esc(sl.title) + '</p><p class="coach-text">' + esc(sl.text) + '</p></div>' +
+        '<div class="actions">' + (sl.demo ? '<button class="btn ghost" data-act="briefAgain">▶ Watch again</button>' : '<button class="btn ghost" data-act="briefSkip">Skip</button>') + '<button class="btn primary" data-act="briefNext">' + (last ? 'Start the lesson ▶' : 'Next') + '</button></div>');
+    },
+    loadBrief: function () {
+      var sl = BRIEFS[LS.id][LS.brief], at = LS.brief, tok = LS.demoTok = (LS.demoTok || 0) + 1;
+      setupBoard(sl.fen, { orient: sl.orient || new Game(sl.fen).turn() }); IX.enabled = false; IX.tap = null;
+      showVisuals(sl);
+      Voice.say([{ id: 'B-' + LS.id + '-' + at, text: sl.text }]);
+      if (sl.demo) setTimeout(function () { playDemo(Object.assign({ keep: true }, sl), function () { return current === MODES.lesson && LS && LS.brief === at && LS.demoTok === tok; }); }, 2400);
+    },
     render: function () {
+      if (LS.brief != null && !LS.preFit) return MODES.lesson.renderBrief();
       var L = LS.L, st = STAGES[stageOf(LS.id)], step = L.steps[LS.i];
       var dots = L.steps.map(function (s, i) { return '<span class="dot ' + (i < LS.i ? 'done' : i === LS.i ? 'cur' : '') + '"></span>'; }).join('');
       if (LS.quizI !== LS.i) { LS.quizI = LS.i; LS.quiz = QUIZ_OF(step); if (LS.quiz) { LS.quiz.found = []; LS.stepDone = false; } }
@@ -2144,6 +2166,10 @@
       MODES.lesson.render(); setStatus('<strong>Not ' + 'AB'[k] + '.</strong> ' + esc(o.why) + ' Pick the other one.', 'bad');
     }
   };
+  function briefDone() { if (!LS || LS.brief == null) return; S.briefSeen = S.briefSeen || {}; S.briefSeen[LS.id] = 1; save(); LS.brief = null; Voice.stop(); MODES.lesson.render(); MODES.lesson.loadStep(); }
+  ACT.briefNext = function () { if (!LS || LS.brief == null) return; if (LS.brief < BRIEFS[LS.id].length - 1) { LS.brief++; MODES.lesson.renderBrief(); MODES.lesson.loadBrief(); } else briefDone(); };
+  ACT.briefSkip = briefDone;
+  ACT.briefAgain = function () { if (!LS || LS.brief == null) return; MODES.lesson.loadBrief(); };
   ACT.demoAgain = function () { var step = LS && LS.L.steps[LS.i]; if (!step || !step.demo) return; var tok = LS.demoTok = (LS.demoTok || 0) + 1, at = LS.i; B3.setPosition(step.fen); showVisuals(step); Voice.say([V('demo_watch')], true); setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === at && LS.demoTok === tok; }); }, 700); };
   ACT.resetStep = function () { if (LS) { LS.lineTok = (LS.lineTok || 0) + 1; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); } };
   function lessonMins(L) { return L.minutes || Math.max(2, Math.round(L.steps.length * 1.2)); }
@@ -6163,6 +6189,6 @@
       } else { SP.set(100, 'Ready'); setTimeout(function () { SP.done(!S.onboarded, function () { Sound.unlock(); welcome(); }); }, 500); }
     }
   }
-  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { CW: CW, Stage: Stage, walk: function (id) { return careerWalkTo(id); }, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
+  window.ChessAscent = { state: function () { return S; }, go: go, ACT: ACT, IX: IX, Game: Game, click: onBoardClick, drop: dragDrop, dbg: function () { return { Voice: Voice, CW: CW, Stage: Stage, walk: function (id) { return careerWalkTo(id); }, mgTap: function (p) { return careerMgTap(p); }, fight: function (id) { return careerFight(id); }, MC: MC, MZ: MZ, SCAN: SCAN, SP: SP, card: function () { return SHARE_NOW && SHARE_NOW.card ? shareCard(SHARE_NOW.card) : Promise.resolve(null); }, share: function () { return SHARE_NOW; }, DR: DR, LS: LS, PZ: PZ, PL: PL, OD: OD, ST: ST, VG: VG, RV: RV, E: LOCAL_ENGINE }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

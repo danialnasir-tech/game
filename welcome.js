@@ -40,6 +40,11 @@
     api.clearFx = function () { fx.innerHTML = ''; svg.innerHTML = ''; };
     api.tap = function (fn) { onTap = fn; host.classList.toggle('live', !!fn); };
     grid.addEventListener('click', function (e) { var d = e.target.closest('.mb-sq'); if (d && onTap) onTap(d.dataset.sq); });
+    // dragging a piece works too: press on one square, let go on another = tap both
+    function sqAt(e) { var r = grid.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * 8), y = Math.floor((e.clientY - r.top) / r.height * 8); return x >= 0 && x < 8 && y >= 0 && y < 8 ? 'abcdefgh'[x] + (8 - y) : null; }
+    var downSq = null;
+    host.addEventListener('pointerdown', function (e) { downSq = onTap ? sqAt(e) : null; });
+    host.addEventListener('pointerup', function (e) { var up = sqAt(e), d = downSq; downSq = null; if (onTap && d && up && up !== d) { onTap(d); if (onTap) onTap(up); } });
     return api;
   }
   // play a list of steps on a mini board: [from, to] moves, or functions; loops if asked
@@ -278,7 +283,9 @@
     function loop() {
       if (!X || !X.alive) return; X.raf = requestAnimationFrame(loop);
       var t = now(), rdt = Math.min(0.5, t - (X.last || t)), dt = Math.min(0.1, rdt); X.last = t;
-      X.tw = X.tw.filter(function (w) { if (t < w.t0) return true; var k = Math.min(1, (t - w.t0) / w.dur); w.fn(k); if (k >= 1) { if (w.done) w.done(); return false; } return true; });
+      var tw = X.tw; X.tw = []; // a tween's done() may start a new tween (a captured piece flying off): keep those
+      tw = tw.filter(function (w) { if (t < w.t0) return true; var k = Math.min(1, (t - w.t0) / w.dur); w.fn(k); if (k >= 1) { if (w.done) w.done(); return false; } return true; });
+      X.tw = tw.concat(X.tw);
       X.fx = X.fx.filter(function (o) {
         var u = o.userData, a = t - u.t0;
         if (u.burst) { var p = o.geometry.attributes.position.array; for (var i = 0; i < p.length; i += 3) { p[i] += u.vel[i] * dt; p[i + 1] += u.vel[i + 1] * dt; p[i + 2] += u.vel[i + 2] * dt; u.vel[i + 1] -= 9 * dt; } o.geometry.attributes.position.needsUpdate = true; o.material.opacity = Math.max(0, 1 - a / 1.2); if (a > 1.2) { X.sc.remove(o); o.geometry.dispose(); o.material.dispose(); return false; } return true; }
@@ -323,6 +330,7 @@
         return true;
       },
       skipIntro: function () { if (X && X.endIntro) X.endIntro(); },
+      _pieces: function () { if (!X) return null; var on = 0; X.sc.traverse(function (o) { if (o.userData && o.userData.t && o.userData.c && o.parent === X.sc) on++; }); return { board: Object.keys(X.at).length, inScene: on, extra: X.extra.length }; }, // for tests
       view: function (n) { if (X) setView(n); },
       // the famous finish, with captions; loops while the first screen is up
       demo: function (cap) {

@@ -437,3 +437,17 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
 - Voice round (Oct 23): the user's recordings added 798 clips (3064 in the app now). 430 lines are still missing
   (about 31,000 characters: mostly puzzle explanations, feedback pools, town lines, practice-game intros, the guided
   and clock lines); the kit in out/chess-voice-kit-v4.zip holds exactly those. Website folder is now ~56 MB.
+
+## Leo's briefing, intro fixes, Leo never talks over himself
+- briefs.js (built and checked by tests/briefs-build.js): before every lesson from 400 up (29 lessons), two slides come
+  first: "How games are lost at this level" (a real position plays out on the board: a hand-written line or a pool
+  puzzle the lesson and drills do not use) and "Leo's trick" (what to look for, and what to do against players at
+  that level). Then the lesson's own steps. Kept outside the steps so step indices (voice ids, INTERACT) do not move.
+  Voice ids B-<lesson>-<k>. `LS.brief`, `renderBrief`, `loadBrief`, `ACT.briefNext/Skip/Again`. Test scripts skip it
+  with `ACT.briefSkip()`.
+- Intro 3D stage: a tween started from another tween's done() was lost (the filter loop replaced the array), so a
+  captured piece never flew off and stayed under the capturing piece. Fixed in the Stage tick. Stage._pieces() is a test
+  hook.
+- Intro try-it board: dragging a piece works as well as tapping (pointerdown square + pointerup square).
+- Voice: on the same screen a new line waits for the current one to finish (only the newest waits, max 9 s); a new
+  screen still stops the old line at once.
