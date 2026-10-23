@@ -426,3 +426,11 @@ Publish `dist/chess-ascent.html` as an artifact and pass all 25 packs as support
   text box; WASD never moves you while typing; Esc closes. Walkers stop while you talk to them.
 - The easy coach blundered too often: Novice now misses your threat 8% of moves (was 20%), Club 3% (was 7%), and the
   town rivals never give pieces away on purpose. Practice games re-verified: 46.
+
+## Meet the Pieces: how each piece moves, then capture with it
+- l-pieces no longer asks "tap the white bishop". After the starting position, each piece gets one move step: its card
+  (name, letter, worth), dots showing where it can go, one sentence on how it moves, and a capture to make (king takes
+  a pawn, queen a knight across the board, rook a bishop, bishop a rook, knight jumps over pawns, pawn takes
+  diagonally). Then the notation steps as before. INTERACT['l-pieces'] re-indexed (0, 7, 8).
+- Phones: `shortText` keeps the last sentence of a board task on screen (highlighted) so "what to do" is never behind
+  "More". The typewriter leaves buttons whole. The first-time "Tap a piece…" hint now goes away after 5 s or on Next.

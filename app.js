@@ -189,7 +189,7 @@
     function typeIn(el, ms) {
       if (!el || el._tw) return;
       var parts = [], total = 0, walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, list = [];
-      while ((n = walk.nextNode())) if (n.nodeValue.trim()) list.push(n);
+      while ((n = walk.nextNode())) if (n.nodeValue.trim() && !(n.parentNode.closest && n.parentNode.closest('button'))) list.push(n); // buttons appear whole
       list.forEach(function (tn) {
         var on = document.createElement('span'), off = document.createElement('span');
         off.className = 'tw-off'; off.textContent = tn.nodeValue; on.className = 'tw-on';
@@ -1851,10 +1851,12 @@
     t = String(t || ''); if (t.length <= 95) return esc(t);
     var parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t], lead = '', k = 0;
     while (k < parts.length && lead.length < 45) { lead += parts[k]; k++; } // one or two short sentences up front
+    // a board task keeps its last sentence (what to do) on screen: only the middle waits behind "More"
+    var st = LS && LS.L && LS.L.steps[i], task = st && st.t !== 'read' && k < parts.length ? parts.pop() : '';
     var rest = parts.slice(k).join('');
     if (!rest.trim() || rest.length < 25) return esc(t);
     var open = LS && LS.more === i;
-    return esc(lead.trim()) + ' <span class="ct-more' + (open ? ' open' : '') + '">' + esc(rest.trim()) + '</span><button class="ct-btn' + (open ? ' open' : '') + '" data-act="moreText" data-i="' + i + '">More ▸</button>';
+    return esc(lead.trim()) + ' <span class="ct-more' + (open ? ' open' : '') + '">' + esc(rest.trim()) + '</span><button class="ct-btn' + (open ? ' open' : '') + '" data-act="moreText" data-i="' + i + '">More ▸</button>' + (task ? ' <b class="ct-task">' + esc(task.trim()) + '</b>' : '');
   }
   ACT.moreText = function (d) { if (!LS) return; LS.more = +d.i; var m = $('.ct-more'), b = $('.ct-btn'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
   MODES.lesson = {
@@ -1937,8 +1939,8 @@
       var g = setupBoard(step.fen, { drop: LS.i === 0 || step.t === 'read', orient: step.t === 'read' && stageOf(LS.id) === 0 ? 'w' : new Game(step.fen).turn() });
       showVisuals(step);
       if (step.t === 'read' && (step.ask || step.tap)) { LS.stepDone = false; LS.ak = { found: [], done: false, miss: 0 }; if (step.tap) IX.tap = MODES.lesson.askTap; MODES.lesson.render();
-        setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) { if (step.ask) guideOnce('ask', '.ask-opts', 'Pick an answer'); else guideOnce('tap', '.b2-board,#three canvas', 'Tap on the board'); } }, 1600); }
-      if (step.t === 'move') setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) guideOnce('move', '.b2-board,#three canvas', 'Tap a piece, then where it goes'); }, 1800);
+        setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) { if (step.ask) guideOnce('ask', '.ask-opts', 'Pick an answer'); else guideOnce('tap', '.b2-board,#three canvas', 'Tap on the board', { ms: 5000 }); } }, 1600); }
+      if (step.t === 'move') setTimeout(function () { if (current === MODES.lesson && LS.L.steps[LS.i] === step) guideOnce('move', '.b2-board,#three canvas', 'Tap a piece, then where it goes', { ms: 5000 }); }, 1800);
       if (step.demo) { var dTok = LS.demoTok = (LS.demoTok || 0) + 1, dAt = LS.i; setTimeout(function () { playDemo(step, function () { return current === MODES.lesson && LS && LS.i === dAt && LS.demoTok === dTok; }); }, step.demoDelay || 2600); }
       var Q = LS.quizI === LS.i && LS.quiz;
       if (Q && !Q.done) {
@@ -2054,6 +2056,7 @@
     leave: function () { IX.collect = null; document.body.classList.remove('ls-done'); }
   };
   ACT.nextStep = function () {
+    if (typeof Guide !== 'undefined') Guide.hide();
     if (!LS) return;
     LS.lineTok = (LS.lineTok || 0) + 1;
     if (LS.i < LS.L.steps.length - 1) { LS.i++; LS.stepDone = LS.L.steps[LS.i].t === 'read'; MODES.lesson.render(); MODES.lesson.loadStep(); return; }
